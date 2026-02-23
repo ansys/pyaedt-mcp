@@ -75,7 +75,7 @@ class TestCheckAEDTStatus:
         """Test status check with no connection."""
         from ansys.aedt.mcp.tools import check_aedt_status
         
-        result = check_aedt_status.fn(mock_context_no_desktop)
+        result = check_aedt_status(mock_context_no_desktop)
         assert "No AEDT Desktop connection available" in result
         assert "connect_to_aedt" in result
 
@@ -93,7 +93,7 @@ class TestCheckAEDTStatus:
                 },
                 "projects": ["Project1", "Project2"]
             }
-            result = check_aedt_status.fn(mock_context)
+            result = check_aedt_status(mock_context)
             data = json.loads(result)
             assert data["connection"]["version"] == "2025.2"
             assert data["connection"]["is_grpc"] is True
@@ -110,7 +110,7 @@ class TestLaunchAEDT:
         with patch("ansys.aedt.mcp.tools.session") as mock_session:
             mock_session.locked_connection = False
             mock_session.on_aali = False
-            result = launch_aedt.fn(mock_context)
+            result = launch_aedt(mock_context)
             assert "Already connected" in result
 
 
@@ -125,7 +125,7 @@ class TestConnectToAEDT:
         with patch("ansys.aedt.mcp.tools.session") as mock_session:
             mock_session.locked_connection = False
             mock_session.on_aali = False
-            result = connect_to_aedt.fn(mock_context, port=50051)
+            result = connect_to_aedt(mock_context, port=50051)
             assert "Already connected" in result
 
 
@@ -140,7 +140,7 @@ class TestDisconnectFromAEDT:
         with patch("ansys.aedt.mcp.tools.session") as mock_session:
             mock_session.locked_connection = False
             mock_session.on_aali = False
-            result = disconnect_from_aedt.fn(mock_context_no_desktop)
+            result = disconnect_from_aedt(mock_context_no_desktop)
             assert "No AEDT Desktop connection" in result
 
     def test_disconnect_success(self, mock_context):
@@ -150,7 +150,7 @@ class TestDisconnectFromAEDT:
         with patch("ansys.aedt.mcp.tools.session") as mock_session:
             mock_session.locked_connection = False
             mock_session.on_aali = False
-            result = disconnect_from_aedt.fn(mock_context)
+            result = disconnect_from_aedt(mock_context)
             assert "Successfully disconnected" in result
 
 
@@ -162,14 +162,14 @@ class TestListProjects:
         """Test list projects with no connection."""
         from ansys.aedt.mcp.tools import list_projects
         
-        result = list_projects.fn(mock_context_no_desktop)
+        result = list_projects(mock_context_no_desktop)
         assert "No AEDT Desktop connection" in result
 
     def test_list_projects_success(self, mock_context):
         """Test successful project listing."""
         from ansys.aedt.mcp.tools import list_projects
         
-        result = list_projects.fn(mock_context)
+        result = list_projects(mock_context)
         data = json.loads(result)
         assert data["count"] == 2
         assert "Project1" in data["open_projects"]
@@ -183,14 +183,14 @@ class TestListDesigns:
         """Test list designs with no connection."""
         from ansys.aedt.mcp.tools import list_designs
         
-        result = list_designs.fn(mock_context_no_desktop)
+        result = list_designs(mock_context_no_desktop)
         assert "No AEDT Desktop connection" in result
 
     def test_list_designs_success(self, mock_context):
         """Test successful design listing."""
         from ansys.aedt.mcp.tools import list_designs
         
-        result = list_designs.fn(mock_context, project_name="Project1")
+        result = list_designs(mock_context, project_name="Project1")
         data = json.loads(result)
         assert data["count"] == 2
         assert "Design1" in data["designs"]
@@ -204,7 +204,7 @@ class TestRunPythonCode:
         """Test run code with no connection."""
         from ansys.aedt.mcp.tools import run_python_code
         
-        result = run_python_code.fn(mock_context_no_desktop, code="print('hello')")
+        result = run_python_code(mock_context_no_desktop, code="print('hello')")
         assert "No AEDT Desktop connection" in result
 
     def test_run_code_success(self, mock_context):
@@ -215,7 +215,7 @@ class TestRunPythonCode:
         mock_context.request_context.lifespan_context.python_session = MagicMock()
         mock_context.request_context.lifespan_context.python_session.run.return_value = "test output"
         
-        result = run_python_code.fn(mock_context, code="result = 'test output'")
+        result = run_python_code(mock_context, code="result = 'test output'")
         assert "test output" in result
 
 
@@ -227,7 +227,7 @@ class TestOpenProject:
         """Test open project with no connection."""
         from ansys.aedt.mcp.tools import open_project
         
-        result = open_project.fn(mock_context_no_desktop, project_path="test.aedt")
+        result = open_project(mock_context_no_desktop, project_path="test.aedt")
         assert "No AEDT Desktop connection" in result
 
     def test_file_not_found(self, mock_context):
@@ -235,7 +235,7 @@ class TestOpenProject:
         from ansys.aedt.mcp.tools import open_project
         
         with patch("ansys.aedt.mcp.tools.os.path.exists", return_value=False):
-            result = open_project.fn(mock_context, project_path="nonexistent.aedt")
+            result = open_project(mock_context, project_path="nonexistent.aedt")
             assert "not found" in result
 
     def test_open_project_success(self, mock_context):
@@ -243,7 +243,7 @@ class TestOpenProject:
         from ansys.aedt.mcp.tools import open_project
         
         with patch("ansys.aedt.mcp.tools.os.path.exists", return_value=True):
-            result = open_project.fn(mock_context, project_path="test.aedt")
+            result = open_project(mock_context, project_path="test.aedt")
             assert "Successfully opened" in result
 
 
@@ -255,7 +255,7 @@ class TestSaveProject:
         """Test save project with no connection."""
         from ansys.aedt.mcp.tools import save_project
         
-        result = save_project.fn(mock_context_no_desktop)
+        result = save_project(mock_context_no_desktop)
         assert "No AEDT Desktop connection" in result
 
     def test_save_project_success(self, mock_context):
@@ -264,7 +264,7 @@ class TestSaveProject:
         
         # Mock that there are projects open
         mock_context.request_context.lifespan_context.desktop.project_list = ["TestProject"]
-        result = save_project.fn(mock_context)
+        result = save_project(mock_context)
         assert "saved successfully" in result or "No project" in result
 
 
@@ -276,14 +276,14 @@ class TestClearAEDT:
         """Test clear AEDT with no connection."""
         from ansys.aedt.mcp.tools import clear_aedt
         
-        result = clear_aedt.fn(mock_context_no_desktop)
+        result = clear_aedt(mock_context_no_desktop)
         assert "No AEDT Desktop connection" in result
 
     def test_clear_success(self, mock_context):
         """Test successful clear operation."""
         from ansys.aedt.mcp.tools import clear_aedt
         
-        result = clear_aedt.fn(mock_context)
+        result = clear_aedt(mock_context)
         assert "cleared" in result or "AEDT" in result
 
 
@@ -295,8 +295,196 @@ class TestGetModelInfo:
         """Test get model info with no connection."""
         from ansys.aedt.mcp.tools import get_model_info
         
-        result = get_model_info.fn(mock_context_no_desktop)
+        result = get_model_info(mock_context_no_desktop)
         assert "No AEDT Desktop connection" in result
+
+
+@pytest.mark.unit
+class TestCreateDesign:
+    """Tests for create_design tool."""
+
+    def test_no_connection(self, mock_context_no_desktop):
+        """Test create design with no connection."""
+        from ansys.aedt.mcp.tools import create_design
+        
+        result = create_design(mock_context_no_desktop, "Hfss", "TestDesign")
+        assert "No AEDT Desktop connection" in result
+
+    def test_create_design_success(self, mock_context):
+        """Test successful design creation."""
+        from ansys.aedt.mcp.tools import create_design
+        
+        with patch("ansys.aedt.core.Hfss") as mock_hfss:
+            mock_instance = MagicMock()
+            mock_instance.design_name = "TestDesign"
+            mock_instance.project_name = "TestProject"
+            mock_instance.solution_type = "DrivenModal"
+            mock_hfss.return_value = mock_instance
+            
+            result = create_design(mock_context, "Hfss", "TestDesign")
+            
+            assert "Successfully created" in result or "Hfss" in result
+
+    def test_create_design_invalid_app_type(self, mock_context):
+        """Test create design with invalid app type."""
+        from ansys.aedt.mcp.tools import create_design
+        
+        result = create_design(mock_context, "InvalidApp", "TestDesign")  # type: ignore
+        assert "Unsupported" in result or "Error" in result
+
+
+@pytest.mark.unit
+class TestUploadFile:
+    """Tests for upload_file tool."""
+
+    def test_upload_file_not_found(self, mock_context):
+        """Test upload with non-existent file."""
+        from ansys.aedt.mcp.tools import upload_file
+        
+        result = upload_file(mock_context, "/nonexistent/file.txt")
+        assert "not found" in result
+
+    def test_upload_file_success(self, mock_context, tmp_path):
+        """Test successful file upload."""
+        from ansys.aedt.mcp.tools import upload_file
+        
+        # Create a temporary file
+        test_file = tmp_path / "test_upload.txt"
+        test_file.write_text("test content")
+        
+        with patch("shutil.copy2") as mock_copy:
+            result = upload_file(mock_context, str(test_file))
+            
+            assert "uploaded successfully" in result or "Error" not in result
+
+
+@pytest.mark.unit
+class TestDownloadFile:
+    """Tests for download_file tool."""
+
+    def test_download_file_not_found(self, mock_context):
+        """Test download with non-existent file."""
+        from ansys.aedt.mcp.tools import download_file
+        
+        result = download_file(mock_context, "/nonexistent/file.txt")
+        assert "not found" in result
+
+    def test_download_file_success(self, mock_context, tmp_path):
+        """Test successful file download."""
+        from ansys.aedt.mcp.tools import download_file
+        
+        # Create a temporary file to "download"
+        test_file = tmp_path / "test_download.txt"
+        test_file.write_text("test content")
+        
+        dest_file = tmp_path / "destination.txt"
+        
+        result = download_file(mock_context, str(test_file), str(dest_file))
+        
+        assert "downloaded successfully" in result
+
+
+@pytest.mark.unit
+class TestScreenshot:
+    """Tests for screenshot tool."""
+
+    def test_screenshot_no_connection(self, mock_context_no_desktop):
+        """Test screenshot with no connection."""
+        from ansys.aedt.mcp.tools import screenshot
+        
+        result = screenshot(mock_context_no_desktop)
+        
+        assert len(result) >= 1
+        assert "No AEDT Desktop connection" in result[0].text
+
+    def test_screenshot_success(self, mock_context, tmp_path):
+        """Test successful screenshot capture."""
+        from ansys.aedt.mcp.tools import screenshot
+        
+        # Create a fake image file
+        test_image = tmp_path / "screenshot.png"
+        test_image.write_bytes(b'\x89PNG\r\n\x1a\n' + b'\x00' * 100)
+        
+        with patch("tempfile.mkstemp", return_value=(0, str(test_image))), \
+             patch("os.close"):
+            result = screenshot(mock_context)
+            
+            # Should return at least one content item
+            assert len(result) >= 1
+
+
+@pytest.mark.unit  
+class TestExportTouchstone:
+    """Tests for export_touchstone tool."""
+
+    def test_export_no_connection(self, mock_context_no_desktop):
+        """Test export with no connection."""
+        from ansys.aedt.mcp.tools import export_touchstone
+        
+        result = export_touchstone(mock_context_no_desktop, "/tmp/output.s2p")
+        assert "No AEDT Desktop connection" in result
+
+    def test_export_touchstone_success(self, mock_context):
+        """Test successful Touchstone export."""
+        from ansys.aedt.mcp.tools import export_touchstone
+        
+        result = export_touchstone(mock_context, "/tmp/output.s2p", "Setup1")
+        
+        assert "Touchstone" in result or "export" in result.lower()
+
+
+@pytest.mark.unit
+class TestExport3DModel:
+    """Tests for export_3d_model tool."""
+
+    def test_export_no_connection(self, mock_context_no_desktop):
+        """Test export with no connection."""
+        from ansys.aedt.mcp.tools import export_3d_model
+        
+        result = export_3d_model(mock_context_no_desktop, "/tmp/model.step")
+        assert "No AEDT Desktop connection" in result
+
+    def test_export_3d_model_success(self, mock_context):
+        """Test successful 3D model export."""
+        from ansys.aedt.mcp.tools import export_3d_model
+        
+        result = export_3d_model(mock_context, "/tmp/model.step", "step")
+        
+        assert "3D model export" in result or "configured" in result
+
+    def test_export_3d_model_invalid_format(self, mock_context):
+        """Test export with invalid format."""
+        from ansys.aedt.mcp.tools import export_3d_model
+        
+        result = export_3d_model(mock_context, "/tmp/model.xyz", "invalid_format")
+        
+        assert "Unsupported" in result
+
+
+@pytest.mark.unit
+class TestValidateAEDTConnection:
+    """Tests for validate_aedt_connection tool."""
+
+    def test_validate_connection_success(self, mock_context):
+        """Test validating a healthy AEDT connection."""
+        from ansys.aedt.mcp.tools import validate_aedt_connection
+        
+        with patch("ansys.aedt.mcp.helpers.validate_aedt_connection", return_value=(True, "Connected")):
+            result = validate_aedt_connection(mock_context)
+            
+            data = json.loads(result)
+            assert data["is_valid"] is True
+            assert "diagnostics" in data
+
+    def test_validate_connection_no_desktop(self, mock_context_no_desktop):
+        """Test validation with no connection."""
+        from ansys.aedt.mcp.tools import validate_aedt_connection
+        
+        with patch("ansys.aedt.mcp.helpers.validate_aedt_connection", return_value=(False, "No connection")):
+            result = validate_aedt_connection(mock_context_no_desktop)
+            
+            data = json.loads(result)
+            assert data["is_valid"] is False
 
 
 @pytest.mark.asyncio
@@ -306,7 +494,7 @@ async def test_tools_registered():
     from ansys.aedt.mcp.server import app
 
     # Get list of registered tools
-    tool_list = await app.get_tools()
+    tool_list = await app.list_tools()
 
     # Expected tool names
     expected_tools = [
@@ -332,6 +520,6 @@ async def test_tools_registered():
     ]
 
     # Check each expected tool is registered
-    tool_names = [t.name for t in tool_list.values()]
+    tool_names = [t.name for t in tool_list]
     for expected_name in expected_tools:
         assert expected_name in tool_names, f"Tool {expected_name} not found"

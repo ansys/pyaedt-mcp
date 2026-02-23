@@ -276,36 +276,55 @@ def launcher(argv: list[str] | None = None) -> None:
 
     args = parser.parse_args(argv)
 
-    # Update session context
-    session.connect_on_startup = args.connect_on_startup
-    session.on_aali = args.on_aali
+    # Parse CORS origins if provided
+    cors_origins = None
+    if args.cors_origins:
+        cors_origins = args.cors_origins
 
-    # Store CLI config on server for context initialization
-    app.server._cli_config = {
-        "transport_type": args.transport_type,
-        "aedt_machine": args.aedt_machine,
-        "aedt_port": args.aedt_port,
-        "aedt_version": args.aedt_version,
-        "non_graphical": args.non_graphical,
-        "connect_on_startup": args.connect_on_startup,
-        "http_host": args.http_host,
-        "http_port": args.http_port,
-        "cors_origins": args.cors_origins,
-    }
+    # Attach CLI config to server so lifespan can read it
+    session.connect_on_startup = bool(args.connect_on_startup)
+    session.on_aali = bool(args.on_aali)
 
-    logger.info(f"Starting PyAEDT MCP Server with transport: {args.transport_type}")
+    if session.connect_on_startup:
+        logger.info(
+            f"MCP will attempt to connect to AEDT at "
+            f"{args.aedt_machine}:{args.aedt_port} on startup. "
+            "The tools 'launch_aedt', 'connect_to_aedt' and "
+            "'disconnect_from_aedt' will be disabled."
+        )
+
+    setattr(
+        app,
+        "_cli_config",
+        {
+            "transport_type": args.transport_type,
+            "aedt_machine": args.aedt_machine,
+            "aedt_port": args.aedt_port,
+            "aedt_version": args.aedt_version,
+            "non_graphical": args.non_graphical,
+            "connect_on_startup": session.connect_on_startup,
+            "http_host": args.http_host,
+            "http_port": args.http_port,
+            "cors_origins": cors_origins,
+            "on_aali": session.on_aali,
+        },
+    )
+
+    # Run server using selected transport
+    import asyncio
 
     # Import tools and contexts to register them with the app
     if not session.on_aali:
         from ansys.aedt.mcp import contexts  # noqa: F401
     from ansys.aedt.mcp import tools  # noqa: F401
 
-    if args.transport_type == "http":
-        logger.info(f"HTTP server listening on {args.http_host}:{args.http_port}")
-        app.run(
-            transport="streamable-http",
-            host=args.http_host,
-            port=args.http_port,
+    if args.transport_type == "stdio":
+        asyncio.run(app.run_stdio_async())
+    elif args.transport_type == "http":
+        asyncio.run(
+            app.run_http_async(
+                transport="http",  # Use streamable HTTP (default)
+                host=args.http_host,
+                port=args.http_port,
+            )
         )
-    else:
-        app.run(transport="stdio")

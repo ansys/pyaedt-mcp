@@ -11,7 +11,7 @@ async def test_context_tools_registered():
     from ansys.aedt.mcp.server import app
 
     # Get list of registered tools
-    tool_list = await app.get_tools()
+    tool_list = await app.list_tools()
 
     # Expected tool names
     expected_tools = [
@@ -28,7 +28,7 @@ async def test_context_tools_registered():
     ]
 
     # Check each expected tool is registered
-    tool_names = [t.name for t in tool_list.values()]
+    tool_names = [t.name for t in tool_list]
     for expected_name in expected_tools:
         assert expected_name in tool_names, f"Tool {expected_name} not found"
 
@@ -40,7 +40,7 @@ class TestGuidelineTools:
         """Test workflow overview guideline."""
         from ansys.aedt.mcp import contexts
 
-        result = contexts.get_guidelines_for_workflow_overview.fn()
+        result = contexts.get_guidelines_for_workflow_overview()
         assert "AEDT Simulation Workflow" in result
         assert "PyAEDT Architecture" in result
         assert "HFSS" in result
@@ -50,7 +50,7 @@ class TestGuidelineTools:
         """Test HFSS guideline."""
         from ansys.aedt.mcp import contexts
 
-        result = contexts.get_guidelines_for_hfss.fn()
+        result = contexts.get_guidelines_for_hfss()
         assert "HFSS Simulation Guidelines" in result
         assert "Modal" in result
         assert "wave_port" in result
@@ -59,7 +59,7 @@ class TestGuidelineTools:
         """Test Maxwell guideline."""
         from ansys.aedt.mcp import contexts
 
-        result = contexts.get_guidelines_for_maxwell.fn()
+        result = contexts.get_guidelines_for_maxwell()
         assert "Maxwell" in result
         assert "Magnetostatic" in result
         assert "assign_winding" in result
@@ -68,7 +68,7 @@ class TestGuidelineTools:
         """Test Icepak guideline."""
         from ansys.aedt.mcp import contexts
 
-        result = contexts.get_guidelines_for_icepak.fn()
+        result = contexts.get_guidelines_for_icepak()
         assert "Icepak Thermal Simulation" in result
         assert "SteadyState" in result
         assert "assign_solid_block" in result
@@ -77,7 +77,7 @@ class TestGuidelineTools:
         """Test Circuit guideline."""
         from ansys.aedt.mcp import contexts
 
-        result = contexts.get_guidelines_for_circuit.fn()
+        result = contexts.get_guidelines_for_circuit()
         assert "Circuit Simulation Guidelines" in result
         assert "create_resistor" in result
         assert "Touchstone" in result
@@ -86,7 +86,7 @@ class TestGuidelineTools:
         """Test geometry guideline."""
         from ansys.aedt.mcp import contexts
 
-        result = contexts.get_guidelines_for_geometry.fn()
+        result = contexts.get_guidelines_for_geometry()
         assert "Geometry Creation Guidelines" in result
         assert "create_box" in result
         assert "Boolean Operations" in result
@@ -95,7 +95,7 @@ class TestGuidelineTools:
         """Test mesh guideline."""
         from ansys.aedt.mcp import contexts
 
-        result = contexts.get_guidelines_for_mesh.fn()
+        result = contexts.get_guidelines_for_mesh()
         assert "Mesh Setup Guidelines" in result
         assert "assign_length_mesh" in result
         assert "adaptive" in result.lower()
@@ -104,7 +104,7 @@ class TestGuidelineTools:
         """Test boundaries guideline."""
         from ansys.aedt.mcp import contexts
 
-        result = contexts.get_guidelines_for_boundaries.fn()
+        result = contexts.get_guidelines_for_boundaries()
         assert "Boundary and Excitation Guidelines" in result
         assert "radiation_boundary" in result.lower()
         assert "wave_port" in result
@@ -113,7 +113,7 @@ class TestGuidelineTools:
         """Test postprocessing guideline."""
         from ansys.aedt.mcp import contexts
 
-        result = contexts.get_guidelines_for_postprocessing.fn()
+        result = contexts.get_guidelines_for_postprocessing()
         assert "Postprocessing Guidelines" in result
         assert "create_report" in result
         assert "export_touchstone" in result
@@ -122,7 +122,7 @@ class TestGuidelineTools:
         """Test parametric guideline."""
         from ansys.aedt.mcp import contexts
 
-        result = contexts.get_guidelines_for_parametric.fn()
+        result = contexts.get_guidelines_for_parametric()
         assert "Parametric" in result
         assert "Optimization" in result
         assert "add_variable" in result

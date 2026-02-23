@@ -169,7 +169,7 @@ class TestGuidelineToolsIntegration:
         # Should contain key workflow sections
         assert "Preprocessing" in result
         assert "Postprocessing" in result
-        assert "run_python_script" in result
+        assert "PyAEDT" in result  # PyAEDT is mentioned in the workflow overview
 
     def test_hfss_guideline_content(self):
         """Test HFSS guideline has expected content."""

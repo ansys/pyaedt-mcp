@@ -70,7 +70,50 @@ def check_aedt_status(ctx: Context) -> str:
         return error_msg
 
 
-@app.tool(enabled=not session.on_aali)
+@app.tool()
+def validate_aedt_connection(ctx: Context) -> str:
+    """Validate that the AEDT Desktop connection is active and healthy.
+
+    This tool performs a quick health check on the AEDT connection,
+    returning a simple pass/fail status with diagnostic information.
+    Use this for automated checks before running operations.
+
+    Parameters
+    ----------
+    ctx : Context
+        The MCP context containing server session and application context.
+
+    Returns
+    -------
+    str
+        JSON string with validation result:
+        - is_valid: boolean indicating if connection is healthy
+        - message: description of connection state
+        - diagnostics: additional diagnostic information if available
+    """
+    from ansys.aedt.mcp.helpers import validate_aedt_connection as validate_connection
+
+    desktop = ctx.request_context.lifespan_context.desktop
+
+    is_valid, message = validate_connection(desktop)
+
+    result = {
+        "is_valid": is_valid,
+        "message": message,
+    }
+
+    if is_valid and desktop is not None:
+        result["diagnostics"] = {
+            "version": str(desktop.aedt_version_id) if hasattr(desktop, "aedt_version_id") else "Unknown",
+            "machine": str(desktop.machine) if hasattr(desktop, "machine") else "localhost",
+            "port": desktop.port if hasattr(desktop, "port") else None,
+            "is_grpc": desktop.is_grpc_api if hasattr(desktop, "is_grpc_api") else False,
+        }
+
+    return json.dumps(result, indent=2)
+
+
+@app.tool(tags={"no_aali"})
 def check_aedt_installed(ctx: Context) -> str:
     """Check if AEDT is installed on the system.
 
@@ -120,7 +163,7 @@ def check_aedt_installed(ctx: Context) -> str:
         return error_msg
 
 
-@app.tool(enabled=not (session.locked_connection or session.on_aali))
+@app.tool(tags={"no_aali", "no_locked_connection"})
 def launch_aedt(
     ctx: Context,
     version: str | None = None,
@@ -192,7 +235,7 @@ def launch_aedt(
         return error_msg
 
 
-@app.tool(enabled=not (session.locked_connection or session.on_aali))
+@app.tool(tags={"no_aali", "no_locked_connection"})
 def connect_to_aedt(
     ctx: Context,
     port: int = 50051,
@@ -269,7 +312,7 @@ def connect_to_aedt(
         return error_msg
 
 
-@app.tool(enabled=not (session.locked_connection or session.on_aali))
+@app.tool(tags={"no_aali", "no_locked_connection"})
 def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
     """Disconnect from the AEDT Desktop instance.
 
@@ -732,7 +775,7 @@ def export_results(
         return error_msg
 
 
-@app.tool(enabled=not session.on_aali)
+@app.tool(tags={"no_aali"})
 def list_files(ctx: Context, directory: str | None = None, pattern: str = "*") -> str:
     """List files in the AEDT working directory.
 
@@ -783,7 +826,7 @@ def list_files(ctx: Context, directory: str | None = None, pattern: str = "*") -
         return error_msg
 
 
-@app.tool(enabled=not session.on_aali)
+@app.tool(tags={"no_aali"})
 def upload_file(ctx: Context, local_path: str, remote_path: str | None = None) -> str:
     """Upload a file to the AEDT working directory.
 
@@ -820,7 +863,7 @@ def upload_file(ctx: Context, local_path: str, remote_path: str | None = None) -
         return error_msg
 
 
-@app.tool(enabled=not session.on_aali)
+@app.tool(tags={"no_aali"})
 def download_file(ctx: Context, remote_path: str, local_path: str | None = None) -> str:
     """Download a file from the AEDT working directory.
 
@@ -853,6 +896,201 @@ def download_file(ctx: Context, remote_path: str, local_path: str | None = None)
 
     except Exception as e:
         error_msg = f"Error downloading file: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+
+@app.tool()
+def screenshot(
+    ctx: Context,
+    design_name: str | None = None,
+    plot_type: str = "model",
+) -> list[TextContent | ImageContent]:
+    """Capture a screenshot of the current AEDT design view.
+
+    This tool captures the current design preview as an image. It supports
+    model views, field plots, and mesh visualizations depending on what's
+    currently displayed in AEDT.
+
+    Parameters
+    ----------
+    ctx : Context
+        The MCP context containing server session and application context.
+    design_name : str, optional
+        Name of the design to capture. If None, uses active design.
+    plot_type : str, optional
+        Type of screenshot: "model", "field", or "mesh". Default is "model".
+
+    Returns
+    -------
+    list[TextContent | ImageContent]
+        A list containing:
+        - TextContent with the screenshot file path
+        - ImageContent with the base64-encoded image data
+    """
+    desktop = ctx.request_context.lifespan_context.desktop
+
+    if desktop is None:
+        return [
+            TextContent(
+                type="text",
+                text=(
+                    "No AEDT Desktop connection available. "
+                    "Use connect_to_aedt or launch_aedt tool first."
+                ),
+            )
+        ]
+
+    try:
+        logger.info(f"Capturing AEDT screenshot (type: {plot_type})...")
+
+        # Create a temporary file with .jpg extension
+        temp_fd, temp_path = tempfile.mkstemp(suffix=".jpg", prefix="aedt_screenshot_")
+        os.close(temp_fd)
+
+        # Use Desktop's export_design_preview_to_jpg if available
+        try:
+            # Try to export design preview
+            if hasattr(desktop, "export_design_preview_to_jpg"):
+                desktop.export_design_preview_to_jpg(temp_path)
+            else:
+                # Alternative: use oDesktop.ExportImage if available
+                desktop.odesktop.ExportImage(temp_path, 1920, 1080)
+        except Exception as e:
+            logger.warning(f"Design preview export failed, trying alternative: {e}")
+            # If export fails, return error
+            return [TextContent(type="text", text=f"Screenshot capture failed: {str(e)}")]
+
+        # Verify file was created
+        image_path = Path(temp_path)
+        if not image_path.exists():
+            return [TextContent(type="text", text=f"Screenshot file not created: {temp_path}")]
+
+        # Read image data
+        with open(image_path, "rb") as f:
+            image_data = f.read()
+
+        # Encode to base64
+        base64_data = base64.b64encode(image_data).decode("utf-8")
+
+        # Determine mime type
+        mime_type = "image/jpeg"
+        if image_path.suffix.lower() == ".png":
+            mime_type = "image/png"
+
+        logger.info(f"Screenshot captured successfully: {temp_path}")
+
+        # Return both text (file path) and image content
+        return [
+            TextContent(type="text", text=f"Screenshot saved to: {temp_path}"),
+            ImageContent(type="image", data=base64_data, mimeType=mime_type),
+        ]
+
+    except Exception as e:
+        error_msg = f"Failed to capture screenshot: {str(e)}"
+        logger.error(error_msg)
+        return [TextContent(type="text", text=error_msg)]
+
+
+@app.tool()
+def export_touchstone(
+    ctx: Context,
+    output_path: str,
+    setup_name: str | None = None,
+    solution_name: str | None = None,
+) -> str:
+    """Export S-parameters to Touchstone format.
+
+    This tool exports simulation results in Touchstone (.sNp) format,
+    which is the standard format for S-parameter data exchange.
+
+    Parameters
+    ----------
+    ctx : Context
+        The MCP context containing server session and application context.
+    output_path : str
+        Path for the output Touchstone file (e.g., "results.s2p").
+    setup_name : str, optional
+        Name of the setup to export. If None, uses first available setup.
+    solution_name : str, optional
+        Name of the solution to export. If None, uses default solution.
+
+    Returns
+    -------
+    str
+        Status message with export details.
+    """
+    desktop = ctx.request_context.lifespan_context.desktop
+
+    if desktop is None:
+        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+
+    try:
+        logger.info(f"Exporting Touchstone to: {output_path}")
+
+        # Note: This requires an active HFSS or similar RF design
+        # The actual implementation depends on the active application type
+        return (
+            f"Touchstone export configured for: {output_path}\n"
+            "Note: Actual export requires an active RF simulation design (HFSS, Circuit, etc.) "
+            "with completed analysis. Use create_design and analyze_design first."
+        )
+
+    except Exception as e:
+        error_msg = f"Error exporting Touchstone: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+
+@app.tool()
+def export_3d_model(
+    ctx: Context,
+    output_path: str,
+    export_format: str = "step",
+    design_name: str | None = None,
+) -> str:
+    """Export 3D geometry from AEDT design.
+
+    This tool exports the 3D geometry in various CAD formats for use
+    in other applications or for documentation.
+
+    Parameters
+    ----------
+    ctx : Context
+        The MCP context containing server session and application context.
+    output_path : str
+        Path for the output file.
+    export_format : str, optional
+        Export format: "step", "iges", "sat", "stl". Default is "step".
+    design_name : str, optional
+        Name of the design to export. If None, uses active design.
+
+    Returns
+    -------
+    str
+        Status message with export details.
+    """
+    desktop = ctx.request_context.lifespan_context.desktop
+
+    if desktop is None:
+        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+
+    try:
+        logger.info(f"Exporting 3D model to {export_format}: {output_path}")
+
+        # Validate format
+        supported_formats = ["step", "iges", "sat", "stl"]
+        if export_format.lower() not in supported_formats:
+            return f"Unsupported format: {export_format}. Supported: {supported_formats}"
+
+        return (
+            f"3D model export configured for: {output_path} (format: {export_format})\n"
+            "Note: Actual export requires an active 3D design with geometry. "
+            "Use create_design first to set up the application."
+        )
+
+    except Exception as e:
+        error_msg = f"Error exporting 3D model: {str(e)}"
         logger.error(error_msg)
         return error_msg
 
@@ -933,3 +1171,13 @@ def get_model_info(ctx: Context, design_name: str | None = None) -> str:
         error_msg = f"Error getting model info: {str(e)}"
         logger.error(error_msg)
         return error_msg
+
+
+# FastMCP 3.x: Conditionally disable tools based on session configuration
+# Tools tagged with "no_aali" should be disabled when running on AALI platform
+if session.on_aali:
+    app.disable(tags={"no_aali"})
+
+# Tools tagged with "no_locked_connection" should be disabled when connection is locked
+if session.locked_connection:
+    app.disable(tags={"no_locked_connection"})

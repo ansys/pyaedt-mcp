@@ -7,7 +7,7 @@ name = "ansys-aedt-mcp"
 version = "0.0.1"
 description = "Model Context Protocol (MCP) server for Ansys Electronics Desktop (AEDT) through PyAEDT"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [
     { name = "ANSYS, Inc.", email = "pyansys.core@ansys.com" }
@@ -38,7 +38,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -49,7 +48,7 @@ classifiers = [
 
 dependencies = [
     "pyaedt>=0.10.0",
-    "fastmcp>=0.1.0,<3",
+    "fastmcp>=0.1.0",
     "ansys-common-mcp>=0.1.0",
 ]
 
@@ -114,3 +113,11 @@ markers = [
 
 [tool.uv]
 index-strategy = "unsafe-best-match"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.15.1",
+]
