@@ -66,10 +66,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ansys-internal/pyaedt-mcp"
-Documentation = "https://github.com/ansys-internal/pyaedt-mcp#readme"
-Repository = "https://github.com/ansys-internal/pyaedt-mcp"
-Issues = "https://github.com/ansys-internal/pyaedt-mcp/issues"
+Homepage = "https://github.com/ansys/pyaedt-mcp"
+Documentation = "https://github.com/ansys/pyaedt-mcp#readme"
+Repository = "https://github.com/ansys/pyaedt-mcp"
+Issues = "https://github.com/ansys/pyaedt-mcp/issues"
 
 [project.scripts]
 ansys-aedt-mcp = "ansys.aedt.mcp.__main__:launcher"

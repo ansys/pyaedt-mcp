@@ -33,28 +33,28 @@ A Model Context Protocol (MCP) server that enables AI assistants to interact wit
 ### Using uvx (Recommended)
 
 ```bash
-uvx --from git+https://github.com/ansys-internal/pyaedt-mcp.git ansys-aedt-mcp
+uvx --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp
 ```
 
 ### Using pip
 
 ```bash
-pip install git+https://github.com/ansys-internal/pyaedt-mcp.git
+pip install git+https://github.com/ansys/pyaedt-mcp.git
 ```
 
 ### Development Installation
 
 ```bash
-git clone https://github.com/ansys-internal/pyaedt-mcp.git
+git clone https://github.com/ansys/pyaedt-mcp.git
 cd pyaedt-mcp
 pip install -e ".[dev]"
 ```
 
 ## Requirements
 
-- Python >= 3.10, < 3.14
+- Python >= 3.11
 - PyAEDT >= 0.10.0
-- fastmcp >= 0.1.0, < 3
+- fastmcp >= 0.1.0
 - ansys-common-mcp >= 0.1.0
 - Ansys Electronics Desktop 2022 R2 or later (for gRPC support)
 
@@ -113,6 +113,7 @@ ansys-aedt-mcp --connect --machine localhost --port 50051
 | Tool | Description |
 |------|-------------|
 | `check_aedt_status` | Check AEDT Desktop connection status |
+| `validate_aedt_connection` | Validate connection is active and healthy |
 | `check_aedt_installed` | Verify AEDT installation on system |
 | `launch_aedt` | Launch new AEDT Desktop instance |
 | `connect_to_aedt` | Connect to running AEDT via gRPC |
@@ -151,6 +152,9 @@ ansys-aedt-mcp --connect --machine localhost --port 50051
 |------|-------------|
 | `clear_aedt` | Clear AEDT state (close projects) |
 | `get_model_info` | Get current design information |
+| `screenshot` | Capture screenshot of current design view |
+| `export_touchstone` | Export S-parameters to Touchstone format |
+| `export_3d_model` | Export 3D geometry (STEP, IGES, SAT, STL) |
 
 ### Guideline/Context Tools
 
@@ -179,7 +183,7 @@ Add to your VS Code `settings.json`:
         "command": "uvx",
         "args": [
           "--index-strategy", "unsafe-best-match",
-          "--from", "git+https://github.com/ansys-internal/pyaedt-mcp.git",
+          "--from", "git+https://github.com/ansys/pyaedt-mcp.git",
           "ansys-aedt-mcp"
         ]
       }
@@ -198,7 +202,7 @@ Add to your VS Code `settings.json`:
         "command": "uvx",
         "args": [
           "--index-strategy", "unsafe-best-match",
-          "--from", "git+https://github.com/ansys-internal/pyaedt-mcp.git",
+          "--from", "git+https://github.com/ansys/pyaedt-mcp.git",
           "ansys-aedt-mcp",
           "--connect",
           "--machine", "localhost",
@@ -220,7 +224,7 @@ Add to your Claude Desktop configuration:
     "pyaedt-mcp": {
       "command": "uvx",
       "args": [
-        "--from", "git+https://github.com/ansys-internal/pyaedt-mcp.git",
+        "--from", "git+https://github.com/ansys/pyaedt-mcp.git",
         "ansys-aedt-mcp"
       ]
     }
@@ -343,6 +347,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Related Projects
 
 - [PyAEDT](https://github.com/ansys/pyaedt) - Python library for AEDT
-- [PyMAPDL MCP](https://github.com/ansys-internal/pymapdl-mcp) - MCP server for MAPDL
-- [PyMechanical MCP](https://github.com/ansys-internal/pymechanical-mcp) - MCP server for Mechanical
+- [PyMAPDL MCP](https://github.com/ansys/pymapdl-mcp) - MCP server for MAPDL
+- [PyMechanical MCP](https://github.com/ansys/pymechanical-mcp) - MCP server for Mechanical
 - [Model Context Protocol](https://modelcontextprotocol.io/) - MCP specification
