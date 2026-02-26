@@ -74,7 +74,6 @@ def test_mcp_server_has_tools():
         connect_to_aedt,
     )
 
-    # In FastMCP 3.x, tools are callable functions directly
     assert callable(check_aedt_status)
     assert callable(run_python_code)
     assert callable(connect_to_aedt)

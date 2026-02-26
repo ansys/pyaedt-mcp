@@ -70,7 +70,7 @@ def check_aedt_status(ctx: Context) -> str:
         return error_msg
 
 
-@app.tool(tags={"no_aali"})
+@app.tool(tags={"aali"})
 def check_aedt_installed(ctx: Context) -> str:
     """Check if AEDT is installed on the system.
 
@@ -120,7 +120,7 @@ def check_aedt_installed(ctx: Context) -> str:
         return error_msg
 
 
-@app.tool(tags={"no_aali", "no_locked_connection"})
+@app.tool(tags={"aali", "locked_connection"})
 def launch_aedt(
     ctx: Context,
     version: str | None = None,
@@ -192,7 +192,7 @@ def launch_aedt(
         return error_msg
 
 
-@app.tool(tags={"no_aali", "no_locked_connection"})
+@app.tool(tags={"aali", "locked_connection"})
 def connect_to_aedt(
     ctx: Context,
     port: int = 50051,
@@ -269,7 +269,7 @@ def connect_to_aedt(
         return error_msg
 
 
-@app.tool(tags={"no_aali", "no_locked_connection"})
+@app.tool(tags={"aali", "locked_connection"})
 def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
     """Disconnect from the AEDT Desktop instance.
 
@@ -728,7 +728,7 @@ def export_results(
         return error_msg
 
 
-@app.tool(tags={"no_aali"})
+@app.tool(tags={"aali"})
 def list_files(ctx: Context, directory: str | None = None, pattern: str = "*") -> str:
     """List files in the AEDT working directory.
 
@@ -779,7 +779,7 @@ def list_files(ctx: Context, directory: str | None = None, pattern: str = "*") -
         return error_msg
 
 
-@app.tool(tags={"no_aali"})
+@app.tool(tags={"aali"})
 def upload_file(ctx: Context, local_path: str, remote_path: str | None = None) -> str:
     """Upload a file to the AEDT working directory.
 
@@ -816,7 +816,7 @@ def upload_file(ctx: Context, local_path: str, remote_path: str | None = None) -
         return error_msg
 
 
-@app.tool(tags={"no_aali"})
+@app.tool(tags={"aali"})
 def download_file(ctx: Context, remote_path: str, local_path: str | None = None) -> str:
     """Download a file from the AEDT working directory.
 
@@ -930,12 +930,6 @@ def screenshot(
         mime_type = "image/jpeg"
 
         logger.info(f"Screenshot captured successfully: {temp_path}")
-
-        # Clean up temp file after reading
-        try:
-            image_path.unlink()
-        except OSError:
-            pass
 
         # Return both text (file path) and image content
         return [
@@ -1130,11 +1124,11 @@ def get_model_info(ctx: Context, design_name: str | None = None) -> str:
         return error_msg
 
 
-# FastMCP 3.x: Conditionally disable tools based on session configuration
-# Tools tagged with "no_aali" should be disabled when running on AALI platform
+# Conditionally disable tools based on session configuration
+# Tools tagged with "aali" should be disabled when running on AALI platform
 if session.on_aali:
-    app.disable(tags={"no_aali"})
+    app.disable(tags={"aali"})
 
-# Tools tagged with "no_locked_connection" should be disabled when connection is locked
+# Tools tagged with "locked_connection" should be disabled when connection is locked
 if session.locked_connection:
-    app.disable(tags={"no_locked_connection"})
+    app.disable(tags={"locked_connection"})
