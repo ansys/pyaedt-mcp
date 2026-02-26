@@ -52,7 +52,7 @@ pip install -e ".[dev]"
 
 ## Requirements
 
-- Python >= 3.11
+- Python >= 3.10
 - PyAEDT >= 0.10.0
 - fastmcp >= 0.1.0
 - ansys-common-mcp >= 0.1.0
@@ -113,7 +113,6 @@ ansys-aedt-mcp --connect --machine localhost --port 50051
 | Tool | Description |
 |------|-------------|
 | `check_aedt_status` | Check AEDT Desktop connection status |
-| `validate_aedt_connection` | Validate connection is active and healthy |
 | `check_aedt_installed` | Verify AEDT installation on system |
 | `launch_aedt` | Launch new AEDT Desktop instance |
 | `connect_to_aedt` | Connect to running AEDT via gRPC |

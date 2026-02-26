@@ -92,28 +92,25 @@ def test_product_startup_attempts_connect_on_startup():
     fake_desktop = MagicMock()
     fake_desktop.release_desktop = MagicMock()
 
-    # Attach CLI config to server
-    setattr(
-        app,
-        "_cli_config",
-        {
-            "transport_type": "stdio",
-            "aedt_machine": "localhost",
-            "aedt_port": 50051,
-            "aedt_version": None,
-            "non_graphical": True,
-            "connect_on_startup": True,
-            "http_host": "127.0.0.1",
-            "http_port": 8080,
-            "cors_origins": None,
-        },
-    )
-
     # Mock Desktop to return our fake instance
     with patch("ansys.aedt.core.Desktop", return_value=fake_desktop) as mock_desktop:
-        # Create MCP instance
+        # Create MCP instance and attach CLI config directly
         mcp = PyAEDTMCP()
-        mcp.server = app  # Manually attach server
+        setattr(
+            mcp,
+            "_cli_config",
+            {
+                "transport_type": "stdio",
+                "aedt_machine": "localhost",
+                "aedt_port": 50051,
+                "aedt_version": None,
+                "non_graphical": True,
+                "connect_on_startup": True,
+                "http_host": "127.0.0.1",
+                "http_port": 8080,
+                "cors_origins": None,
+            },
+        )
         mcp.create_context()
         mcp.product_startup()
 
@@ -132,9 +129,6 @@ def test_product_startup_attempts_connect_on_startup():
         # Test cleanup
         mcp.product_cleanup()
         fake_desktop.release_desktop.assert_called_once_with(close_projects=False)
-
-    # Clean up _cli_config
-    delattr(app, "_cli_config")
 
 
 @pytest.mark.unit

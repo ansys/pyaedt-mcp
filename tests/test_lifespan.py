@@ -120,7 +120,6 @@ def test_create_context():
     from unittest.mock import patch
     
     mcp = PyAEDTMCP()
-    mcp.server = app
     
     # Create context without CLI config
     context = mcp.create_context()
@@ -135,8 +134,10 @@ def test_context_cli_config_population():
     """Test that context is populated from CLI config."""
     from ansys.aedt.mcp.server import PyAEDTMCP, app
     
-    # Set CLI config on server
-    setattr(app, "_cli_config", {
+    mcp = PyAEDTMCP()
+    
+    # Set CLI config on mcp instance directly
+    setattr(mcp, "_cli_config", {
         "transport_type": "http",
         "aedt_machine": "remote-server",
         "aedt_port": 50052,
@@ -148,20 +149,14 @@ def test_context_cli_config_population():
         "cors_origins": ["http://localhost:3000"],
     })
     
-    try:
-        mcp = PyAEDTMCP()
-        mcp.server = app
-        context = mcp.create_context()
-        
-        assert context.transport_type == "http"
-        assert context.aedt_machine == "remote-server"
-        assert context.aedt_port == 50052
-        assert context.aedt_version == "2025.2"
-        assert context.non_graphical is False
-        assert context.connect_on_startup is True
-        assert context.http_host == "0.0.0.0"
-        assert context.http_port == 9000
-        assert context.cors_origins == ["http://localhost:3000"]
-    finally:
-        # Clean up
-        delattr(app, "_cli_config")
+    context = mcp.create_context()
+    
+    assert context.transport_type == "http"
+    assert context.aedt_machine == "remote-server"
+    assert context.aedt_port == 50052
+    assert context.aedt_version == "2025.2"
+    assert context.non_graphical is False
+    assert context.connect_on_startup is True
+    assert context.http_host == "0.0.0.0"
+    assert context.http_port == 9000
+    assert context.cors_origins == ["http://localhost:3000"]

@@ -4,7 +4,6 @@ This module provides utility functions for working with AEDT Desktop
 instances and extracting information from them.
 """
 
-import json
 from typing import Any
 
 
@@ -133,78 +132,6 @@ def get_design_info(app: Any) -> dict[str, Any]:
         info["design_variables"] = []
 
     return info
-
-
-def format_aedt_error(error: Exception, operation: str) -> str:
-    """Format an AEDT error message for user display.
-
-    Parameters
-    ----------
-    error : Exception
-        The exception that occurred.
-    operation : str
-        Description of the operation that failed.
-
-    Returns
-    -------
-    str
-        Formatted error message.
-    """
-    error_type = type(error).__name__
-    error_msg = str(error)
-
-    # Common error patterns and user-friendly messages
-    if "grpc" in error_msg.lower() or "connection" in error_msg.lower():
-        return (
-            f"Connection error during {operation}: {error_msg}\n"
-            "Possible solutions:\n"
-            "1. Ensure AEDT is running with gRPC server enabled: ansysedt.exe -grpcsrv <port>\n"
-            "2. Check that the machine and port are correct\n"
-            "3. Verify firewall settings allow the connection"
-        )
-    elif "license" in error_msg.lower():
-        return (
-            f"License error during {operation}: {error_msg}\n"
-            "Possible solutions:\n"
-            "1. Check license server connectivity\n"
-            "2. Verify license availability\n"
-            "3. Contact your license administrator"
-        )
-    elif "version" in error_msg.lower():
-        return (
-            f"Version error during {operation}: {error_msg}\n"
-            "Possible solutions:\n"
-            "1. Specify a valid AEDT version\n"
-            "2. Check installed AEDT versions\n"
-            "3. Ensure the requested version is installed"
-        )
-    else:
-        return f"Error during {operation}: [{error_type}] {error_msg}"
-
-
-def validate_aedt_connection(desktop: Any) -> tuple[bool, str]:
-    """Validate that an AEDT Desktop connection is active and responsive.
-
-    Parameters
-    ----------
-    desktop : Any
-        The AEDT Desktop instance to validate.
-
-    Returns
-    -------
-    tuple[bool, str]
-        A tuple of (is_valid, message) where is_valid indicates if the
-        connection is working and message provides details.
-    """
-    if desktop is None:
-        return False, "No AEDT Desktop connection available"
-
-    try:
-        # Try to access a basic property
-        _ = desktop.project_list
-        return True, "AEDT connection is active"
-    except Exception as e:
-        return False, f"AEDT connection appears broken: {str(e)}"
 
 
 def parse_aedt_version(version_str: str | None) -> str | None:

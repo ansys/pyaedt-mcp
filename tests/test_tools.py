@@ -461,32 +461,6 @@ class TestExport3DModel:
         assert "Unsupported" in result
 
 
-@pytest.mark.unit
-class TestValidateAEDTConnection:
-    """Tests for validate_aedt_connection tool."""
-
-    def test_validate_connection_success(self, mock_context):
-        """Test validating a healthy AEDT connection."""
-        from ansys.aedt.mcp.tools import validate_aedt_connection
-        
-        with patch("ansys.aedt.mcp.helpers.validate_aedt_connection", return_value=(True, "Connected")):
-            result = validate_aedt_connection(mock_context)
-            
-            data = json.loads(result)
-            assert data["is_valid"] is True
-            assert "diagnostics" in data
-
-    def test_validate_connection_no_desktop(self, mock_context_no_desktop):
-        """Test validation with no connection."""
-        from ansys.aedt.mcp.tools import validate_aedt_connection
-        
-        with patch("ansys.aedt.mcp.helpers.validate_aedt_connection", return_value=(False, "No connection")):
-            result = validate_aedt_connection(mock_context_no_desktop)
-            
-            data = json.loads(result)
-            assert data["is_valid"] is False
-
-
 @pytest.mark.asyncio
 async def test_tools_registered():
     """Test that all tools are registered with the MCP server."""

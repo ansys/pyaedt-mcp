@@ -70,49 +70,6 @@ def check_aedt_status(ctx: Context) -> str:
         return error_msg
 
 
-@app.tool()
-def validate_aedt_connection(ctx: Context) -> str:
-    """Validate that the AEDT Desktop connection is active and healthy.
-
-    This tool performs a quick health check on the AEDT connection,
-    returning a simple pass/fail status with diagnostic information.
-    Use this for automated checks before running operations.
-
-    Parameters
-    ----------
-    ctx : Context
-        The MCP context containing server session and application context.
-
-    Returns
-    -------
-    str
-        JSON string with validation result:
-        - is_valid: boolean indicating if connection is healthy
-        - message: description of connection state
-        - diagnostics: additional diagnostic information if available
-    """
-    from ansys.aedt.mcp.helpers import validate_aedt_connection as validate_connection
-
-    desktop = ctx.request_context.lifespan_context.desktop
-
-    is_valid, message = validate_connection(desktop)
-
-    result = {
-        "is_valid": is_valid,
-        "message": message,
-    }
-
-    if is_valid and desktop is not None:
-        result["diagnostics"] = {
-            "version": str(desktop.aedt_version_id) if hasattr(desktop, "aedt_version_id") else "Unknown",
-            "machine": str(desktop.machine) if hasattr(desktop, "machine") else "localhost",
-            "port": desktop.port if hasattr(desktop, "port") else None,
-            "is_grpc": desktop.is_grpc_api if hasattr(desktop, "is_grpc_api") else False,
-        }
-
-    return json.dumps(result, indent=2)
-
-
 @app.tool(tags={"no_aali"})
 def check_aedt_installed(ctx: Context) -> str:
     """Check if AEDT is installed on the system.
@@ -383,10 +340,6 @@ def run_python_script(ctx: Context, script_path: str) -> str:
         # Verify file exists
         if not os.path.exists(script_path):
             return f"Script file not found: {script_path}"
-
-        # Read and execute script
-        with open(script_path, "r", encoding="utf-8") as f:
-            script_content = f.read()
 
         logger.info(f"Executing script: {script_path}")
 
@@ -975,10 +928,14 @@ def screenshot(
 
         # Determine mime type
         mime_type = "image/jpeg"
-        if image_path.suffix.lower() == ".png":
-            mime_type = "image/png"
 
         logger.info(f"Screenshot captured successfully: {temp_path}")
+
+        # Clean up temp file after reading
+        try:
+            image_path.unlink()
+        except OSError:
+            pass
 
         # Return both text (file path) and image content
         return [
