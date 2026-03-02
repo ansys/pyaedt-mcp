@@ -4,7 +4,57 @@ This module provides utility functions for working with AEDT Desktop
 instances and extracting information from them.
 """
 
+import os
+import socket
+from pathlib import Path
 from typing import Any
+
+from ansys.common.mcp import get_logger
+
+logger = get_logger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Docker / container detection helpers
+# ---------------------------------------------------------------------------
+
+
+def _is_docker() -> bool:
+    """Detect whether the current process is running inside a Docker container.
+
+    Checks for ``/.dockerenv`` and ``/run/.containerenv`` marker files that
+    Docker and Podman create inside containers.
+
+    Returns
+    -------
+    bool
+        ``True`` when running inside a container, ``False`` otherwise.
+    """
+    return Path("/.dockerenv").exists() or Path("/run/.containerenv").exists()
+
+
+def _probe_grpc_endpoint(host: str, port: int, timeout: float = 2.0) -> bool:
+    """Test whether a gRPC endpoint is reachable via a TCP connect probe.
+
+    Parameters
+    ----------
+    host : str
+        Hostname or IP address to probe.
+    port : int
+        TCP port number.
+    timeout : float, optional
+        Connection timeout in seconds.  Default is ``2.0``.
+
+    Returns
+    -------
+    bool
+        ``True`` if the TCP connection succeeded, ``False`` otherwise.
+    """
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except (OSError, ConnectionRefusedError, TimeoutError):
+        return False
 
 
 def get_aedt_info(desktop: Any) -> dict[str, Any]:

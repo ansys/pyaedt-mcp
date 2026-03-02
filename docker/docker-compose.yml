@@ -16,8 +16,10 @@ services:
   # Connects to AEDT running on host machine or remote server
   pyaedt-mcp:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
+      args:
+        PYANSYS_PYPI_INDEX_URL: ${PYANSYS_PYPI_INDEX_URL:-}
     container_name: pyaedt-mcp
     ports:
       - "8080:8080"  # HTTP transport port
@@ -26,16 +28,9 @@ services:
       - AEDT_PORT=${AEDT_PORT:-50051}
       - AEDT_VERSION=${AEDT_VERSION:-2025.2}
       - AEDT_NON_GRAPHICAL=${AEDT_NON_GRAPHICAL:-true}
+      - CONNECT_ON_STARTUP=${CONNECT_ON_STARTUP:-true}
     extra_hosts:
       - "host.docker.internal:host-gateway"  # For connecting to host AEDT
-    command: >
-      ansys-aedt-mcp
-      --transport http
-      --http-host 0.0.0.0
-      --http-port 8080
-      --machine ${AEDT_MACHINE:-host.docker.internal}
-      --port ${AEDT_PORT:-50051}
-      --connect
     restart: unless-stopped
     networks:
       - pyaedt-network
@@ -61,6 +56,9 @@ networks:
 #    docker compose down
 #
 # Environment Variables:
-#   AEDT_MACHINE - AEDT server hostname (default: host.docker.internal)
-#   AEDT_PORT    - AEDT gRPC port (default: 50051)
+#   AEDT_MACHINE          - AEDT server hostname (default: host.docker.internal)
+#   AEDT_PORT             - AEDT gRPC port (default: 50051)
+#   AEDT_VERSION          - AEDT version (default: 2025.2)
+#   CONNECT_ON_STARTUP    - Connect to AEDT on startup (default: true)
+#   PYANSYS_PYPI_INDEX_URL - Private PyPI for ansys-common-mcp (build-time)
 #   AEDT_VERSION - AEDT version (default: 2025.2)

@@ -17,7 +17,7 @@ from fastmcp.server.server import get_logger
 from mcp.types import ImageContent, TextContent
 
 from ansys.aedt.mcp import app
-from ansys.aedt.mcp.helpers import get_aedt_info
+from ansys.aedt.mcp.helpers import _is_docker, _probe_grpc_endpoint, get_aedt_info
 from ansys.aedt.mcp.server import session
 
 logger = get_logger(__name__)
@@ -77,6 +77,10 @@ def check_aedt_installed(ctx: Context) -> str:
     This tool checks for valid AEDT installations on the system and
     returns information about available versions.
 
+    When running inside a Docker container, the tool probes the remote
+    gRPC endpoint (``AEDT_MACHINE:AEDT_PORT``) instead of searching
+    for a local AEDT installation.
+
     Returns
     -------
     str
@@ -85,6 +89,23 @@ def check_aedt_installed(ctx: Context) -> str:
     """
     logger.info("Checking if AEDT is installed...")
 
+    # ------- Docker path: probe the remote gRPC endpoint -------
+    if _is_docker():
+        host = os.environ.get("AEDT_MACHINE", "host.docker.internal")
+        port = int(os.environ.get("AEDT_PORT", "50051"))
+        reachable = _probe_grpc_endpoint(host, port)
+        if reachable:
+            return (
+                f"Running inside Docker – AEDT gRPC endpoint at "
+                f"{host}:{port} is reachable."
+            )
+        return (
+            f"Running inside Docker – AEDT gRPC endpoint at "
+            f"{host}:{port} is NOT reachable. Ensure AEDT is started "
+            f"with: ansysedt.exe -grpcsrv {port}"
+        )
+
+    # ------- Native path: search for local installation -------
     try:
         from ansys.aedt.core.desktop import Desktop
 
@@ -152,6 +173,14 @@ def launch_aedt(
         Launch status message with AEDT version and connection information.
     """
     logger.info("Launching new AEDT Desktop instance...")
+
+    # Docker guard: launching a local AEDT inside a container is not supported
+    if _is_docker():
+        return (
+            "Launching a local AEDT instance from inside a Docker container "
+            "is not supported. Use the connect_to_aedt tool to connect to an "
+            "AEDT instance running on the host or a remote machine."
+        )
 
     try:
         # Check if there's already a connection
@@ -225,6 +254,18 @@ def connect_to_aedt(
         Connection status message with AEDT version information.
     """
     logger.info(f"Connecting to AEDT instance at {machine}:{port}...")
+
+    # Docker env-var override: when defaults are used and we are inside a
+    # container, prefer AEDT_MACHINE / AEDT_PORT from the environment so
+    # the container automatically reaches the host AEDT instance.
+    if _is_docker():
+        if machine == "localhost":
+            machine = os.environ.get("AEDT_MACHINE", "host.docker.internal")
+        if port == 50051:
+            port = int(os.environ.get("AEDT_PORT", "50051"))
+        logger.info(
+            f"Docker detected – using AEDT endpoint {machine}:{port}"
+        )
 
     try:
         # Check if there's already a connection

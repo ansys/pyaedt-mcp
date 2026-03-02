@@ -4,13 +4,17 @@ This module is executed when a persistent Python session is started
 for running user code in the MCP server context.
 """
 
-import matplotlib
-# Use non-interactive backend to prevent blocking on plot displays
-matplotlib.use('Agg')
-
-import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
+
+try:
+    import matplotlib
+    # Use non-interactive backend to prevent blocking on plot displays
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
 
 try:
     import pyvista as pv
@@ -48,6 +52,9 @@ def save_matplotlib_plot(filename='plot.png', return_base64=False, dpi=150):
     str
         File path or base64 data URI
     """
+    if not MATPLOTLIB_AVAILABLE:
+        return "matplotlib is not installed – cannot save plot"
+
     if return_base64:
         buffer = BytesIO()
         plt.savefig(buffer, format='PNG', dpi=dpi, bbox_inches='tight')

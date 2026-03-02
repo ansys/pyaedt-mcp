@@ -1,0 +1,100 @@
+# CI workflow for PyAEDT MCP Server
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # ------------------------------------------------------------------ #
+  # Code style checks
+  # ------------------------------------------------------------------ #
+  code-style:
+    name: Code style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install style tools
+        run: pip install black isort flake8
+
+      - name: Black
+        run: black --check --diff src/ tests/
+
+      - name: isort
+        run: isort --check --diff src/ tests/
+
+      - name: Flake8
+        run: flake8 src/ tests/ --max-line-length 100 --ignore E501,W503
+
+  # ------------------------------------------------------------------ #
+  # Unit tests
+  # ------------------------------------------------------------------ #
+  tests:
+    name: Tests (Python ${{ matrix.python-version }})
+    needs: code-style
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]" \
+            --extra-index-url https://pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
+        env:
+          PIP_EXTRA_INDEX_URL: https://pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
+
+      - name: Run tests
+        run: python -m pytest tests/ -x --tb=short -q
+
+  # ------------------------------------------------------------------ #
+  # Package build verification
+  # ------------------------------------------------------------------ #
+  package:
+    name: Build package
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyaedt-mcp-dist
+          path: dist/
