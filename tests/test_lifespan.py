@@ -70,8 +70,8 @@ def test_mcp_server_has_tools():
     """Test that MCP server has registered tools."""
     from ansys.aedt.mcp.tools import (
         check_aedt_status,
-        run_python_code,
         connect_to_aedt,
+        run_python_code,
     )
 
     assert callable(check_aedt_status)
@@ -83,6 +83,7 @@ def test_mcp_server_has_tools():
 def test_mcp_server_tool_registration():
     """Test that tools are properly registered with the MCP server."""
     import asyncio
+
     from ansys.aedt.mcp import app
 
     # Get the list of tools from the server
@@ -115,8 +116,9 @@ def test_pyaedt_mcp_class():
 @pytest.mark.unit
 def test_create_context():
     """Test context creation in PyAEDTMCP."""
-    from ansys.aedt.mcp.server import PyAEDTMCP, PyAEDTAppContext
     from unittest.mock import patch
+
+    from ansys.aedt.mcp.server import PyAEDTAppContext, PyAEDTMCP
 
     mcp = PyAEDTMCP()
 

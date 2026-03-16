@@ -1,9 +1,10 @@
 """Test configuration for PyAEDT MCP tests."""
 
-import pytest
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
+
+import pytest
 
 # Add src to path for imports
 src_path = Path(__file__).parent.parent / "src"

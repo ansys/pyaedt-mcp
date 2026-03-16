@@ -41,6 +41,7 @@ def test_all_exports():
 def test_app_context_creation():
     """Test that PyAEDTAppContext can be created with Desktop instance."""
     from unittest.mock import MagicMock
+
     from ansys.aedt.mcp.server import PyAEDTAppContext
 
     mock_desktop = MagicMock()

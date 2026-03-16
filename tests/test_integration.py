@@ -8,8 +8,9 @@ Mark tests with @pytest.mark.integration to skip in CI.
 
 import json
 import os
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 # Skip all tests if AEDT is not available
 pytestmark = pytest.mark.integration

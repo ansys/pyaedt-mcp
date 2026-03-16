@@ -4,11 +4,12 @@ These tests mock the AEDT Desktop instance and verify tool behavior.
 """
 
 import json
-import pytest
 from unittest.mock import MagicMock, patch
 
-from ansys.aedt.mcp.server import PyAEDTAppContext
+import pytest
+
 from ansys.aedt.mcp import tools  # noqa: F401 - import to register tools
+from ansys.aedt.mcp.server import PyAEDTAppContext
 
 
 @pytest.fixture
