@@ -53,6 +53,10 @@ to enable sweeps and optimization.
 **gRPC security** — PyAEDT supports insecure, WNUA (Windows), UDS (Linux),
 and mTLS modes via `settings.grpc_secure_mode` and `settings.grpc_local`.
 
+**Execution safety** — Before generating code intended for `run_python_code`,
+include `from ansys.aedt.core import settings` and set
+`settings.release_on_exception = False` to avoid automatic AEDT release on errors.
+
 ## Workflow
 
 1. Verify connection — call `check_aedt_status` first.

@@ -15,18 +15,18 @@ A Model Context Protocol (MCP) server that enables AI assistants to interact wit
 
 ## Supported AEDT Applications
 
-| Application | Description |
-|------------|-------------|
-| HFSS | High-frequency electromagnetic simulation (RF, microwave, antennas) |
-| Maxwell 2D/3D | Low-frequency electromagnetic simulation (motors, transformers) |
-| Q3D/Q2D | Parasitic extraction (capacitance, inductance, resistance) |
-| Icepak | Thermal management and CFD analysis |
-| Circuit | Circuit-level simulation |
-| TwinBuilder | System-level modeling |
-| Mechanical | Structural analysis |
-| EMIT | EMI/EMC analysis |
-| RMXprt | Rotating machine design |
-| HFSS 3D Layout | High-speed electronic layout analysis |
+| Application    | Description                                                         |
+| -------------- | ------------------------------------------------------------------- |
+| HFSS           | High-frequency electromagnetic simulation (RF, microwave, antennas) |
+| Maxwell 2D/3D  | Low-frequency electromagnetic simulation (motors, transformers)     |
+| Q3D/Q2D        | Parasitic extraction (capacitance, inductance, resistance)          |
+| Icepak         | Thermal management and CFD analysis                                 |
+| Circuit        | Circuit-level simulation                                            |
+| TwinBuilder    | System-level modeling                                               |
+| Mechanical     | Structural analysis                                                 |
+| EMIT           | EMI/EMC analysis                                                    |
+| RMXprt         | Rotating machine design                                             |
+| HFSS 3D Layout | High-speed electronic layout analysis                               |
 
 ## Installation
 
@@ -94,81 +94,81 @@ ansys-aedt-mcp --connect --machine localhost --port 50051
 
 ### CLI Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--transport` | Transport type: `stdio` or `http` | `stdio` |
-| `--machine` | AEDT machine hostname/IP | `localhost` |
-| `--port` | AEDT gRPC port | `50051` |
-| `--version` | AEDT version (e.g., "2025.2") | Auto-detect |
-| `--non-graphical` | Run AEDT in non-graphical mode | `True` |
-| `--graphical` | Run AEDT in graphical mode | `False` |
-| `--connect` | Connect to AEDT on startup | `False` |
-| `--http-host` | HTTP transport host | `127.0.0.1` |
-| `--http-port` | HTTP transport port | `8080` |
+| Option            | Description                       | Default     |
+| ----------------- | --------------------------------- | ----------- |
+| `--transport`     | Transport type: `stdio` or `http` | `stdio`     |
+| `--machine`       | AEDT machine hostname/IP          | `localhost` |
+| `--port`          | AEDT gRPC port                    | `50051`     |
+| `--version`       | AEDT version (e.g., "2025.2")     | Auto-detect |
+| `--non-graphical` | Run AEDT in non-graphical mode    | `True`      |
+| `--graphical`     | Run AEDT in graphical mode        | `False`     |
+| `--connect`       | Connect to AEDT on startup        | `False`     |
+| `--http-host`     | HTTP transport host               | `127.0.0.1` |
+| `--http-port`     | HTTP transport port               | `8080`      |
 
 ## MCP Tools
 
 ### Connection & Status Tools
 
-| Tool | Description |
-|------|-------------|
-| `check_aedt_status` | Check AEDT Desktop connection status |
-| `check_aedt_installed` | Verify AEDT installation on system |
-| `launch_aedt` | Launch new AEDT Desktop instance |
-| `connect_to_aedt` | Connect to running AEDT via gRPC |
-| `disconnect_from_aedt` | Disconnect from AEDT |
+| Tool                   | Description                          |
+| ---------------------- | ------------------------------------ |
+| `check_aedt_status`    | Check AEDT Desktop connection status |
+| `check_aedt_installed` | Verify AEDT installation on system   |
+| `launch_aedt`          | Launch new AEDT Desktop instance     |
+| `connect_to_aedt`      | Connect to running AEDT via gRPC     |
+| `disconnect_from_aedt` | Disconnect from AEDT                 |
 
 ### Project & Design Tools
 
-| Tool | Description |
-|------|-------------|
-| `list_projects` | List all open projects |
-| `list_designs` | List designs in a project |
-| `open_project` | Open an AEDT project file (.aedt) |
-| `save_project` | Save current project |
-| `create_design` | Create new design (HFSS, Maxwell, etc.) |
-| `analyze_design` | Run simulation analysis |
-| `export_results` | Export simulation results |
+| Tool             | Description                             |
+| ---------------- | --------------------------------------- |
+| `list_projects`  | List all open projects                  |
+| `list_designs`   | List designs in a project               |
+| `open_project`   | Open an AEDT project file (.aedt)       |
+| `save_project`   | Save current project                    |
+| `create_design`  | Create new design (HFSS, Maxwell, etc.) |
+| `analyze_design` | Run simulation analysis                 |
+| `export_results` | Export simulation results               |
 
 ### Script Execution Tools
 
-| Tool | Description |
-|------|-------------|
+| Tool                | Description                        |
+| ------------------- | ---------------------------------- |
 | `run_python_script` | Execute Python script file in AEDT |
-| `run_python_code` | Execute inline Python code in AEDT |
+| `run_python_code`   | Execute inline Python code in AEDT |
 
 ### File Management Tools
 
-| Tool | Description |
-|------|-------------|
-| `list_files` | List files in working directory |
-| `upload_file` | Upload file to AEDT machine |
+| Tool            | Description                     |
+| --------------- | ------------------------------- |
+| `list_files`    | List files in working directory |
+| `upload_file`   | Upload file to AEDT machine     |
 | `download_file` | Download file from AEDT machine |
 
 ### Utility Tools
 
-| Tool | Description |
-|------|-------------|
-| `clear_aedt` | Clear AEDT state (close projects) |
-| `get_model_info` | Get current design information |
-| `screenshot` | Capture screenshot of current design view |
-| `export_touchstone` | Export S-parameters to Touchstone format |
-| `export_3d_model` | Export 3D geometry (STEP, IGES, SAT, STL) |
+| Tool                | Description                               |
+| ------------------- | ----------------------------------------- |
+| `clear_aedt`        | Clear AEDT state (close projects)         |
+| `get_model_info`    | Get current design information            |
+| `screenshot`        | Capture screenshot of current design view |
+| `export_touchstone` | Export S-parameters to Touchstone format  |
+| `export_3d_model`   | Export 3D geometry (STEP, IGES, SAT, STL) |
 
 ### Guideline/Context Tools
 
-| Tool | Description |
-|------|-------------|
-| `get_guidelines_for_workflow_overview` | General AEDT simulation workflow |
-| `get_guidelines_for_hfss` | HFSS-specific guidance |
-| `get_guidelines_for_maxwell` | Maxwell 2D/3D guidance |
-| `get_guidelines_for_icepak` | Icepak thermal analysis guidance |
-| `get_guidelines_for_circuit` | Circuit simulation guidance |
-| `get_guidelines_for_geometry` | Geometry creation guidance |
-| `get_guidelines_for_mesh` | Mesh setup guidance |
-| `get_guidelines_for_boundaries` | Boundaries and excitations guidance |
-| `get_guidelines_for_postprocessing` | Results and export guidance |
-| `get_guidelines_for_parametric` | Parametric and optimization guidance |
+| Tool                                   | Description                          |
+| -------------------------------------- | ------------------------------------ |
+| `get_guidelines_for_workflow_overview` | General AEDT simulation workflow     |
+| `get_guidelines_for_hfss`              | HFSS-specific guidance               |
+| `get_guidelines_for_maxwell`           | Maxwell 2D/3D guidance               |
+| `get_guidelines_for_icepak`            | Icepak thermal analysis guidance     |
+| `get_guidelines_for_circuit`           | Circuit simulation guidance          |
+| `get_guidelines_for_geometry`          | Geometry creation guidance           |
+| `get_guidelines_for_mesh`              | Mesh setup guidance                  |
+| `get_guidelines_for_boundaries`        | Boundaries and excitations guidance  |
+| `get_guidelines_for_postprocessing`    | Results and export guidance          |
+| `get_guidelines_for_parametric`        | Parametric and optimization guidance |
 
 ## VS Code Configuration
 
@@ -202,10 +202,7 @@ Add to your VS Code `settings.json`:
         "args": [
           "--index-strategy", "unsafe-best-match",
           "--from", "git+https://github.com/ansys/pyaedt-mcp.git",
-          "ansys-aedt-mcp",
-          "--connect",
-          "--machine", "localhost",
-          "--port", "50051"
+          "ansys-aedt-mcp"
         ]
       }
     }

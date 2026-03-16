@@ -14,6 +14,8 @@ Options:
     --http-host HOST         HTTP transport host (default: 127.0.0.1)
     --http-port PORT         HTTP transport port (default: 8080)
     --cors-origins ORIGINS   Allowed CORS origins for HTTP transport
+    --on-aali                Disable context tools and append AALI-first agent
+                             instructions for code generation and execution
 """
 
 from ansys.aedt.mcp.server import launcher

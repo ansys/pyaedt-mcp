@@ -113,6 +113,28 @@ class TestLaunchAEDT:
             result = launch_aedt(mock_context)
             assert "Already connected" in result
 
+    def test_launch_defaults_to_graphical_mode(self, mock_context_no_desktop):
+        """Test launch_aedt defaults to graphical mode."""
+        from ansys.aedt.mcp.tools import launch_aedt
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.core.Desktop") as mock_desktop,
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings") as mock_cfg,
+        ):
+            fake_desktop = MagicMock()
+            fake_desktop.aedt_version_id = "2025.2"
+            fake_desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v252\\AnsysEM"
+            fake_desktop.is_grpc_api = True
+            mock_desktop.return_value = fake_desktop
+
+            result = launch_aedt(mock_context_no_desktop)
+
+            call_kwargs = mock_desktop.call_args[1]
+            assert call_kwargs["non_graphical"] is False
+            mock_cfg.assert_called_once_with()
+            assert "Successfully launched AEDT Desktop" in result
+
 
 @pytest.mark.unit
 class TestConnectToAEDT:
@@ -127,6 +149,25 @@ class TestConnectToAEDT:
             mock_session.on_aali = False
             result = connect_to_aedt(mock_context, port=50051)
             assert "Already connected" in result
+
+    def test_connect_configures_grpc_runtime_settings(self, mock_context_no_desktop):
+        """Test connect_to_aedt configures gRPC and runtime safety settings."""
+        from ansys.aedt.mcp.tools import connect_to_aedt
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.core.Desktop") as mock_desktop,
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings") as mock_cfg,
+        ):
+            fake_desktop = MagicMock()
+            fake_desktop.aedt_version_id = "2025.2"
+            fake_desktop.is_grpc_api = True
+            mock_desktop.return_value = fake_desktop
+
+            result = connect_to_aedt(mock_context_no_desktop, port=50051)
+
+            mock_cfg.assert_called_once_with(enable_grpc=True)
+            assert "Successfully connected to AEDT" in result
 
 
 @pytest.mark.unit
@@ -217,6 +258,16 @@ class TestRunPythonCode:
         
         result = run_python_code(mock_context, code="result = 'test output'")
         assert "test output" in result
+
+    def test_run_code_disables_release_on_exception(self, mock_context):
+        """Test run_python_code applies safe runtime settings before exec."""
+        from ansys.aedt.mcp.tools import run_python_code
+
+        with patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings") as mock_cfg:
+            result = run_python_code(mock_context, code="result = 'ok'")
+
+        mock_cfg.assert_called_once_with()
+        assert "ok" in result
 
 
 @pytest.mark.unit

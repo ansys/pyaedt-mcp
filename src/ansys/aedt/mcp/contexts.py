@@ -11,7 +11,7 @@ aspects of electromagnetic and thermal simulations.
 from ansys.aedt.mcp import app
 
 
-@app.tool()
+@app.tool(tags={"context"})
 def get_guidelines_for_workflow_overview() -> str:
     """Get general AEDT simulation workflow guidelines.
 
@@ -118,7 +118,7 @@ hfss = Hfss(machine="remote_server", port=50051)
 """
 
 
-@app.tool()
+@app.tool(tags={"context"})
 def get_guidelines_for_hfss() -> str:
     """Get HFSS-specific workflow guidelines.
 
@@ -258,7 +258,7 @@ hfss.post.export_field_jpg(
 """
 
 
-@app.tool()
+@app.tool(tags={"context"})
 def get_guidelines_for_maxwell() -> str:
     """Get Maxwell 2D/3D workflow guidelines.
 
@@ -414,7 +414,7 @@ m3d.post.plot_field(
 """
 
 
-@app.tool()
+@app.tool(tags={"context"})
 def get_guidelines_for_icepak() -> str:
     """Get Icepak thermal analysis guidelines.
 
@@ -571,7 +571,7 @@ max_temp = ipk.post.get_solution_data(
 """
 
 
-@app.tool()
+@app.tool(tags={"context"})
 def get_guidelines_for_circuit() -> str:
     """Get Circuit simulation guidelines.
 
@@ -715,7 +715,7 @@ cir.post.create_report(
 """
 
 
-@app.tool()
+@app.tool(tags={"context"})
 def get_guidelines_for_geometry() -> str:
     """Get geometry creation guidelines for AEDT.
 
@@ -928,7 +928,7 @@ modeler.assign_material(obj, "MyMaterial")
 """
 
 
-@app.tool()
+@app.tool(tags={"context"})
 def get_guidelines_for_mesh() -> str:
     """Get mesh setup guidelines for AEDT.
 
@@ -1101,7 +1101,7 @@ setup.props["BroadbandFrequencyRange"] = ["1GHz", "10GHz"]
 """
 
 
-@app.tool()
+@app.tool(tags={"context"})
 def get_guidelines_for_boundaries() -> str:
     """Get boundary and excitation guidelines for AEDT.
 
@@ -1346,7 +1346,7 @@ ipk.assign_fan(
 """
 
 
-@app.tool()
+@app.tool(tags={"context"})
 def get_guidelines_for_postprocessing() -> str:
     """Get postprocessing guidelines for AEDT.
 
@@ -1567,7 +1567,7 @@ plt.savefig("s11_plot.png")
 """
 
 
-@app.tool()
+@app.tool(tags={"context"})
 def get_guidelines_for_parametric() -> str:
     """Get parametric analysis and optimization guidelines for AEDT.
 

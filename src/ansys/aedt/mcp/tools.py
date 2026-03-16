@@ -23,6 +23,28 @@ from ansys.aedt.mcp.server import session
 logger = get_logger(__name__)
 
 
+def _configure_pyaedt_runtime_settings(enable_grpc: bool = False) -> None:
+    """Configure PyAEDT runtime settings for safer MCP execution.
+
+    Parameters
+    ----------
+    enable_grpc : bool, optional
+        Whether to force gRPC API mode. Default is False.
+    """
+    try:
+        # Preferred import path in newer PyAEDT versions.
+        from ansys.aedt.core import settings
+    except Exception:
+        # Backward-compatible import path.
+        from ansys.aedt.core.generic.settings import settings
+
+    if enable_grpc:
+        settings.use_grpc_api = True
+
+    # Prevent Desktop shutdown when user-provided code raises.
+    settings.release_on_exception = False
+
+
 # AEDT Application types supported
 AEDTAppType = Literal[
     "Hfss", "Maxwell2d", "Maxwell3d", "Q3d", "Q2d", "Icepak",
@@ -69,8 +91,7 @@ def check_aedt_status(ctx: Context) -> str:
         logger.error(error_msg)
         return error_msg
 
-
-@app.tool(tags={"aali"})
+@app.tool(tags={"aedt_tools"})
 def check_aedt_installed(ctx: Context) -> str:
     """Check if AEDT is installed on the system.
 
@@ -141,11 +162,11 @@ def check_aedt_installed(ctx: Context) -> str:
         return error_msg
 
 
-@app.tool(tags={"aali", "locked_connection"})
+@app.tool(tags={"aedt_tools", "locked_connection"})
 def launch_aedt(
     ctx: Context,
     version: str | None = None,
-    non_graphical: bool = True,
+    non_graphical: bool = False,
     new_desktop: bool = True,
 ) -> str:
     """Launch a new AEDT Desktop instance.
@@ -162,7 +183,8 @@ def launch_aedt(
         The AEDT version to launch (e.g., "2025.2", "252"). If None, the latest
         installed version will be used.
     non_graphical : bool, optional
-        Whether to launch AEDT in non-graphical mode. Default is True.
+        Whether to launch AEDT in non-graphical mode. Default is False
+        (launch in graphical mode).
     new_desktop : bool, optional
         Whether to launch a new AEDT instance even if one is already running.
         Default is True.
@@ -191,6 +213,8 @@ def launch_aedt(
             )
 
         from ansys.aedt.core import Desktop
+
+        _configure_pyaedt_runtime_settings()
 
         # Launch new AEDT instance
         kwargs: dict[str, Any] = {
@@ -221,7 +245,7 @@ def launch_aedt(
         return error_msg
 
 
-@app.tool(tags={"aali", "locked_connection"})
+@app.tool(tags={"aedt_tools", "locked_connection"})
 def connect_to_aedt(
     ctx: Context,
     port: int = 50051,
@@ -276,10 +300,8 @@ def connect_to_aedt(
             )
 
         from ansys.aedt.core import Desktop
-        from ansys.aedt.core.generic.settings import settings
 
-        # Enable gRPC API
-        settings.use_grpc_api = True
+        _configure_pyaedt_runtime_settings(enable_grpc=True)
 
         # Connect to existing AEDT instance
         kwargs: dict[str, Any] = {
@@ -310,7 +332,7 @@ def connect_to_aedt(
         return error_msg
 
 
-@app.tool(tags={"aali", "locked_connection"})
+@app.tool(tags={"aedt_tools", "locked_connection"})
 def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
     """Disconnect from the AEDT Desktop instance.
 
@@ -352,7 +374,7 @@ def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def run_python_script(ctx: Context, script_path: str) -> str:
     """Execute a Python script file inside AEDT.
 
@@ -395,7 +417,7 @@ def run_python_script(ctx: Context, script_path: str) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def run_python_code(ctx: Context, code: str) -> str:
     """Execute Python code inside AEDT.
 
@@ -424,6 +446,9 @@ def run_python_code(ctx: Context, code: str) -> str:
     try:
         logger.info("Executing inline Python code in AEDT...")
 
+        # Keep AEDT alive when user code raises an exception.
+        _configure_pyaedt_runtime_settings()
+
         # Create a local namespace with desktop available
         local_ns = {
             "desktop": desktop,
@@ -444,7 +469,7 @@ def run_python_code(ctx: Context, code: str) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def list_projects(ctx: Context) -> str:
     """List all open projects in AEDT.
 
@@ -477,7 +502,7 @@ def list_projects(ctx: Context) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def list_designs(ctx: Context, project_name: str | None = None) -> str:
     """List all designs in a project.
 
@@ -513,7 +538,7 @@ def list_designs(ctx: Context, project_name: str | None = None) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def open_project(ctx: Context, project_path: str, design_name: str | None = None) -> str:
     """Open an AEDT project file.
 
@@ -555,7 +580,7 @@ def open_project(ctx: Context, project_path: str, design_name: str | None = None
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def save_project(ctx: Context, project_name: str | None = None, save_as: str | None = None) -> str:
     """Save an AEDT project.
 
@@ -594,7 +619,7 @@ def save_project(ctx: Context, project_name: str | None = None, save_as: str | N
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def create_design(
     ctx: Context,
     app_type: AEDTAppType,
@@ -678,7 +703,7 @@ def create_design(
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def analyze_design(
     ctx: Context,
     setup_name: str | None = None,
@@ -725,7 +750,7 @@ def analyze_design(
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def export_results(
     ctx: Context,
     output_path: str,
@@ -769,7 +794,7 @@ def export_results(
         return error_msg
 
 
-@app.tool(tags={"aali"})
+@app.tool(tags={"aedt_tools"})
 def list_files(ctx: Context, directory: str | None = None, pattern: str = "*") -> str:
     """List files in the AEDT working directory.
 
@@ -820,7 +845,7 @@ def list_files(ctx: Context, directory: str | None = None, pattern: str = "*") -
         return error_msg
 
 
-@app.tool(tags={"aali"})
+@app.tool(tags={"aedt_tools"})
 def upload_file(ctx: Context, local_path: str, remote_path: str | None = None) -> str:
     """Upload a file to the AEDT working directory.
 
@@ -856,8 +881,7 @@ def upload_file(ctx: Context, local_path: str, remote_path: str | None = None) -
         logger.error(error_msg)
         return error_msg
 
-
-@app.tool(tags={"aali"})
+@app.tool(tags={"aedt_tools"})
 def download_file(ctx: Context, remote_path: str, local_path: str | None = None) -> str:
     """Download a file from the AEDT working directory.
 
@@ -984,7 +1008,7 @@ def screenshot(
         return [TextContent(type="text", text=error_msg)]
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def export_touchstone(
     ctx: Context,
     output_path: str,
@@ -1034,7 +1058,7 @@ def export_touchstone(
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def export_3d_model(
     ctx: Context,
     output_path: str,
@@ -1087,7 +1111,7 @@ def export_3d_model(
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
     """Clear AEDT state by closing all projects.
 
@@ -1127,7 +1151,7 @@ def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(tags={"aedt_tools"})
 def get_model_info(ctx: Context, design_name: str | None = None) -> str:
     """Get information about the current model/design.
 
@@ -1166,9 +1190,9 @@ def get_model_info(ctx: Context, design_name: str | None = None) -> str:
 
 
 # Conditionally disable tools based on session configuration
-# Tools tagged with "aali" should be disabled when running on AALI platform
+# Tools tagged with "context" should be disabled when running on AALI platform
 if session.on_aali:
-    app.disable(tags={"aali"})
+    app.disable(tags={"context"})
 
 # Tools tagged with "locked_connection" should be disabled when connection is locked
 if session.locked_connection:
