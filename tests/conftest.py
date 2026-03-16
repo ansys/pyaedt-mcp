@@ -36,6 +36,7 @@ def mock_desktop():
 def app_context(mock_desktop):
     """Create a PyAEDTAppContext with a mock Desktop instance."""
     from ansys.aedt.mcp.server import PyAEDTAppContext
+
     ctx = PyAEDTAppContext()
     ctx.desktop = mock_desktop
     return ctx
@@ -45,6 +46,7 @@ def app_context(mock_desktop):
 def app_context_no_desktop():
     """Create a PyAEDTAppContext without Desktop (simulating no connection)."""
     from ansys.aedt.mcp.server import PyAEDTAppContext
+
     ctx = PyAEDTAppContext()
     ctx.desktop = None
     return ctx

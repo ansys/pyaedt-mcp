@@ -45,10 +45,10 @@ def test_app_context_creation():
 
     mock_desktop = MagicMock()
     mock_desktop.aedt_version_id = "2025.2"
-    
+
     ctx = PyAEDTAppContext()
     ctx.desktop = mock_desktop
-    
+
     assert ctx.desktop is not None
     assert ctx.desktop.aedt_version_id == "2025.2"
 
@@ -60,5 +60,5 @@ def test_app_context_no_desktop():
 
     ctx = PyAEDTAppContext()
     ctx.desktop = None
-    
+
     assert ctx.desktop is None

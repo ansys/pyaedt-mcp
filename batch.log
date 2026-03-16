@@ -70,3 +70,16 @@ Project directory: C:\Users\tbana\OneDrive - Synopsys, Inc\Documents\Ansoft
 [info] gRPC server started on port 50051 of local host. Only connections from the local host initiated by the same user are permitted.
 
 Stopping Batch Run: 5:10:08 PM  Mar 16, 2026
+ 
+Ansys Electronics Desktop Version 2025.2.4, Build: 2025-11-06 17:01:32
+Location: C:\Program Files\ANSYS Inc\v252\AnsysEM\ansysedt.exe
+Non Graphical Mode: No Project??
+Starting Batch Run: 2:45:56 PM  Mar 16, 2026
+Running as user : SYNOPSYS\eblancof
+Temp directory: C:\Users\eblancof\AppData\Local\Temp\pytest-of-eblancof\pytest-7
+Project directory: C:\Users\eblancof\Documents\Ansoft
+-- Message Window --
+      *Global - Messages
+        [info] gRPC server started on port 60251 of local host. Only connections from the local host initiated by the same user are permitted. 
+-- Message Window --
+Stopping Batch Run: 2:48:33 PM  Mar 16, 2026

@@ -23,9 +23,9 @@ from ansys.aedt.mcp.server import session
 logger = get_logger(__name__)
 
 # Tool timeout tiers (seconds)
-_TIMEOUT_QUICK = 30       # status checks, listing, info queries
-_TIMEOUT_MEDIUM = 120     # connect, launch, open/save, create design, screenshot
-_TIMEOUT_LONG = 300       # script execution, analysis, exports
+_TIMEOUT_QUICK = 30  # status checks, listing, info queries
+_TIMEOUT_MEDIUM = 120  # connect, launch, open/save, create design, screenshot
+_TIMEOUT_LONG = 300  # script execution, analysis, exports
 
 
 def _configure_pyaedt_runtime_settings(enable_grpc: bool = False) -> None:
@@ -52,8 +52,18 @@ def _configure_pyaedt_runtime_settings(enable_grpc: bool = False) -> None:
 
 # AEDT Application types supported
 AEDTAppType = Literal[
-    "Hfss", "Maxwell2d", "Maxwell3d", "Q3d", "Q2d", "Icepak",
-    "Circuit", "TwinBuilder", "Mechanical", "Emit", "RMXprt", "Hfss3dLayout"
+    "Hfss",
+    "Maxwell2d",
+    "Maxwell3d",
+    "Q3d",
+    "Q2d",
+    "Icepak",
+    "Circuit",
+    "TwinBuilder",
+    "Mechanical",
+    "Emit",
+    "RMXprt",
+    "Hfss3dLayout",
 ]
 
 
@@ -122,10 +132,7 @@ def check_aedt_installed(ctx: Context) -> str:
         port = int(os.environ.get("AEDT_PORT", "50051"))
         reachable = _probe_grpc_endpoint(host, port)
         if reachable:
-            return (
-                f"Running inside Docker – AEDT gRPC endpoint at "
-                f"{host}:{port} is reachable."
-            )
+            return f"Running inside Docker – AEDT gRPC endpoint at " f"{host}:{port} is reachable."
         return (
             f"Running inside Docker – AEDT gRPC endpoint at "
             f"{host}:{port} is NOT reachable. Ensure AEDT is started "
@@ -138,7 +145,7 @@ def check_aedt_installed(ctx: Context) -> str:
 
         # Get installed versions without starting AEDT
         temp_desktop = Desktop.__new__(Desktop)
-        installed = getattr(temp_desktop, 'installed_versions', {})
+        installed = getattr(temp_desktop, "installed_versions", {})
 
         if installed:
             versions = list(installed.keys())
@@ -147,11 +154,9 @@ def check_aedt_installed(ctx: Context) -> str:
         else:
             # Try alternative detection
             import subprocess
+
             result = subprocess.run(
-                ["where", "ansysedt.exe"],
-                capture_output=True,
-                text=True,
-                timeout=30
+                ["where", "ansysedt.exe"], capture_output=True, text=True, timeout=30
             )
             if result.returncode == 0:
                 return f"AEDT executable found at: {result.stdout.strip()}"
@@ -293,9 +298,7 @@ def connect_to_aedt(
             machine = os.environ.get("AEDT_MACHINE", "host.docker.internal")
         if port == 50051:
             port = int(os.environ.get("AEDT_PORT", "50051"))
-        logger.info(
-            f"Docker detected – using AEDT endpoint {machine}:{port}"
-        )
+        logger.info(f"Docker detected – using AEDT endpoint {machine}:{port}")
 
     try:
         # Check if there's already a connection
@@ -403,7 +406,9 @@ def run_python_script(ctx: Context, script_path: str) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         # Verify file exists
@@ -447,7 +452,9 @@ def run_python_code(ctx: Context, code: str) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         logger.info("Executing inline Python code in AEDT...")
@@ -492,7 +499,9 @@ def list_projects(ctx: Context) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         projects = desktop.project_list
@@ -527,7 +536,9 @@ def list_designs(ctx: Context, project_name: str | None = None) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         designs = desktop.design_list(project_name)
@@ -566,7 +577,9 @@ def open_project(ctx: Context, project_path: str, design_name: str | None = None
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         if not os.path.exists(project_path):
@@ -607,7 +620,9 @@ def save_project(ctx: Context, project_name: str | None = None, save_as: str | N
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         logger.info(f"Saving project: {project_name or 'active project'}")
@@ -658,7 +673,9 @@ def create_design(
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         import ansys.aedt.core as aedt
@@ -681,7 +698,9 @@ def create_design(
 
         app_class = app_map.get(app_type)
         if app_class is None:
-            return f"Unsupported application type: {app_type}. Supported types: {list(app_map.keys())}"
+            return (
+                f"Unsupported application type: {app_type}. Supported types: {list(app_map.keys())}"
+            )
 
         logger.info(f"Creating {app_type} design: {design_name}")
 
@@ -737,7 +756,9 @@ def analyze_design(
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         logger.info(f"Running analysis on setup: {setup_name or 'all setups'}")
@@ -785,7 +806,9 @@ def export_results(
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         logger.info(f"Exporting {export_type} results to: {output_path}")
@@ -830,12 +853,14 @@ def list_files(ctx: Context, directory: str | None = None, pattern: str = "*") -
         file_info = []
         for f in files:
             stat = os.stat(f)
-            file_info.append({
-                "name": os.path.basename(f),
-                "path": f,
-                "size": stat.st_size,
-                "is_directory": os.path.isdir(f),
-            })
+            file_info.append(
+                {
+                    "name": os.path.basename(f),
+                    "path": f,
+                    "size": stat.st_size,
+                    "is_directory": os.path.isdir(f),
+                }
+            )
 
         result = {
             "directory": directory,
@@ -878,6 +903,7 @@ def upload_file(ctx: Context, local_path: str, remote_path: str | None = None) -
 
         # For local connections, just copy
         import shutil
+
         shutil.copy2(local_path, remote_path)
 
         return f"File uploaded successfully to: {remote_path}"
@@ -915,6 +941,7 @@ def download_file(ctx: Context, remote_path: str, local_path: str | None = None)
 
         # For local connections, just copy
         import shutil
+
         shutil.copy2(remote_path, local_path)
 
         return f"File downloaded successfully to: {local_path}"
@@ -1046,7 +1073,9 @@ def export_touchstone(
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         logger.info(f"Exporting Touchstone to: {output_path}")
@@ -1096,7 +1125,9 @@ def export_3d_model(
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         logger.info(f"Exporting 3D model to {export_format}: {output_path}")
@@ -1177,7 +1208,9 @@ def get_model_info(ctx: Context, design_name: str | None = None) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
 
     try:
         design_type = desktop.design_type(design_name=design_name)

@@ -36,9 +36,9 @@ class TestGetAEDTInfo:
     def test_missing_attributes(self):
         """Test with missing attributes."""
         mock_desktop = MagicMock(spec=[])  # Empty spec = no attributes
-        
+
         info = get_aedt_info(mock_desktop)
-        
+
         assert "connection" in info
         assert info["connection"]["version"] == "Unknown"
 

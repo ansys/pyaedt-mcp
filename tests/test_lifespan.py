@@ -30,7 +30,7 @@ def test_app_context_dataclass():
 def test_app_context_default_values():
     """Test default values for PyAEDTAppContext."""
     ctx = PyAEDTAppContext()
-    
+
     assert ctx.desktop is None
     assert ctx.transport_type == "stdio"
     assert ctx.aedt_machine is None
@@ -48,10 +48,10 @@ def test_app_context_product_instance_property():
     """Test product_instance property getter and setter."""
     mock_desktop = MagicMock()
     ctx = PyAEDTAppContext()
-    
+
     # Test getter returns None initially
     assert ctx.product_instance is None
-    
+
     # Test setter via property
     ctx.product_instance = mock_desktop
     assert ctx.product_instance == mock_desktop
@@ -84,13 +84,13 @@ def test_mcp_server_tool_registration():
     """Test that tools are properly registered with the MCP server."""
     import asyncio
     from ansys.aedt.mcp import app
-    
+
     # Get the list of tools from the server
     tools = asyncio.get_event_loop().run_until_complete(app.list_tools())
-    
+
     # Should have multiple tools registered
     assert len(tools) > 0
-    
+
     # Check for expected tool names
     tool_names = [tool.name for tool in tools]
     assert "check_aedt_status" in tool_names
@@ -102,11 +102,11 @@ def test_mcp_server_tool_registration():
 def test_pyaedt_mcp_class():
     """Test PyAEDTMCP class instantiation."""
     from ansys.aedt.mcp.server import PyAEDTMCP
-    
+
     # Test with default name
     mcp = PyAEDTMCP()
     assert mcp.name == "PyAEDT MCP Server"
-    
+
     # Test with custom name
     mcp_custom = PyAEDTMCP(name="Custom AEDT Server")
     assert mcp_custom.name == "Custom AEDT Server"
@@ -117,12 +117,12 @@ def test_create_context():
     """Test context creation in PyAEDTMCP."""
     from ansys.aedt.mcp.server import PyAEDTMCP, PyAEDTAppContext
     from unittest.mock import patch
-    
+
     mcp = PyAEDTMCP()
-    
+
     # Create context without CLI config
     context = mcp.create_context()
-    
+
     assert isinstance(context, PyAEDTAppContext)
     assert context.desktop is None
     assert context.python_session is not None
@@ -132,24 +132,28 @@ def test_create_context():
 def test_context_cli_config_population():
     """Test that context is populated from CLI config."""
     from ansys.aedt.mcp.server import PyAEDTMCP, app
-    
+
     mcp = PyAEDTMCP()
-    
+
     # Set CLI config on mcp instance directly
-    setattr(mcp, "_cli_config", {
-        "transport_type": "http",
-        "aedt_machine": "remote-server",
-        "aedt_port": 50052,
-        "aedt_version": "2025.2",
-        "non_graphical": False,
-        "connect_on_startup": True,
-        "http_host": "0.0.0.0",
-        "http_port": 9000,
-        "cors_origins": ["http://localhost:3000"],
-    })
-    
+    setattr(
+        mcp,
+        "_cli_config",
+        {
+            "transport_type": "http",
+            "aedt_machine": "remote-server",
+            "aedt_port": 50052,
+            "aedt_version": "2025.2",
+            "non_graphical": False,
+            "connect_on_startup": True,
+            "http_host": "0.0.0.0",
+            "http_port": 9000,
+            "cors_origins": ["http://localhost:3000"],
+        },
+    )
+
     context = mcp.create_context()
-    
+
     assert context.transport_type == "http"
     assert context.aedt_machine == "remote-server"
     assert context.aedt_port == 50052

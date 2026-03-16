@@ -17,7 +17,6 @@ import pytest
 
 from ansys.aedt.mcp.helpers import _is_docker, _probe_grpc_endpoint
 
-
 # ------------------------------------------------------------------ #
 # _is_docker()
 # ------------------------------------------------------------------ #
@@ -35,6 +34,7 @@ class TestIsDocker:
     def test_dockerenv_marker(self):
         """Detect Docker via /.dockerenv."""
         with patch("ansys.aedt.mcp.helpers.Path") as MockPath:
+
             def exists_side_effect(p=None):
                 m = MagicMock()
                 if str(MockPath.call_args_list[-1][0][0]) == "/.dockerenv":
@@ -59,9 +59,7 @@ class TestIsDocker:
     def test_no_markers(self):
         """No marker files → not Docker."""
         with patch("ansys.aedt.mcp.helpers.Path") as MockPath:
-            MockPath.side_effect = lambda p: (
-                type("P", (), {"exists": lambda self: False})()
-            )
+            MockPath.side_effect = lambda p: (type("P", (), {"exists": lambda self: False})())
             assert _is_docker() is False
 
 
@@ -235,9 +233,7 @@ class TestConnectToAEDTDocker:
             MockDesktop.return_value = mock_desk
 
             # Pass explicit non-default values
-            result = connect_to_aedt(
-                mock_context_no_desktop, port=9999, machine="my-server"
-            )
+            result = connect_to_aedt(mock_context_no_desktop, port=9999, machine="my-server")
 
             call_kwargs = MockDesktop.call_args[1]
             # Explicit values should be preserved, NOT overridden

@@ -85,9 +85,17 @@ def get_aedt_info(desktop: Any) -> dict[str, Any]:
     try:
         # Connection information
         info["connection"] = {
-            "version": str(desktop.aedt_version_id) if hasattr(desktop, "aedt_version_id") else "Unknown",
-            "version_string": str(desktop.aedt_version_string) if hasattr(desktop, "aedt_version_string") else "Unknown",
-            "install_dir": str(desktop.aedt_install_dir) if hasattr(desktop, "aedt_install_dir") else "Unknown",
+            "version": (
+                str(desktop.aedt_version_id) if hasattr(desktop, "aedt_version_id") else "Unknown"
+            ),
+            "version_string": (
+                str(desktop.aedt_version_string)
+                if hasattr(desktop, "aedt_version_string")
+                else "Unknown"
+            ),
+            "install_dir": (
+                str(desktop.aedt_install_dir) if hasattr(desktop, "aedt_install_dir") else "Unknown"
+            ),
             "is_grpc": desktop.is_grpc_api if hasattr(desktop, "is_grpc_api") else False,
             "machine": str(desktop.machine) if hasattr(desktop, "machine") else "localhost",
             "port": desktop.port if hasattr(desktop, "port") else None,
@@ -105,17 +113,29 @@ def get_aedt_info(desktop: Any) -> dict[str, Any]:
 
     try:
         # Active project
-        active_proj = desktop.active_project() if hasattr(desktop, "active_project") and callable(desktop.active_project) else None
+        active_proj = (
+            desktop.active_project()
+            if hasattr(desktop, "active_project") and callable(desktop.active_project)
+            else None
+        )
         if active_proj:
-            info["active_project"] = active_proj.GetName() if hasattr(active_proj, "GetName") else str(active_proj)
+            info["active_project"] = (
+                active_proj.GetName() if hasattr(active_proj, "GetName") else str(active_proj)
+            )
     except Exception:
         info["active_project"] = None
 
     try:
         # Active design
-        active_design = desktop.active_design() if hasattr(desktop, "active_design") and callable(desktop.active_design) else None
+        active_design = (
+            desktop.active_design()
+            if hasattr(desktop, "active_design") and callable(desktop.active_design)
+            else None
+        )
         if active_design:
-            info["active_design"] = active_design.GetName() if hasattr(active_design, "GetName") else str(active_design)
+            info["active_design"] = (
+                active_design.GetName() if hasattr(active_design, "GetName") else str(active_design)
+            )
     except Exception:
         info["active_design"] = None
 
@@ -149,7 +169,9 @@ def get_design_info(app: Any) -> dict[str, Any]:
         info["project_name"] = app.project_name if hasattr(app, "project_name") else "Unknown"
         info["design_type"] = app.design_type if hasattr(app, "design_type") else "Unknown"
         info["solution_type"] = app.solution_type if hasattr(app, "solution_type") else "Unknown"
-        info["working_directory"] = app.working_directory if hasattr(app, "working_directory") else "Unknown"
+        info["working_directory"] = (
+            app.working_directory if hasattr(app, "working_directory") else "Unknown"
+        )
         info["project_path"] = app.project_path if hasattr(app, "project_path") else "Unknown"
     except Exception as e:
         info["error"] = str(e)

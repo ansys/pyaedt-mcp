@@ -26,6 +26,7 @@ def mock_desktop():
 def app_context(mock_desktop):
     """Create a PyAEDTAppContext with a mock Desktop instance."""
     from ansys.aedt.mcp.server import PyAEDTAppContext
+
     ctx = PyAEDTAppContext()
     ctx.desktop = mock_desktop
     return ctx
@@ -35,6 +36,7 @@ def app_context(mock_desktop):
 def app_context_no_desktop():
     """Create a PyAEDTAppContext without Desktop."""
     from ansys.aedt.mcp.server import PyAEDTAppContext
+
     ctx = PyAEDTAppContext()
     ctx.desktop = None
     return ctx
@@ -98,11 +100,7 @@ class TestErrorHandling:
 
         # Mock Desktop to raise connection error
         with patch("ansys.aedt.core.Desktop", side_effect=RuntimeError("Connection refused")):
-            result = connect_to_aedt(
-                mock_context_no_desktop,
-                machine="invalid-server",
-                port=50051
-            )
+            result = connect_to_aedt(mock_context_no_desktop, machine="invalid-server", port=50051)
             assert "Error" in result or "Failed" in result or "Connection refused" in result
 
     def test_invalid_project_path(self, mock_context):
