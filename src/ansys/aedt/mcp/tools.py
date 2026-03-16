@@ -22,6 +22,11 @@ from ansys.aedt.mcp.server import session
 
 logger = get_logger(__name__)
 
+# Tool timeout tiers (seconds)
+_TIMEOUT_QUICK = 30       # status checks, listing, info queries
+_TIMEOUT_MEDIUM = 120     # connect, launch, open/save, create design, screenshot
+_TIMEOUT_LONG = 300       # script execution, analysis, exports
+
 
 # AEDT Application types supported
 AEDTAppType = Literal[
@@ -30,7 +35,7 @@ AEDTAppType = Literal[
 ]
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_QUICK)
 def check_aedt_status(ctx: Context) -> str:
     """Check the status of AEDT Desktop initialization.
 
@@ -70,7 +75,7 @@ def check_aedt_status(ctx: Context) -> str:
         return error_msg
 
 
-@app.tool(tags={"aali"})
+@app.tool(tags={"aali"}, timeout=_TIMEOUT_QUICK)
 def check_aedt_installed(ctx: Context) -> str:
     """Check if AEDT is installed on the system.
 
@@ -141,7 +146,7 @@ def check_aedt_installed(ctx: Context) -> str:
         return error_msg
 
 
-@app.tool(tags={"aali", "locked_connection"})
+@app.tool(tags={"aali", "locked_connection"}, timeout=_TIMEOUT_MEDIUM)
 def launch_aedt(
     ctx: Context,
     version: str | None = None,
@@ -221,7 +226,7 @@ def launch_aedt(
         return error_msg
 
 
-@app.tool(tags={"aali", "locked_connection"})
+@app.tool(tags={"aali", "locked_connection"}, timeout=_TIMEOUT_MEDIUM)
 def connect_to_aedt(
     ctx: Context,
     port: int = 50051,
@@ -310,7 +315,7 @@ def connect_to_aedt(
         return error_msg
 
 
-@app.tool(tags={"aali", "locked_connection"})
+@app.tool(tags={"aali", "locked_connection"}, timeout=_TIMEOUT_MEDIUM)
 def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
     """Disconnect from the AEDT Desktop instance.
 
@@ -352,7 +357,7 @@ def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_LONG)
 def run_python_script(ctx: Context, script_path: str) -> str:
     """Execute a Python script file inside AEDT.
 
@@ -395,7 +400,7 @@ def run_python_script(ctx: Context, script_path: str) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_LONG)
 def run_python_code(ctx: Context, code: str) -> str:
     """Execute Python code inside AEDT.
 
@@ -444,7 +449,7 @@ def run_python_code(ctx: Context, code: str) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_QUICK)
 def list_projects(ctx: Context) -> str:
     """List all open projects in AEDT.
 
@@ -477,7 +482,7 @@ def list_projects(ctx: Context) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_QUICK)
 def list_designs(ctx: Context, project_name: str | None = None) -> str:
     """List all designs in a project.
 
@@ -513,7 +518,7 @@ def list_designs(ctx: Context, project_name: str | None = None) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_MEDIUM)
 def open_project(ctx: Context, project_path: str, design_name: str | None = None) -> str:
     """Open an AEDT project file.
 
@@ -555,7 +560,7 @@ def open_project(ctx: Context, project_path: str, design_name: str | None = None
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_MEDIUM)
 def save_project(ctx: Context, project_name: str | None = None, save_as: str | None = None) -> str:
     """Save an AEDT project.
 
@@ -594,7 +599,7 @@ def save_project(ctx: Context, project_name: str | None = None, save_as: str | N
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_MEDIUM)
 def create_design(
     ctx: Context,
     app_type: AEDTAppType,
@@ -678,7 +683,7 @@ def create_design(
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_LONG)
 def analyze_design(
     ctx: Context,
     setup_name: str | None = None,
@@ -725,7 +730,7 @@ def analyze_design(
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_LONG)
 def export_results(
     ctx: Context,
     output_path: str,
@@ -769,7 +774,7 @@ def export_results(
         return error_msg
 
 
-@app.tool(tags={"aali"})
+@app.tool(tags={"aali"}, timeout=_TIMEOUT_QUICK)
 def list_files(ctx: Context, directory: str | None = None, pattern: str = "*") -> str:
     """List files in the AEDT working directory.
 
@@ -820,7 +825,7 @@ def list_files(ctx: Context, directory: str | None = None, pattern: str = "*") -
         return error_msg
 
 
-@app.tool(tags={"aali"})
+@app.tool(tags={"aali"}, timeout=_TIMEOUT_MEDIUM)
 def upload_file(ctx: Context, local_path: str, remote_path: str | None = None) -> str:
     """Upload a file to the AEDT working directory.
 
@@ -857,7 +862,7 @@ def upload_file(ctx: Context, local_path: str, remote_path: str | None = None) -
         return error_msg
 
 
-@app.tool(tags={"aali"})
+@app.tool(tags={"aali"}, timeout=_TIMEOUT_MEDIUM)
 def download_file(ctx: Context, remote_path: str, local_path: str | None = None) -> str:
     """Download a file from the AEDT working directory.
 
@@ -894,7 +899,7 @@ def download_file(ctx: Context, remote_path: str, local_path: str | None = None)
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_MEDIUM)
 def screenshot(
     ctx: Context,
     design_name: str | None = None,
@@ -984,7 +989,7 @@ def screenshot(
         return [TextContent(type="text", text=error_msg)]
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_LONG)
 def export_touchstone(
     ctx: Context,
     output_path: str,
@@ -1034,7 +1039,7 @@ def export_touchstone(
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_LONG)
 def export_3d_model(
     ctx: Context,
     output_path: str,
@@ -1087,7 +1092,7 @@ def export_3d_model(
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_MEDIUM)
 def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
     """Clear AEDT state by closing all projects.
 
@@ -1127,7 +1132,7 @@ def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
         return error_msg
 
 
-@app.tool()
+@app.tool(timeout=_TIMEOUT_QUICK)
 def get_model_info(ctx: Context, design_name: str | None = None) -> str:
     """Get information about the current model/design.
 
