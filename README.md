@@ -155,6 +155,18 @@ ansys-aedt-mcp --connect --machine localhost --port 50051
 | `export_touchstone` | Export S-parameters to Touchstone format |
 | `export_3d_model` | Export 3D geometry (STEP, IGES, SAT, STL) |
 
+### Tool Timeouts
+
+Every tool has a timeout guard to prevent the MCP server from freezing if AEDT
+becomes unresponsive. When a tool exceeds its timeout the server returns an error
+and stays alive for the next call.
+
+| Tier | Timeout | Tools |
+|------|---------|-------|
+| Quick | **30 s** | `check_aedt_status`, `check_aedt_installed`, `list_projects`, `list_designs`, `list_files`, `get_model_info` |
+| Medium | **120 s** | `launch_aedt`, `connect_to_aedt`, `disconnect_from_aedt`, `open_project`, `save_project`, `create_design`, `screenshot`, `clear_aedt`, `upload_file`, `download_file` |
+| Long | **300 s** | `run_python_script`, `run_python_code`, `analyze_design`, `export_results`, `export_touchstone`, `export_3d_model` |
+
 ### Guideline/Context Tools
 
 | Tool | Description |
