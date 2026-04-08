@@ -16,9 +16,7 @@ def test_version():
 @pytest.mark.unit
 def test_package_imports():
     """Test that all expected functions and classes can be imported."""
-    from ansys.aedt.mcp import (
-        app,
-    )
+    from ansys.aedt.mcp import app
 
     assert app is not None
 

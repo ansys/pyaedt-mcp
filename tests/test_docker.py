@@ -141,7 +141,7 @@ class TestCheckAEDTInstalledDocker:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
-            patch("ansys.aedt.mcp.tools._probe_grpc_endpoint", return_value=True) as mock_probe,
+            patch("ansys.aedt.mcp.tools._probe_grpc_endpoint", return_value=True),
             patch.dict(os.environ, {}, clear=True),
         ):
             # Need to remove AEDT_MACHINE/AEDT_PORT if set
@@ -202,14 +202,14 @@ class TestConnectToAEDTDocker:
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
             patch.dict(os.environ, {"AEDT_MACHINE": "remote-host", "AEDT_PORT": "55555"}),
             patch("ansys.aedt.core.Desktop") as MockDesktop,
-            patch("ansys.aedt.core.generic.settings.settings") as mock_settings,
+            patch("ansys.aedt.core.generic.settings.settings"),
         ):
             mock_desk = MagicMock()
             mock_desk.aedt_version_id = "261"
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
-            result = connect_to_aedt(mock_context_no_desktop)
+            connect_to_aedt(mock_context_no_desktop)
 
             # Desktop should have been called with overridden host/port
             call_kwargs = MockDesktop.call_args[1]
@@ -224,7 +224,7 @@ class TestConnectToAEDTDocker:
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
             patch.dict(os.environ, {"AEDT_MACHINE": "env-host", "AEDT_PORT": "55555"}),
             patch("ansys.aedt.core.Desktop") as MockDesktop,
-            patch("ansys.aedt.core.generic.settings.settings") as mock_settings,
+            patch("ansys.aedt.core.generic.settings.settings"),
         ):
             mock_desk = MagicMock()
             mock_desk.aedt_version_id = "261"
@@ -232,7 +232,7 @@ class TestConnectToAEDTDocker:
             MockDesktop.return_value = mock_desk
 
             # Pass explicit non-default values
-            result = connect_to_aedt(mock_context_no_desktop, port=9999, machine="my-server")
+            connect_to_aedt(mock_context_no_desktop, port=9999, machine="my-server")
 
             call_kwargs = MockDesktop.call_args[1]
             # Explicit values should be preserved, NOT overridden
@@ -246,14 +246,14 @@ class TestConnectToAEDTDocker:
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
             patch("ansys.aedt.core.Desktop") as MockDesktop,
-            patch("ansys.aedt.core.generic.settings.settings") as mock_settings,
+            patch("ansys.aedt.core.generic.settings.settings"),
         ):
             mock_desk = MagicMock()
             mock_desk.aedt_version_id = "261"
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
-            result = connect_to_aedt(mock_context_no_desktop)
+            connect_to_aedt(mock_context_no_desktop)
 
             call_kwargs = MockDesktop.call_args[1]
             assert call_kwargs["machine"] == "localhost"

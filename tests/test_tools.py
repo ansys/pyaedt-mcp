@@ -407,7 +407,7 @@ class TestUploadFile:
         test_file = tmp_path / "test_upload.txt"
         test_file.write_text("test content")
 
-        with patch("shutil.copy2") as mock_copy:
+        with patch("shutil.copy2"):
             result = upload_file(mock_context, str(test_file))
 
             assert "uploaded successfully" in result or "Error" not in result

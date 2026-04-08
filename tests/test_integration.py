@@ -93,10 +93,7 @@ class TestProjectOperations:
 
     def test_create_and_list_project(self, mock_ctx_connected, tmp_path):
         """Test creating and listing a project."""
-        desktop = mock_ctx_connected.request_context.lifespan_context.desktop
-
-        # Create a new project
-        test_project_name = "IntegrationTest"
+        mock_ctx_connected.request_context.lifespan_context.desktop
 
         from ansys.aedt.mcp.tools import run_python_code
 

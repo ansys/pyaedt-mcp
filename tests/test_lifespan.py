@@ -68,11 +68,7 @@ def test_mcp_server_initialization():
 @pytest.mark.unit
 def test_mcp_server_has_tools():
     """Test that MCP server has registered tools."""
-    from ansys.aedt.mcp.tools import (
-        check_aedt_status,
-        connect_to_aedt,
-        run_python_code,
-    )
+    from ansys.aedt.mcp.tools import check_aedt_status, connect_to_aedt, run_python_code
 
     assert callable(check_aedt_status)
     assert callable(run_python_code)

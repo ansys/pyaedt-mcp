@@ -5,10 +5,7 @@ import sys
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from ansys.common.mcp import (
-    PyAnsysBaseMCP,
-    get_logger,
-)
+from ansys.common.mcp import PyAnsysBaseMCP, get_logger
 from ansys.common.mcp.context import PyAnsysBaseAppContext
 from ansys.common.mcp.helpers import PersistentPythonSession
 

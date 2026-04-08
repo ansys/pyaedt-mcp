@@ -48,6 +48,13 @@ pip install git+https://github.com/ansys/pyaedt-mcp.git
 git clone https://github.com/ansys/pyaedt-mcp.git
 cd pyaedt-mcp
 pip install -e ".[dev]"
+pre-commit install
+```
+
+Run the style hooks against the full repository at any time with:
+
+```bash
+pre-commit run --all-files
 ```
 
 ## Requirements
