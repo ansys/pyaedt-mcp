@@ -460,10 +460,14 @@ class TestScreenshot:
 
         mock_project = MagicMock()
         mock_project.GetName.return_value = "Project1"
-        mock_context.request_context.lifespan_context.desktop.active_project.return_value = mock_project
+        mock_context.request_context.lifespan_context.desktop.active_project.return_value = (
+            mock_project
+        )
         mock_design_obj = MagicMock()
         mock_design_obj.GetName.return_value = "Design1"
-        mock_context.request_context.lifespan_context.desktop.active_design.return_value = mock_design_obj
+        mock_context.request_context.lifespan_context.desktop.active_design.return_value = (
+            mock_design_obj
+        )
         mock_context.request_context.lifespan_context.desktop.design_type.return_value = "HFSS"
 
         mock_app = MagicMock()
@@ -521,10 +525,14 @@ class TestExportConfig:
 
         mock_project = MagicMock()
         mock_project.GetName.return_value = "Project1"
-        mock_context.request_context.lifespan_context.desktop.active_project.return_value = mock_project
+        mock_context.request_context.lifespan_context.desktop.active_project.return_value = (
+            mock_project
+        )
         mock_design_obj = MagicMock()
         mock_design_obj.GetName.return_value = "Design1"
-        mock_context.request_context.lifespan_context.desktop.active_design.return_value = mock_design_obj
+        mock_context.request_context.lifespan_context.desktop.active_design.return_value = (
+            mock_design_obj
+        )
         mock_context.request_context.lifespan_context.desktop.design_type.return_value = "HFSS"
 
         config_path = tmp_path / "temp_config.json"

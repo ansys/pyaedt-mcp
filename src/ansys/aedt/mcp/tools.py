@@ -17,7 +17,12 @@ from fastmcp.server.server import get_logger
 from mcp.types import ImageContent, TextContent
 
 from ansys.aedt.mcp import app
-from ansys.aedt.mcp.helpers import _is_docker, _probe_grpc_endpoint, get_aedt_info, resolve_design_app
+from ansys.aedt.mcp.helpers import (
+    _is_docker,
+    _probe_grpc_endpoint,
+    get_aedt_info,
+    resolve_design_app,
+)
 from ansys.aedt.mcp.server import session
 
 logger = get_logger(__name__)

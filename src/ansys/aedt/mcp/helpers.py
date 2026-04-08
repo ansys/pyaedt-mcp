@@ -310,9 +310,7 @@ def resolve_design_app(
         If the design type is unsupported.
     """
     active_project = (
-        desktop.active_project()
-        if callable(getattr(desktop, "active_project", None))
-        else None
+        desktop.active_project() if callable(getattr(desktop, "active_project", None)) else None
     )
     resolved_project_name = project_name or (
         active_project.GetName()
@@ -321,9 +319,7 @@ def resolve_design_app(
     )
 
     active_design = (
-        desktop.active_design()
-        if callable(getattr(desktop, "active_design", None))
-        else None
+        desktop.active_design() if callable(getattr(desktop, "active_design", None)) else None
     )
     resolved_design_name = design_name or (
         active_design.GetName()
