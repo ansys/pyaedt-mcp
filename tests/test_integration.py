@@ -100,7 +100,7 @@ class TestProjectOperations:
 
         from ansys.aedt.mcp.tools import run_python_code
 
-        code = f"""
+        code = """
 desktop.odesktop.NewProject()
 result = "Project created"
 """

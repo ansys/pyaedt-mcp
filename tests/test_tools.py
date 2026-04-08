@@ -650,7 +650,7 @@ class TestExport3DModel:
 @pytest.mark.asyncio
 async def test_tools_registered():
     """Test that all tools are registered with the MCP server."""
-    from ansys.aedt.mcp import contexts, tools  # noqa: F401
+    from ansys.aedt.mcp import contexts  # noqa: F401
     from ansys.aedt.mcp.server import app
 
     # Get list of registered tools

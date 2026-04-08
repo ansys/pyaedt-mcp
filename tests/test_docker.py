@@ -10,7 +10,6 @@ Tests cover:
 
 import os
 import socket
-import threading
 from unittest.mock import MagicMock, patch
 
 import pytest

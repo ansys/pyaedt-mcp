@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from ansys.aedt.mcp.helpers import (
     get_aedt_info,

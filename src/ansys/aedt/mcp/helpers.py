@@ -4,7 +4,6 @@ This module provides utility functions for working with AEDT Desktop
 instances and extracting information from them.
 """
 
-import os
 import socket
 from pathlib import Path
 from typing import Any

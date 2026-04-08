@@ -815,7 +815,7 @@ def export_results(
 
         # This would need access to the active application
         # For now, return a placeholder
-        return f"Export functionality requires an active application instance. Use create_design first to create an app-specific connection."
+        return "Export functionality requires an active application instance. Use create_design first to create an app-specific connection."
 
     except Exception as e:
         error_msg = f"Error exporting results: {str(e)}"

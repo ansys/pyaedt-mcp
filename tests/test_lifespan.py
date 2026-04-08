@@ -116,7 +116,6 @@ def test_pyaedt_mcp_class():
 @pytest.mark.unit
 def test_create_context():
     """Test context creation in PyAEDTMCP."""
-    from unittest.mock import patch
 
     from ansys.aedt.mcp.server import PyAEDTAppContext, PyAEDTMCP
 
@@ -133,7 +132,7 @@ def test_create_context():
 @pytest.mark.unit
 def test_context_cli_config_population():
     """Test that context is populated from CLI config."""
-    from ansys.aedt.mcp.server import PyAEDTMCP, app
+    from ansys.aedt.mcp.server import PyAEDTMCP
 
     mcp = PyAEDTMCP()
 
