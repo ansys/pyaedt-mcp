@@ -178,13 +178,13 @@ class TestLaunchAEDTDocker:
             patch("ansys.aedt.core.Desktop") as MockDesktop,
         ):
             mock_desk = MagicMock()
-            mock_desk.aedt_version_id = "252"
+            mock_desk.aedt_version_id = "261"
             mock_desk.aedt_install_dir = "/opt/ansys"
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
-            result = launch_aedt(mock_context_no_desktop, version="252")
-            assert "successfully launched" in result.lower() or "252" in result
+            result = launch_aedt(mock_context_no_desktop, version="261")
+            assert "successfully launched" in result.lower() or "261" in result
 
 
 # ------------------------------------------------------------------ #
@@ -206,7 +206,7 @@ class TestConnectToAEDTDocker:
             patch("ansys.aedt.core.generic.settings.settings") as mock_settings,
         ):
             mock_desk = MagicMock()
-            mock_desk.aedt_version_id = "252"
+            mock_desk.aedt_version_id = "261"
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
@@ -228,7 +228,7 @@ class TestConnectToAEDTDocker:
             patch("ansys.aedt.core.generic.settings.settings") as mock_settings,
         ):
             mock_desk = MagicMock()
-            mock_desk.aedt_version_id = "252"
+            mock_desk.aedt_version_id = "261"
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
@@ -250,7 +250,7 @@ class TestConnectToAEDTDocker:
             patch("ansys.aedt.core.generic.settings.settings") as mock_settings,
         ):
             mock_desk = MagicMock()
-            mock_desk.aedt_version_id = "252"
+            mock_desk.aedt_version_id = "261"
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 

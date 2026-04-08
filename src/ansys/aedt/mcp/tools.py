@@ -17,7 +17,7 @@ from fastmcp.server.server import get_logger
 from mcp.types import ImageContent, TextContent
 
 from ansys.aedt.mcp import app
-from ansys.aedt.mcp.helpers import _is_docker, _probe_grpc_endpoint, get_aedt_info
+from ansys.aedt.mcp.helpers import _is_docker, _probe_grpc_endpoint, get_aedt_info, resolve_design_app
 from ansys.aedt.mcp.server import session
 
 logger = get_logger(__name__)
@@ -191,7 +191,7 @@ def launch_aedt(
     ctx : Context
         The MCP context containing server session and application context.
     version : str, optional
-        The AEDT version to launch (e.g., "2025.2", "252"). If None, the latest
+        The AEDT version to launch (e.g., "2026.1", "261"). If None, the latest
         installed version will be used.
     non_graphical : bool, optional
         Whether to launch AEDT in non-graphical mode. Default is False
@@ -955,7 +955,9 @@ def download_file(ctx: Context, remote_path: str, local_path: str | None = None)
 @app.tool(timeout=_TIMEOUT_MEDIUM)
 def screenshot(
     ctx: Context,
-    design_name: str | None = None,
+    path: str = "screenshot.jpg",
+    project: str | None = None,
+    design: str | None = None,
     plot_type: str = "model",
 ) -> list[TextContent | ImageContent]:
     """Capture a screenshot of the current AEDT design view.
@@ -968,8 +970,12 @@ def screenshot(
     ----------
     ctx : Context
         The MCP context containing server session and application context.
-    design_name : str, optional
-        Name of the design to capture. If None, uses active design.
+    path : str, optional
+        Output image path. Default is ``"screenshot.jpg"``.
+    project : str, optional
+        Project containing the design to capture. If None, uses active project.
+    design : str, optional
+        Design to capture. If None, uses active design.
     plot_type : str, optional
         Type of screenshot: "model", "field", or "mesh". Default is "model".
 
@@ -995,51 +1001,133 @@ def screenshot(
 
     try:
         logger.info(f"Capturing AEDT screenshot (type: {plot_type})...")
-
-        # Create a temporary file with .jpg extension
-        temp_fd, temp_path = tempfile.mkstemp(suffix=".jpg", prefix="aedt_screenshot_")
-        os.close(temp_fd)
-
-        # Use Desktop's export_design_preview_to_jpg if available
         try:
-            # Try to export design preview
-            if hasattr(desktop, "export_design_preview_to_jpg"):
-                desktop.export_design_preview_to_jpg(temp_path)
-            else:
-                # Alternative: use oDesktop.ExportImage if available
-                desktop.odesktop.ExportImage(temp_path, 1920, 1080)
-        except Exception as e:
-            logger.warning(f"Design preview export failed, trying alternative: {e}")
-            # If export fails, return error
-            return [TextContent(type="text", text=f"Screenshot capture failed: {str(e)}")]
+            app_instance, _, _ = resolve_design_app(
+                desktop, project_name=project, design_name=design
+            )
+        except RuntimeError as resolve_error:
+            return [TextContent(type="text", text=f"Cannot capture screenshot: {resolve_error}")]
+
+        output_path = str(Path(path).expanduser().resolve())
+
+        try:
+            app_instance.export_design_preview_to_jpg(output_path)
+        except Exception as export_error:
+            raise RuntimeError(
+                f"Failed to export screenshot: {export_error}. "
+                "Try saving the project first before exporting an image."
+            ) from export_error
 
         # Verify file was created
-        image_path = Path(temp_path)
+        image_path = Path(output_path)
         if not image_path.exists():
-            return [TextContent(type="text", text=f"Screenshot file not created: {temp_path}")]
+            raise RuntimeError(f"Screenshot file not created: {output_path}")
 
-        # Read image data
+        # Read and encode image
         with open(image_path, "rb") as f:
             image_data = f.read()
-
-        # Encode to base64
         base64_data = base64.b64encode(image_data).decode("utf-8")
-
-        # Determine mime type
         mime_type = "image/jpeg"
 
-        logger.info(f"Screenshot captured successfully: {temp_path}")
+        logger.info(f"Screenshot captured successfully: {output_path}")
 
-        # Return both text (file path) and image content
         return [
-            TextContent(type="text", text=f"Screenshot saved to: {temp_path}"),
+            TextContent(
+                type="text",
+                text=(
+                    f"Screenshot saved to '{output_path}'\n"
+                    f"Design: {app_instance.design_name}\n"
+                    f"Project: {app_instance.project_name}"
+                ),
+            ),
             ImageContent(type="image", data=base64_data, mimeType=mime_type),
         ]
 
     except Exception as e:
-        error_msg = f"Failed to capture screenshot: {str(e)}"
+        error_msg = f"Error: {str(e)}"
         logger.error(error_msg)
         return [TextContent(type="text", text=error_msg)]
+
+
+@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_MEDIUM)
+def export_config(
+    ctx: Context,
+    output: str | None = None,
+    project: str | None = None,
+    design: str | None = None,
+    overwrite: bool = False,
+) -> str:
+    """Export the active design configuration as JSON.
+
+    Parameters
+    ----------
+    ctx : Context
+        The MCP context containing server session and application context.
+    output : str, optional
+        Output JSON file path. If omitted, the configuration is exported to a
+        temporary file and returned inline.
+    project : str, optional
+        Project containing the design to export.
+    design : str, optional
+        Design to export configuration from.
+    overwrite : bool, optional
+        Whether to overwrite an existing config file.
+
+    Returns
+    -------
+    str
+        JSON string containing the exported configuration and associated
+        design metadata. When ``output`` is provided, the returned JSON also
+        includes the written config file path.
+    """
+    desktop = ctx.request_context.lifespan_context.desktop
+
+    if desktop is None:
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
+
+    temp_config_file: str | None = None
+
+    try:
+        app_instance, resolved_project, _ = resolve_design_app(
+            desktop, project_name=project, design_name=design
+        )
+
+        if output:
+            config_target = output if output.lower().endswith(".json") else f"{output}.json"
+        else:
+            fd, config_target = tempfile.mkstemp(suffix=".json")
+            os.close(fd)
+            os.remove(config_target)
+            temp_config_file = config_target
+
+        config_file = app_instance.configurations.export_config(
+            config_file=config_target, overwrite=overwrite
+        )
+        if not config_file:
+            raise RuntimeError("Failed to export configuration.")
+
+        with open(config_file, "r", encoding="utf-8") as file_handle:
+            config_content = json.load(file_handle)
+
+        data: dict[str, Any] = {
+            "config": config_content,
+            "design": app_instance.design_name,
+            "project": resolved_project,
+        }
+        if output:
+            data["config_file"] = config_file
+
+        return json.dumps(data, indent=2)
+
+    except Exception as e:
+        error_msg = f"Error: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+    finally:
+        if temp_config_file and os.path.exists(temp_config_file):
+            os.remove(temp_config_file)
 
 
 @app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_LONG)

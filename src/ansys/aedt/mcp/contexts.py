@@ -81,7 +81,7 @@ AEDT includes multiple physics solvers:
 from ansys.aedt.core import Hfss, Desktop
 
 # Launch or connect to AEDT
-desktop = Desktop(version="2025.2", non_graphical=True)
+desktop = Desktop(version="2026.1", non_graphical=True)
 
 # Create an application
 hfss = Hfss(project="MyProject", design="MyDesign")

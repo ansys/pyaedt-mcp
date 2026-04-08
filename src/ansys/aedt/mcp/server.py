@@ -240,7 +240,7 @@ def launcher(argv: list[str] | None = None) -> None:
         "--version",
         dest="aedt_version",
         default=None,
-        help="AEDT version to use (e.g., '2025.2' or '252')",
+        help="AEDT version to use (e.g., '2026.1' or '261')",
     )
     parser.add_argument(
         "--non-graphical",

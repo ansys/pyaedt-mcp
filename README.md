@@ -66,10 +66,10 @@ Before connecting via MCP, start AEDT with gRPC server enabled:
 
 ```bash
 # Windows
-"C:\Program Files\ANSYS Inc\v252\AnsysEM\ansysedt.exe" -grpcsrv 50051
+"C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe" -grpcsrv 50051
 
 # Linux
-/ansys_inc/v252/AnsysEM/Linux64/ansysedt -grpcsrv 50051
+/ansys_inc/v261/AnsysEM/Linux64/ansysedt -grpcsrv 50051
 ```
 
 ### Running the MCP Server
@@ -99,7 +99,7 @@ ansys-aedt-mcp --connect --machine localhost --port 50051
 | `--transport`     | Transport type: `stdio` or `http` | `stdio`     |
 | `--machine`       | AEDT machine hostname/IP          | `localhost` |
 | `--port`          | AEDT gRPC port                    | `50051`     |
-| `--version`       | AEDT version (e.g., "2025.2")     | Auto-detect |
+| `--version`       | AEDT version (e.g., "2026.1")     | Auto-detect |
 | `--non-graphical` | Run AEDT in non-graphical mode    | `True`      |
 | `--graphical`     | Run AEDT in graphical mode        | `False`     |
 | `--connect`       | Connect to AEDT on startup        | `False`     |

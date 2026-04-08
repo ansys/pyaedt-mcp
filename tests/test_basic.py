@@ -45,13 +45,13 @@ def test_app_context_creation():
     from ansys.aedt.mcp.server import PyAEDTAppContext
 
     mock_desktop = MagicMock()
-    mock_desktop.aedt_version_id = "2025.2"
+    mock_desktop.aedt_version_id = "2026.1"
 
     ctx = PyAEDTAppContext()
     ctx.desktop = mock_desktop
 
     assert ctx.desktop is not None
-    assert ctx.desktop.aedt_version_id == "2025.2"
+    assert ctx.desktop.aedt_version_id == "2026.1"
 
 
 @pytest.mark.unit

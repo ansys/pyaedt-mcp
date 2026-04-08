@@ -76,11 +76,11 @@ def test_main_accepts_aedt_version():
     from ansys.aedt.mcp.server import launcher
 
     with patch.object(asyncio, "run"):
-        launcher(["--version", "2025.2"])
+        launcher(["--version", "2026.1"])
 
     cfg = getattr(package_mcp, "_cli_config", None)
     assert cfg is not None
-    assert cfg["aedt_version"] == "2025.2"
+    assert cfg["aedt_version"] == "2026.1"
 
 
 @pytest.mark.unit

@@ -15,16 +15,16 @@ sys.path.insert(0, str(src_path))
 def mock_desktop():
     """Create a mock AEDT Desktop instance for testing."""
     desktop = MagicMock()
-    desktop.aedt_version_id = "2025.2"
+    desktop.aedt_version_id = "2026.1"
     desktop.aedt_version_string = "AEDT 2025 R2"
-    desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v252\\AnsysEM"
+    desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v261\\AnsysEM"
     desktop.is_grpc_api = True
     desktop.machine = "localhost"
     desktop.port = 50051
     desktop.non_graphical = True
     desktop.aedt_process_id = 12345
     desktop.project_list = ["Project1", "Project2"]
-    desktop.installed_versions = {"252": "C:\\Program Files\\ANSYS Inc\\v252"}
+    desktop.installed_versions = {"261": "C:\\Program Files\\ANSYS Inc\\v261"}
     desktop.release_desktop = MagicMock()
     desktop.save_project = MagicMock()
     desktop.close_project = MagicMock()

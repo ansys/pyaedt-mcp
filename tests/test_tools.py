@@ -4,6 +4,7 @@ These tests mock the AEDT Desktop instance and verify tool behavior.
 """
 
 import json
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -16,16 +17,16 @@ from ansys.aedt.mcp.server import PyAEDTAppContext
 def mock_desktop():
     """Create a mock AEDT Desktop instance for testing."""
     desktop = MagicMock()
-    desktop.aedt_version_id = "2025.2"
+    desktop.aedt_version_id = "2026.1"
     desktop.aedt_version_string = "AEDT 2025 R2"
-    desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v252\\AnsysEM"
+    desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v261\\AnsysEM"
     desktop.is_grpc_api = True
     desktop.machine = "localhost"
     desktop.port = 50051
     desktop.non_graphical = True
     desktop.aedt_process_id = 12345
     desktop.project_list = ["Project1", "Project2"]
-    desktop.installed_versions = {"252": "C:\\Program Files\\ANSYS Inc\\v252"}
+    desktop.installed_versions = {"261": "C:\\Program Files\\ANSYS Inc\\v261"}
     desktop.release_desktop = MagicMock()
     desktop.save_project = MagicMock()
     desktop.close_project = MagicMock()
@@ -87,7 +88,7 @@ class TestCheckAEDTStatus:
         with patch("ansys.aedt.mcp.tools.get_aedt_info") as mock_info:
             mock_info.return_value = {
                 "connection": {
-                    "version": "2025.2",
+                    "version": "2026.1",
                     "is_grpc": True,
                     "machine": "localhost",
                     "port": 50051,
@@ -96,7 +97,7 @@ class TestCheckAEDTStatus:
             }
             result = check_aedt_status(mock_context)
             data = json.loads(result)
-            assert data["connection"]["version"] == "2025.2"
+            assert data["connection"]["version"] == "2026.1"
             assert data["connection"]["is_grpc"] is True
 
 
@@ -124,8 +125,8 @@ class TestLaunchAEDT:
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings") as mock_cfg,
         ):
             fake_desktop = MagicMock()
-            fake_desktop.aedt_version_id = "2025.2"
-            fake_desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v252\\AnsysEM"
+            fake_desktop.aedt_version_id = "2026.1"
+            fake_desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v261\\AnsysEM"
             fake_desktop.is_grpc_api = True
             mock_desktop.return_value = fake_desktop
 
@@ -161,7 +162,7 @@ class TestConnectToAEDT:
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings") as mock_cfg,
         ):
             fake_desktop = MagicMock()
-            fake_desktop.aedt_version_id = "2025.2"
+            fake_desktop.aedt_version_id = "2026.1"
             fake_desktop.is_grpc_api = True
             mock_desktop.return_value = fake_desktop
 
@@ -455,15 +456,147 @@ class TestScreenshot:
         """Test successful screenshot capture."""
         from ansys.aedt.mcp.tools import screenshot
 
-        # Create a fake image file
-        test_image = tmp_path / "screenshot.png"
-        test_image.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
+        test_image = tmp_path / "screenshot.jpg"
 
-        with patch("tempfile.mkstemp", return_value=(0, str(test_image))), patch("os.close"):
+        mock_project = MagicMock()
+        mock_project.GetName.return_value = "Project1"
+        mock_context.request_context.lifespan_context.desktop.active_project.return_value = mock_project
+        mock_design_obj = MagicMock()
+        mock_design_obj.GetName.return_value = "Design1"
+        mock_context.request_context.lifespan_context.desktop.active_design.return_value = mock_design_obj
+        mock_context.request_context.lifespan_context.desktop.design_type.return_value = "HFSS"
+
+        mock_app = MagicMock()
+        mock_app.design_name = "Design1"
+        mock_app.project_name = "Project1"
+
+        def _export_image(path):
+            Path(path).write_bytes(b"\xff\xd8\xff" + b"\x00" * 100)
+
+        mock_app.export_design_preview_to_jpg.side_effect = _export_image
+
+        with patch("ansys.aedt.core.Hfss", return_value=mock_app):
+            result = screenshot(mock_context, path=str(test_image))
+
+        assert len(result) == 2
+        assert "Screenshot saved to" in result[0].text
+        assert "Design: Design1" in result[0].text
+        assert "Project: Project1" in result[0].text
+        assert result[1].mimeType == "image/jpeg"
+
+    def test_screenshot_export_failure(self, mock_context):
+        """Test screenshot export error with project save guidance."""
+        from ansys.aedt.mcp.tools import screenshot
+
+        mock_context.request_context.lifespan_context.desktop.active_project.return_value = None
+        mock_context.request_context.lifespan_context.desktop.active_design.return_value = None
+        mock_context.request_context.lifespan_context.desktop.design_type.return_value = "HFSS"
+
+        mock_app = MagicMock()
+        mock_app.export_design_preview_to_jpg.side_effect = RuntimeError("preview export failed")
+
+        with patch("ansys.aedt.core.Hfss", return_value=mock_app):
             result = screenshot(mock_context)
 
-            # Should return at least one content item
-            assert len(result) >= 1
+        assert len(result) == 1
+        assert "Failed to export screenshot" in result[0].text
+        assert "Try saving the project first" in result[0].text
+
+
+@pytest.mark.unit
+class TestExportConfig:
+    """Tests for export_config tool."""
+
+    def test_export_config_no_connection(self, mock_context_no_desktop):
+        """Test config export with no connection."""
+        from ansys.aedt.mcp.tools import export_config
+
+        result = export_config(mock_context_no_desktop)
+
+        assert "No AEDT Desktop connection" in result
+
+    def test_export_config_inline_success(self, mock_context, tmp_path):
+        """Test inline config export using a temporary file."""
+        from ansys.aedt.mcp.tools import export_config
+
+        mock_project = MagicMock()
+        mock_project.GetName.return_value = "Project1"
+        mock_context.request_context.lifespan_context.desktop.active_project.return_value = mock_project
+        mock_design_obj = MagicMock()
+        mock_design_obj.GetName.return_value = "Design1"
+        mock_context.request_context.lifespan_context.desktop.active_design.return_value = mock_design_obj
+        mock_context.request_context.lifespan_context.desktop.design_type.return_value = "HFSS"
+
+        config_path = tmp_path / "temp_config.json"
+        config_data = {"variables": {"w": "10mm"}}
+
+        mock_app = MagicMock()
+        mock_app.design_name = "Design1"
+        mock_app.project_name = "Project1"
+
+        def _export_config(**kwargs):
+            Path(kwargs["config_file"]).write_text(json.dumps(config_data), encoding="utf-8")
+            return kwargs["config_file"]
+
+        mock_app.configurations.export_config.side_effect = _export_config
+
+        with (
+            patch("ansys.aedt.core.Hfss", return_value=mock_app),
+            patch("tempfile.mkstemp", return_value=(0, str(config_path))),
+            patch("os.close"),
+        ):
+            result = export_config(mock_context)
+
+        data = json.loads(result)
+        assert data["design"] == "Design1"
+        assert data["project"] == "Project1"
+        assert data["config"] == config_data
+        assert "config_file" not in data
+
+    def test_export_config_to_output_success(self, mock_context, tmp_path):
+        """Test config export to a user-specified output path."""
+        from ansys.aedt.mcp.tools import export_config
+
+        mock_context.request_context.lifespan_context.desktop.active_project.return_value = None
+        mock_context.request_context.lifespan_context.desktop.active_design.return_value = None
+        mock_context.request_context.lifespan_context.desktop.design_type.return_value = "HFSS"
+
+        output_path = tmp_path / "design_config"
+        expected_file = tmp_path / "design_config.json"
+        config_data = {"setups": ["Setup1"]}
+
+        mock_app = MagicMock()
+        mock_app.design_name = "Design1"
+        mock_app.project_name = "Project1"
+
+        def _export_config(**kwargs):
+            Path(kwargs["config_file"]).write_text(json.dumps(config_data), encoding="utf-8")
+            return kwargs["config_file"]
+
+        mock_app.configurations.export_config.side_effect = _export_config
+
+        with patch("ansys.aedt.core.Hfss", return_value=mock_app):
+            result = export_config(mock_context, output=str(output_path), overwrite=True)
+
+        data = json.loads(result)
+        assert data["config"] == config_data
+        assert data["config_file"] == str(expected_file)
+
+    def test_export_config_failure(self, mock_context):
+        """Test config export failure path."""
+        from ansys.aedt.mcp.tools import export_config
+
+        mock_context.request_context.lifespan_context.desktop.active_project.return_value = None
+        mock_context.request_context.lifespan_context.desktop.active_design.return_value = None
+        mock_context.request_context.lifespan_context.desktop.design_type.return_value = "HFSS"
+
+        mock_app = MagicMock()
+        mock_app.configurations.export_config.return_value = None
+
+        with patch("ansys.aedt.core.Hfss", return_value=mock_app):
+            result = export_config(mock_context)
+
+        assert "Failed to export configuration" in result
 
 
 @pytest.mark.unit
@@ -539,9 +672,11 @@ async def test_tools_registered():
         "create_design",
         "analyze_design",
         "export_results",
+        "export_config",
         "list_files",
         "upload_file",
         "download_file",
+        "screenshot",
         "clear_aedt",
         "get_model_info",
     ]

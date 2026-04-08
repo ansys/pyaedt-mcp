@@ -145,7 +145,7 @@ def test_context_cli_config_population():
             "transport_type": "http",
             "aedt_machine": "remote-server",
             "aedt_port": 50052,
-            "aedt_version": "2025.2",
+            "aedt_version": "2026.1",
             "non_graphical": False,
             "connect_on_startup": True,
             "http_host": "0.0.0.0",
@@ -159,7 +159,7 @@ def test_context_cli_config_population():
     assert context.transport_type == "http"
     assert context.aedt_machine == "remote-server"
     assert context.aedt_port == 50052
-    assert context.aedt_version == "2025.2"
+    assert context.aedt_version == "2026.1"
     assert context.non_graphical is False
     assert context.connect_on_startup is True
     assert context.http_host == "0.0.0.0"
