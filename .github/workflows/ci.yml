@@ -55,11 +55,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: "Configure pip for private PyPI"
+        run: |
+          pip config set global.extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e ".[dev]" \
-            --extra-index-url https://pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
+          pip install -e ".[dev]"
         env:
           PIP_EXTRA_INDEX_URL: https://pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
 
