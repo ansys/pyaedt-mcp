@@ -8,6 +8,8 @@ Icepak, Circuit, Q3D, and more.
 import base64
 import json
 import os
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Literal
@@ -33,6 +35,31 @@ _TIMEOUT_MEDIUM = 120  # connect, launch, open/save, create design, screenshot
 _TIMEOUT_LONG = 300  # script execution, analysis, exports
 
 
+def _open_file_in_default_viewer(path: Path) -> str | None:
+    """Open a file with the system's default viewer.
+
+    Returns
+    -------
+    str | None
+        ``None`` when the file was opened successfully, otherwise a short
+        message describing why the viewer could not be launched.
+    """
+    if _is_docker():
+        return "Viewer launch skipped inside Docker."
+
+    try:
+        if hasattr(os, "startfile"):
+            os.startfile(path)  # type: ignore[attr-defined]
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", str(path)])
+        else:
+            subprocess.Popen(["xdg-open", str(path)])
+    except Exception as exc:
+        return f"Viewer launch failed: {exc}"
+
+    return None
+
+
 def _configure_pyaedt_runtime_settings(enable_grpc: bool = False) -> None:
     """Configure PyAEDT runtime settings for safer MCP execution.
 
@@ -55,6 +82,53 @@ def _configure_pyaedt_runtime_settings(enable_grpc: bool = False) -> None:
     settings.release_on_exception = False
 
 
+def _resolve_pyaedt_log_file() -> str | None:
+    """Resolve the active PyAEDT global log file path.
+
+    Returns
+    -------
+    str | None
+        Absolute path to the active PyAEDT log file, or ``None`` when no
+        readable log file can be resolved.
+    """
+    try:
+        from ansys.aedt.core.aedt_logger import pyaedt_logger
+
+        raw_logger = getattr(pyaedt_logger, "logger", None)
+        if raw_logger is not None:
+            for handler in getattr(raw_logger, "handlers", []):
+                handler_path = getattr(handler, "baseFilename", None)
+                if handler_path and os.path.isfile(handler_path):
+                    return str(Path(handler_path).expanduser().resolve())
+
+        logger_filename = getattr(pyaedt_logger, "filename", None)
+        if logger_filename and os.path.isfile(logger_filename):
+            return str(Path(logger_filename).expanduser().resolve())
+    except Exception:
+        pass
+
+    try:
+        from ansys.aedt.core import settings
+
+        logger_file_path = getattr(settings, "logger_file_path", None)
+        if logger_file_path:
+            candidate = Path(logger_file_path).expanduser()
+            if candidate.is_file():
+                return str(candidate.resolve())
+            if candidate.is_dir():
+                log_candidates = sorted(
+                    candidate.glob("pyaedt*.log"),
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True,
+                )
+                if log_candidates:
+                    return str(log_candidates[0].resolve())
+    except Exception:
+        pass
+
+    return None
+
+
 # AEDT Application types supported
 AEDTAppType = Literal[
     "Hfss",
@@ -70,6 +144,27 @@ AEDTAppType = Literal[
     "RMXprt",
     "Hfss3dLayout",
 ]
+
+
+def _get_aedt_app_class(app_type: AEDTAppType) -> Any | None:
+    """Resolve an AEDT application type to the corresponding PyAEDT class."""
+    import ansys.aedt.core as aedt
+
+    app_map = {
+        "Hfss": aedt.Hfss,
+        "Maxwell2d": aedt.Maxwell2d,
+        "Maxwell3d": aedt.Maxwell3d,
+        "Q3d": aedt.Q3d,
+        "Q2d": aedt.Q2d,
+        "Icepak": aedt.Icepak,
+        "Circuit": aedt.Circuit,
+        "TwinBuilder": aedt.TwinBuilder,
+        "Mechanical": aedt.Mechanical,
+        "Emit": aedt.Emit,
+        "RMXprt": getattr(aedt, "Rmxprt", None),
+        "Hfss3dLayout": aedt.Hfss3dLayout,
+    }
+    return app_map.get(app_type)
 
 
 @app.tool(timeout=_TIMEOUT_QUICK)
@@ -108,6 +203,88 @@ def check_aedt_status(ctx: Context) -> str:
 
     except Exception as e:
         error_msg = f"Error checking AEDT status: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+
+@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_QUICK)
+def get_pyaedt_logs(
+    ctx: Context,
+    tail_lines: int = 200,
+    contains: str | None = None,
+    max_chars: int = 40000,
+) -> str:
+    """Return recent entries from the PyAEDT global logger.
+
+    This tool reads the active PyAEDT global log file and returns a tail view
+    of the log contents. Optionally filter lines using a case-insensitive
+    substring.
+
+    Parameters
+    ----------
+    ctx : Context
+        MCP context. Included for tool signature consistency.
+    tail_lines : int, optional
+        Number of recent lines to return after filtering. Default is 200.
+    contains : str, optional
+        Case-insensitive substring used to filter log lines.
+    max_chars : int, optional
+        Hard cap for returned log text length. Default is 40000 characters.
+
+    Returns
+    -------
+    str
+        JSON string with log metadata and selected log text.
+    """
+    del ctx  # tool does not require an active AEDT desktop connection
+
+    if tail_lines <= 0:
+        return "Invalid parameter: tail_lines must be greater than 0."
+    if max_chars <= 0:
+        return "Invalid parameter: max_chars must be greater than 0."
+
+    safe_tail_lines = min(tail_lines, 5000)
+    safe_max_chars = min(max_chars, 200000)
+
+    try:
+        log_file = _resolve_pyaedt_log_file()
+        if log_file is None:
+            return (
+                "PyAEDT global log file could not be resolved. "
+                "Run a PyAEDT operation first to initialize the logger."
+            )
+
+        with open(log_file, "r", encoding="utf-8", errors="replace") as file_handle:
+            all_lines = file_handle.readlines()
+
+        filtered_lines = all_lines
+        if contains:
+            filter_token = contains.lower()
+            filtered_lines = [line for line in all_lines if filter_token in line.lower()]
+
+        selected_lines = filtered_lines[-safe_tail_lines:]
+        log_text = "".join(selected_lines)
+
+        truncated = False
+        if len(log_text) > safe_max_chars:
+            log_text = log_text[-safe_max_chars:]
+            truncated = True
+
+        payload = {
+            "log_file": log_file,
+            "contains": contains,
+            "total_lines": len(all_lines),
+            "matched_lines": len(filtered_lines),
+            "returned_lines": len(selected_lines),
+            "tail_lines_requested": tail_lines,
+            "max_chars_requested": max_chars,
+            "truncated": truncated,
+            "logs": log_text,
+        }
+        return json.dumps(payload, indent=2)
+
+    except Exception as e:
+        error_msg = f"Error reading PyAEDT logs: {str(e)}"
         logger.error(error_msg)
         return error_msg
 
@@ -184,10 +361,12 @@ def launch_aedt(
     version: str | None = None,
     non_graphical: bool = False,
     new_desktop: bool = True,
+    application: AEDTAppType | None = None,
 ) -> str:
     """Launch a new AEDT Desktop instance.
 
-    This tool starts a new AEDT Desktop instance using PyAEDT's Desktop class.
+    This tool starts a new AEDT Desktop instance using PyAEDT's Desktop class,
+    or launches directly into a specific AEDT application session when requested.
     The launched instance will be automatically connected and stored in the context
     for subsequent operations.
 
@@ -204,13 +383,17 @@ def launch_aedt(
     new_desktop : bool, optional
         Whether to launch a new AEDT instance even if one is already running.
         Default is True.
+    application : AEDTAppType, optional
+        AEDT application to launch directly, such as ``Hfss`` or ``Maxwell3d``.
+        If omitted, AEDT launches in desktop mode.
 
     Returns
     -------
     str
         Launch status message with AEDT version and connection information.
     """
-    logger.info("Launching new AEDT Desktop instance...")
+    launch_target = application or "Desktop"
+    logger.info(f"Launching new AEDT {launch_target} instance...")
 
     # Docker guard: launching a local AEDT inside a container is not supported
     if _is_docker():
@@ -232,7 +415,6 @@ def launch_aedt(
 
         _configure_pyaedt_runtime_settings()
 
-        # Launch new AEDT instance
         kwargs: dict[str, Any] = {
             "non_graphical": non_graphical,
             "new_desktop": new_desktop,
@@ -241,14 +423,28 @@ def launch_aedt(
         if version is not None:
             kwargs["version"] = version
 
-        desktop = Desktop(**kwargs)
+        if application is None:
+            desktop = Desktop(**kwargs)
+            launched_target = "AEDT Desktop"
+        else:
+            app_class = _get_aedt_app_class(application)
+            if app_class is None:
+                return f"Unsupported application type: {application}"
+
+            app_instance = app_class(**kwargs)
+            desktop = getattr(app_instance, "desktop_class", None)
+            if desktop is None:
+                raise RuntimeError(
+                    f"Unable to resolve desktop handle from launched {application} session"
+                )
+            launched_target = application
 
         # Store in context for later use
         ctx.request_context.lifespan_context.desktop = desktop
 
-        logger.info(f"AEDT launched successfully! Version: {desktop.aedt_version_id}")
+        logger.info(f"AEDT launched successfully! Target: {launched_target}")
         return (
-            f"Successfully launched AEDT Desktop\n"
+            f"Successfully launched {launched_target}\n"
             f"Version: {desktop.aedt_version_id}\n"
             f"Installation Directory: {desktop.aedt_install_dir}\n"
             f"Non-graphical Mode: {non_graphical}\n"
@@ -268,6 +464,8 @@ def connect_to_aedt(
     machine: str = "localhost",
     version: str | None = None,
     non_graphical: bool = True,
+    project_name: str | None = None,
+    design_name: str | None = None,
 ) -> str:
     """Connect to an existing AEDT instance via gRPC.
 
@@ -287,6 +485,11 @@ def connect_to_aedt(
         The AEDT version to connect to. If None, will auto-detect.
     non_graphical : bool, optional
         Whether AEDT is running in non-graphical mode. Default is True.
+    project_name : str, optional
+        Project name to activate when connecting directly to a design.
+    design_name : str, optional
+        Design name to attach directly to a PyAEDT application session.
+        If omitted, the connection remains at AEDT desktop level.
 
     Returns
     -------
@@ -313,7 +516,7 @@ def connect_to_aedt(
                 "Please disconnect first using disconnect_from_aedt tool."
             )
 
-        from ansys.aedt.core import Desktop
+        from ansys.aedt.core import Desktop, get_pyaedt_app
 
         _configure_pyaedt_runtime_settings(enable_grpc=True)
 
@@ -330,15 +533,40 @@ def connect_to_aedt(
 
         desktop = Desktop(**kwargs)
 
+        connected_app = None
+        if design_name is not None:
+            connected_app = get_pyaedt_app(
+                project_name=project_name,
+                design_name=design_name,
+                desktop=desktop,
+            )
+            if connected_app is None:
+                raise RuntimeError(
+                    f"Unable to attach to project '{project_name}' design '{design_name}'"
+                )
+
         # Store in context for later use
         ctx.request_context.lifespan_context.desktop = desktop
 
         logger.info(f"Connected to AEDT successfully at {machine}:{port}!")
-        return (
+        message = (
             f"Successfully connected to AEDT at {machine}:{port}\n"
             f"Version: {desktop.aedt_version_id}\n"
             f"gRPC Mode: {desktop.is_grpc_api}\n"
         )
+        if connected_app is not None:
+            message += (
+                f"Project: {connected_app.project_name}\n"
+                f"Design: {connected_app.design_name}\n"
+                f"Application: {connected_app.design_type}\n"
+            )
+        else:
+            message += (
+                "Tip: provide design_name"
+                + (" and project_name" if project_name is None else "")
+                + " if you want to connect directly to a specific AEDT design.\n"
+            )
+        return message
 
     except Exception as e:
         error_msg = f"Failed to connect to AEDT at {machine}:{port}: {str(e)}"
@@ -488,18 +716,21 @@ def run_python_code(ctx: Context, code: str) -> str:
 
 
 @app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_QUICK)
-def list_projects(ctx: Context) -> str:
-    """List all open projects in AEDT.
+def list_designs(ctx: Context, project_name: str | None = None) -> str:
+    """List projects and designs for the connected AEDT instance.
 
     Parameters
     ----------
     ctx : Context
         The MCP context containing server session and application context.
+    project_name : str, optional
+        Optional project name to limit the response to a single project.
+        If None, all open projects and their designs are returned.
 
     Returns
     -------
     str
-        JSON string containing list of open projects and their paths.
+        JSON string containing the connected instance projects and designs.
     """
     desktop = ctx.request_context.lifespan_context.desktop
 
@@ -509,7 +740,66 @@ def list_projects(ctx: Context) -> str:
         )
 
     try:
-        projects = desktop.project_list
+        if project_name is not None:
+            projects = [project_name]
+        else:
+            projects = list(desktop.project_list)
+
+        project_entries = []
+        total_design_count = 0
+        for project in projects:
+            designs = desktop.design_list(project)
+            project_entries.append(
+                {
+                    "project": project,
+                    "designs": designs,
+                    "count": len(designs),
+                }
+            )
+            total_design_count += len(designs)
+
+        active_project = None
+        if callable(getattr(desktop, "active_project", None)):
+            current_project = desktop.active_project()
+            if current_project is not None and hasattr(current_project, "GetName"):
+                active_project = str(current_project.GetName())
+
+        active_design = None
+        if callable(getattr(desktop, "active_design", None)):
+            current_design = desktop.active_design()
+            if current_design is not None and hasattr(current_design, "GetName"):
+                active_design = str(current_design.GetName())
+
+        result = {
+            "active_project": active_project,
+            "active_design": active_design,
+            "projects": project_entries,
+            "project_count": len(project_entries),
+            "design_count": total_design_count,
+        }
+        if project_name is not None and project_entries:
+            result["project"] = project_entries[0]["project"]
+            result["designs"] = project_entries[0]["designs"]
+            result["count"] = project_entries[0]["count"]
+        return json.dumps(result, indent=2)
+
+    except Exception as e:
+        error_msg = f"Error listing designs: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+
+def list_projects(ctx: Context) -> str:
+    """Backward-compatible wrapper for callers expecting project-only listing."""
+    desktop = ctx.request_context.lifespan_context.desktop
+
+    if desktop is None:
+        return (
+            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+        )
+
+    try:
+        projects = list(desktop.project_list)
         result = {
             "open_projects": projects,
             "count": len(projects),
@@ -518,44 +808,6 @@ def list_projects(ctx: Context) -> str:
 
     except Exception as e:
         error_msg = f"Error listing projects: {str(e)}"
-        logger.error(error_msg)
-        return error_msg
-
-
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_QUICK)
-def list_designs(ctx: Context, project_name: str | None = None) -> str:
-    """List all designs in a project.
-
-    Parameters
-    ----------
-    ctx : Context
-        The MCP context containing server session and application context.
-    project_name : str, optional
-        The project name to list designs from. If None, uses the active project.
-
-    Returns
-    -------
-    str
-        JSON string containing list of designs and their types.
-    """
-    desktop = ctx.request_context.lifespan_context.desktop
-
-    if desktop is None:
-        return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
-        )
-
-    try:
-        designs = desktop.design_list(project_name)
-        result = {
-            "project": project_name or "Active Project",
-            "designs": designs,
-            "count": len(designs),
-        }
-        return json.dumps(result, indent=2)
-
-    except Exception as e:
-        error_msg = f"Error listing designs: {str(e)}"
         logger.error(error_msg)
         return error_msg
 
@@ -683,29 +935,9 @@ def create_design(
         )
 
     try:
-        import ansys.aedt.core as aedt
-
-        # Map app_type to class
-        app_map = {
-            "Hfss": aedt.Hfss,
-            "Maxwell2d": aedt.Maxwell2d,
-            "Maxwell3d": aedt.Maxwell3d,
-            "Q3d": aedt.Q3d,
-            "Q2d": aedt.Q2d,
-            "Icepak": aedt.Icepak,
-            "Circuit": aedt.Circuit,
-            "TwinBuilder": aedt.TwinBuilder,
-            "Mechanical": aedt.Mechanical,
-            "Emit": aedt.Emit,
-            "RMXprt": getattr(aedt, "Rmxprt", None),
-            "Hfss3dLayout": aedt.Hfss3dLayout,
-        }
-
-        app_class = app_map.get(app_type)
+        app_class = _get_aedt_app_class(app_type)
         if app_class is None:
-            return (
-                f"Unsupported application type: {app_type}. Supported types: {list(app_map.keys())}"
-            )
+            return f"Unsupported application type: {app_type}"
 
         logger.info(f"Creating {app_type} design: {design_name}")
 
@@ -737,8 +969,19 @@ def create_design(
 def analyze_design(
     ctx: Context,
     setup_name: str | None = None,
+    project_name: str | None = None,
     design_name: str | None = None,
     num_cores: int | None = None,
+    num_tasks: int | None = None,
+    num_gpus: int | None = None,
+    acf_file: str | None = None,
+    use_auto_settings: bool = True,
+    solve_in_batch: bool = False,
+    machine: str = "localhost",
+    run_in_thread: bool = False,
+    revert_to_initial_mesh: bool = False,
+    blocking: bool = True,
+    analyze_all_designs: bool = False,
 ) -> str:
     """Run analysis on an AEDT design.
 
@@ -747,11 +990,34 @@ def analyze_design(
     ctx : Context
         The MCP context containing server session and application context.
     setup_name : str, optional
-        Name of the setup to analyze. If None, analyzes all setups.
+        Name of the setup to analyze. If None, analyzes all setups in the target design.
+    project_name : str, optional
+        Name of the project to analyze. If None, uses the active project.
     design_name : str, optional
         Name of the design to analyze. If None, uses active design.
     num_cores : int, optional
         Number of CPU cores to use for analysis.
+    num_tasks : int, optional
+        Number of HPC tasks to use for analysis.
+    num_gpus : int, optional
+        Number of GPUs to use for analysis.
+    acf_file : str, optional
+        Full path to a custom ACF file for HPC configuration.
+    use_auto_settings : bool, optional
+        Whether to use automatic HPC settings when supported.
+    solve_in_batch : bool, optional
+        Whether to solve the design in batch mode.
+    machine : str, optional
+        Target machine name for remote or batch solves.
+    run_in_thread : bool, optional
+        Whether to submit the batch solve in a background thread.
+    revert_to_initial_mesh : bool, optional
+        Whether to revert to the initial mesh before solving.
+    blocking : bool, optional
+        Whether to block until the solve is complete.
+    analyze_all_designs : bool, optional
+        When True, call Desktop.analyze_all for the target project/design. This
+        analyzes all setups in a design or all designs in a project.
 
     Returns
     -------
@@ -766,15 +1032,75 @@ def analyze_design(
         )
 
     try:
-        logger.info(f"Running analysis on setup: {setup_name or 'all setups'}")
+        if analyze_all_designs:
+            if setup_name:
+                return (
+                    "setup_name cannot be used when analyze_all_designs=True. "
+                    "Use design-level analysis to solve a specific setup."
+                )
 
-        # Get active project and analyze
-        if setup_name:
-            result = desktop.analyze_all(design=design_name, setup=setup_name)
-        else:
-            result = desktop.analyze_all(design=design_name)
+            logger.info(
+                "Running desktop analyze_all on project=%s design=%s",
+                project_name or "active project",
+                design_name or "all designs",
+            )
 
-        return f"Analysis completed successfully.\nResult: {result}"
+            result = desktop.analyze_all(project=project_name, design=design_name)
+            if not result:
+                return "Analysis failed during desktop-wide analyze_all invocation."
+
+            return (
+                "Analysis completed successfully.\n"
+                f"Project: {project_name or 'active project'}\n"
+                f"Design Scope: {design_name or 'all designs'}\n"
+                "Mode: desktop analyze_all\n"
+                f"Result: {result}"
+            )
+
+        app_instance, resolved_project_name, resolved_design_name = resolve_design_app(
+            desktop,
+            project_name=project_name,
+            design_name=design_name,
+        )
+
+        logger.info(
+            "Running design analysis on project=%s design=%s setup=%s",
+            resolved_project_name or project_name or "active project",
+            resolved_design_name or design_name or "active design",
+            setup_name or "all setups",
+        )
+
+        result = app_instance.analyze(
+            setup=setup_name,
+            cores=num_cores,
+            tasks=num_tasks,
+            gpus=num_gpus,
+            acf_file=acf_file,
+            use_auto_settings=use_auto_settings,
+            solve_in_batch=solve_in_batch,
+            machine=machine,
+            run_in_thread=run_in_thread,
+            revert_to_initial_mesh=revert_to_initial_mesh,
+            blocking=blocking,
+        )
+
+        if not result:
+            return (
+                "Analysis failed.\n"
+                f"Project: {resolved_project_name or 'Unknown'}\n"
+                f"Design: {resolved_design_name or 'Unknown'}\n"
+                f"Setup: {setup_name or 'all setups'}"
+            )
+
+        return (
+            "Analysis completed successfully.\n"
+            f"Project: {resolved_project_name or getattr(app_instance, 'project_name', 'Unknown')}\n"
+            f"Design: {resolved_design_name or getattr(app_instance, 'design_name', 'Unknown')}\n"
+            f"Setup: {setup_name or 'all setups'}\n"
+            f"Mode: {'batch' if solve_in_batch else 'interactive'}\n"
+            f"Blocking: {blocking}\n"
+            f"Result: {result}"
+        )
 
     except Exception as e:
         error_msg = f"Error during analysis: {str(e)}"
@@ -828,135 +1154,6 @@ def export_results(
         return error_msg
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_QUICK)
-def list_files(ctx: Context, directory: str | None = None, pattern: str = "*") -> str:
-    """List files in the AEDT working directory.
-
-    Parameters
-    ----------
-    ctx : Context
-        The MCP context containing server session and application context.
-    directory : str, optional
-        Directory to list. If None, uses AEDT's temp directory.
-    pattern : str, optional
-        Glob pattern for filtering files. Default is '*' (all files).
-
-    Returns
-    -------
-    str
-        JSON string containing list of files.
-    """
-    try:
-        import glob
-
-        if directory is None:
-            directory = tempfile.gettempdir()
-
-        search_path = os.path.join(directory, pattern)
-        files = glob.glob(search_path)
-
-        file_info = []
-        for f in files:
-            stat = os.stat(f)
-            file_info.append(
-                {
-                    "name": os.path.basename(f),
-                    "path": f,
-                    "size": stat.st_size,
-                    "is_directory": os.path.isdir(f),
-                }
-            )
-
-        result = {
-            "directory": directory,
-            "pattern": pattern,
-            "files": file_info,
-            "count": len(file_info),
-        }
-        return json.dumps(result, indent=2)
-
-    except Exception as e:
-        error_msg = f"Error listing files: {str(e)}"
-        logger.error(error_msg)
-        return error_msg
-
-
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_MEDIUM)
-def upload_file(ctx: Context, local_path: str, remote_path: str | None = None) -> str:
-    """Upload a file to the AEDT working directory.
-
-    Parameters
-    ----------
-    ctx : Context
-        The MCP context containing server session and application context.
-    local_path : str
-        Path to the local file to upload.
-    remote_path : str, optional
-        Destination path on the AEDT machine. If None, uploads to temp directory.
-
-    Returns
-    -------
-    str
-        Status message with the uploaded file path.
-    """
-    try:
-        if not os.path.exists(local_path):
-            return f"Local file not found: {local_path}"
-
-        if remote_path is None:
-            remote_path = os.path.join(tempfile.gettempdir(), os.path.basename(local_path))
-
-        # For local connections, just copy
-        import shutil
-
-        shutil.copy2(local_path, remote_path)
-
-        return f"File uploaded successfully to: {remote_path}"
-
-    except Exception as e:
-        error_msg = f"Error uploading file: {str(e)}"
-        logger.error(error_msg)
-        return error_msg
-
-
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_MEDIUM)
-def download_file(ctx: Context, remote_path: str, local_path: str | None = None) -> str:
-    """Download a file from the AEDT working directory.
-
-    Parameters
-    ----------
-    ctx : Context
-        The MCP context containing server session and application context.
-    remote_path : str
-        Path to the remote file to download.
-    local_path : str, optional
-        Local destination path. If None, downloads to current working directory.
-
-    Returns
-    -------
-    str
-        Status message with the downloaded file path.
-    """
-    try:
-        if not os.path.exists(remote_path):
-            return f"Remote file not found: {remote_path}"
-
-        if local_path is None:
-            local_path = os.path.join(os.getcwd(), os.path.basename(remote_path))
-
-        # For local connections, just copy
-        import shutil
-
-        shutil.copy2(remote_path, local_path)
-
-        return f"File downloaded successfully to: {local_path}"
-
-    except Exception as e:
-        error_msg = f"Error downloading file: {str(e)}"
-        logger.error(error_msg)
-        return error_msg
-
-
 @app.tool(timeout=_TIMEOUT_MEDIUM)
 def screenshot(
     ctx: Context,
@@ -964,6 +1161,7 @@ def screenshot(
     project: str | None = None,
     design: str | None = None,
     plot_type: str = "model",
+    open_viewer: bool = True,
 ) -> list[TextContent | ImageContent]:
     """Capture a screenshot of the current AEDT design view.
 
@@ -983,6 +1181,9 @@ def screenshot(
         Design to capture. If None, uses active design.
     plot_type : str, optional
         Type of screenshot: "model", "field", or "mesh". Default is "model".
+    open_viewer : bool, optional
+        Whether to open the saved screenshot in the system image viewer.
+        Default is True.
 
     Returns
     -------
@@ -1034,16 +1235,24 @@ def screenshot(
         base64_data = base64.b64encode(image_data).decode("utf-8")
         mime_type = "image/jpeg"
 
+        viewer_message = None
+        if open_viewer:
+            viewer_message = _open_file_in_default_viewer(image_path)
+
         logger.info(f"Screenshot captured successfully: {output_path}")
+
+        status_lines = [
+            f"Screenshot saved to '{output_path}'",
+            f"Design: {app_instance.design_name}",
+            f"Project: {app_instance.project_name}",
+        ]
+        if open_viewer:
+            status_lines.append(viewer_message or "Opened screenshot in the default image viewer.")
 
         return [
             TextContent(
                 type="text",
-                text=(
-                    f"Screenshot saved to '{output_path}'\n"
-                    f"Design: {app_instance.design_name}\n"
-                    f"Project: {app_instance.project_name}"
-                ),
+                text="\n".join(status_lines),
             ),
             ImageContent(type="image", data=base64_data, mimeType=mime_type),
         ]
@@ -1135,113 +1344,6 @@ def export_config(
             os.remove(temp_config_file)
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_LONG)
-def export_touchstone(
-    ctx: Context,
-    output_path: str,
-    setup_name: str | None = None,
-    solution_name: str | None = None,
-) -> str:
-    """Export S-parameters to Touchstone format.
-
-    This tool exports simulation results in Touchstone (.sNp) format,
-    which is the standard format for S-parameter data exchange.
-
-    Parameters
-    ----------
-    ctx : Context
-        The MCP context containing server session and application context.
-    output_path : str
-        Path for the output Touchstone file (e.g., "results.s2p").
-    setup_name : str, optional
-        Name of the setup to export. If None, uses first available setup.
-    solution_name : str, optional
-        Name of the solution to export. If None, uses default solution.
-
-    Returns
-    -------
-    str
-        Status message with export details.
-    """
-    desktop = ctx.request_context.lifespan_context.desktop
-
-    if desktop is None:
-        return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
-        )
-
-    try:
-        logger.info(f"Exporting Touchstone to: {output_path}")
-
-        # Note: This requires an active HFSS or similar RF design
-        # The actual implementation depends on the active application type
-        return (
-            f"Touchstone export configured for: {output_path}\n"
-            "Note: Actual export requires an active RF simulation design (HFSS, Circuit, etc.) "
-            "with completed analysis. Use create_design and analyze_design first."
-        )
-
-    except Exception as e:
-        error_msg = f"Error exporting Touchstone: {str(e)}"
-        logger.error(error_msg)
-        return error_msg
-
-
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_LONG)
-def export_3d_model(
-    ctx: Context,
-    output_path: str,
-    export_format: str = "step",
-    design_name: str | None = None,
-) -> str:
-    """Export 3D geometry from AEDT design.
-
-    This tool exports the 3D geometry in various CAD formats for use
-    in other applications or for documentation.
-
-    Parameters
-    ----------
-    ctx : Context
-        The MCP context containing server session and application context.
-    output_path : str
-        Path for the output file.
-    export_format : str, optional
-        Export format: "step", "iges", "sat", "stl". Default is "step".
-    design_name : str, optional
-        Name of the design to export. If None, uses active design.
-
-    Returns
-    -------
-    str
-        Status message with export details.
-    """
-    desktop = ctx.request_context.lifespan_context.desktop
-
-    if desktop is None:
-        return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
-        )
-
-    try:
-        logger.info(f"Exporting 3D model to {export_format}: {output_path}")
-
-        # Validate format
-        supported_formats = ["step", "iges", "sat", "stl"]
-        if export_format.lower() not in supported_formats:
-            return f"Unsupported format: {export_format}. Supported: {supported_formats}"
-
-        return (
-            f"3D model export configured for: {output_path} (format: {export_format})\n"
-            "Note: Actual export requires an active 3D design with geometry. "
-            "Use create_design first to set up the application."
-        )
-
-    except Exception as e:
-        error_msg = f"Error exporting 3D model: {str(e)}"
-        logger.error(error_msg)
-        return error_msg
-
-
 @app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_MEDIUM)
 def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
     """Clear AEDT state by closing all projects.
@@ -1323,10 +1425,6 @@ def get_model_info(ctx: Context, design_name: str | None = None) -> str:
 
 
 # Conditionally disable tools based on session configuration
-# Tools tagged with "context" should be disabled when running on AALI platform
-if session.on_aali:
-    app.disable(tags={"context"})
-
 # Tools tagged with "locked_connection" should be disabled when connection is locked
 if session.locked_connection:
     app.disable(tags={"locked_connection"})

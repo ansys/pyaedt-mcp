@@ -10,7 +10,7 @@ def mock_desktop():
     """Create a mock AEDT Desktop instance."""
     desktop = MagicMock()
     desktop.aedt_version_id = "2026.1"
-    desktop.aedt_version_string = "AEDT 2025 R2"
+    desktop.aedt_version_string = "AEDT 2026 R1"
     desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v261\\AnsysEM"
     desktop.is_grpc_api = True
     desktop.machine = "localhost"
@@ -142,14 +142,6 @@ class TestErrorHandling:
         result = run_python_code(mock_context, "def foo( :")
         # Should handle the error gracefully
         assert isinstance(result, str)
-
-    def test_list_files_permission_error(self, mock_context):
-        """Test handling of permission errors in list_files."""
-        from ansys.aedt.mcp.tools import list_files
-
-        with patch("glob.glob", side_effect=PermissionError("Access denied")):
-            result = list_files(mock_context, "C:\\Protected\\Folder")
-            assert "Error" in result or "denied" in result.lower() or "files" in result.lower()
 
     def test_export_results_no_solution(self, mock_context_no_desktop):
         """Test export when no solution is available."""

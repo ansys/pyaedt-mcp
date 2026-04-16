@@ -12,7 +12,7 @@ class TestGetAEDTInfo:
         """Test basic info extraction."""
         mock_desktop = MagicMock()
         mock_desktop.aedt_version_id = "261"
-        mock_desktop.aedt_version_string = "AEDT 2025 R2"
+        mock_desktop.aedt_version_string = "AEDT 2026 R1"
         mock_desktop.aedt_install_dir = "C:\\ANSYS"
         mock_desktop.is_grpc_api = True
         mock_desktop.machine = "localhost"

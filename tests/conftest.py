@@ -16,7 +16,7 @@ def mock_desktop():
     """Create a mock AEDT Desktop instance for testing."""
     desktop = MagicMock()
     desktop.aedt_version_id = "2026.1"
-    desktop.aedt_version_string = "AEDT 2025 R2"
+    desktop.aedt_version_string = "AEDT 2026 R1"
     desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v261\\AnsysEM"
     desktop.is_grpc_api = True
     desktop.machine = "localhost"

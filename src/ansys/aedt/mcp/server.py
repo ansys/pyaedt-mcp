@@ -12,21 +12,6 @@ from ansys.common.mcp.helpers import PersistentPythonSession
 logger = get_logger(__name__)
 
 
-AGENT_CONTEXT_AALI = """\
-## Optional Agent Execution Context
-
-- AALI-FIRST POLICY: For any request that requires AEDT/PyAEDT code, you MUST delegate
-    code generation to aali MCP.
-- Do NOT generate AEDT/PyAEDT code directly with your own LLM when aali MCP is available.
-- After aali MCP returns code, execute that code with the `run_python_code` tool.
-- If execution fails, debug and fix the code, then retry with `run_python_code`.
-- If aali MCP is temporarily unavailable, state that explicitly and wait for user direction
-    instead of silently generating substitute AEDT/PyAEDT code yourself.
-
-Only apply this behavior when explicitly requested by launch arguments.
-"""
-
-
 @dataclass
 class PyAEDTAppContext(PyAnsysBaseAppContext):
     """Application context with typed dependencies and CLI options.
@@ -184,7 +169,6 @@ class SessionContext:
     """Session context for storing CLI options."""
 
     connect_on_startup: bool = False
-    on_aali: bool = False
 
     @property
     def locked_connection(self) -> bool:
@@ -278,17 +262,6 @@ def launcher(argv: list[str] | None = None) -> None:
         default=None,
         help="Allowed CORS origins for HTTP transport",
     )
-    parser.add_argument(
-        "--on-aali",
-        dest="on_aali",
-        action="store_true",
-        default=False,
-        help=(
-            "Enable AALI mode: disable guideline/context tools and append AALI-first "
-            "agent instructions for code generation and execution."
-        ),
-    )
-
     args = parser.parse_args(argv)
 
     # Parse CORS origins if provided
@@ -298,7 +271,6 @@ def launcher(argv: list[str] | None = None) -> None:
 
     # Attach CLI config to server so lifespan can read it
     session.connect_on_startup = bool(args.connect_on_startup)
-    session.on_aali = bool(args.on_aali)
 
     if session.connect_on_startup:
         logger.info(
@@ -321,7 +293,6 @@ def launcher(argv: list[str] | None = None) -> None:
             "http_host": args.http_host,
             "http_port": args.http_port,
             "cors_origins": cors_origins,
-            "on_aali": session.on_aali,
         },
     )
 
@@ -329,14 +300,11 @@ def launcher(argv: list[str] | None = None) -> None:
     import asyncio
 
     # Import tools, contexts, and prompts to register them with the app
-    from ansys.aedt.mcp import contexts  # noqa: F401
     from ansys.aedt.mcp import prompts  # noqa: F401
     from ansys.aedt.mcp import tools  # noqa: F401
 
     # Guarantee the system prompt is delivered during the MCP initialize handshake
     app.instructions = prompts.SYSTEM_PROMPT
-    if session.on_aali:
-        app.instructions = f"{app.instructions}\n\n{AGENT_CONTEXT_AALI}"
 
     if args.transport_type == "stdio":
         asyncio.run(app.run_stdio_async())

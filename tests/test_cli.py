@@ -1,7 +1,7 @@
 """Unit tests for MCP CLI parsing and startup connection behavior."""
 
 import asyncio
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -84,11 +84,14 @@ def test_main_accepts_aedt_version():
 
 
 @pytest.mark.unit
-def test_product_startup_does_not_connect_even_with_connect_flag():
-    """MCP startup should not initialize AEDT even when connect_on_startup is True."""
+def test_product_startup_connects_when_connect_flag_is_true():
+    """MCP startup should initialize AEDT Desktop when connect_on_startup is True."""
     from ansys.aedt.mcp.server import PyAEDTMCP
 
-    with patch("ansys.aedt.core.Desktop") as mock_desktop:
+    with (patch("ansys.aedt.core.Desktop") as mock_desktop,):
+        fake_desktop = MagicMock()
+        mock_desktop.return_value = fake_desktop
+
         mcp = PyAEDTMCP()
         setattr(
             mcp,
@@ -108,8 +111,14 @@ def test_product_startup_does_not_connect_even_with_connect_flag():
         mcp.create_context()
         mcp.product_startup()
 
-        mock_desktop.assert_not_called()
-        assert mcp.context.desktop is None
+        mock_desktop.assert_called_once_with(
+            version=None,
+            non_graphical=True,
+            new_desktop=False,
+            machine="localhost",
+            port=50051,
+        )
+        assert mcp.context.desktop is fake_desktop
 
 
 @pytest.mark.unit
@@ -161,40 +170,8 @@ def test_non_graphical_modes():
 
 
 @pytest.mark.unit
-def test_on_aali_flag_defaults_to_disabled():
-    """AALI mode should be disabled unless explicitly enabled."""
-    from ansys.aedt.mcp import app as package_mcp
-    from ansys.aedt.mcp.server import launcher
-
-    with patch.object(asyncio, "run"):
-        launcher([])
-
-    cfg = getattr(package_mcp, "_cli_config", None)
-    assert cfg is not None
-    assert cfg["on_aali"] is False
-    assert "AALI-FIRST POLICY" not in package_mcp.instructions
-
-
-@pytest.mark.unit
-def test_on_aali_flag_enables_instruction_append():
-    """When enabled, --on-aali should append AALI context to instructions."""
-    from ansys.aedt.mcp import app as package_mcp
-    from ansys.aedt.mcp.server import launcher
-
-    with patch.object(asyncio, "run"):
-        launcher(["--on-aali"])
-
-    cfg = getattr(package_mcp, "_cli_config", None)
-    assert cfg is not None
-    assert cfg["on_aali"] is True
-    assert "AALI-FIRST POLICY" in package_mcp.instructions
-    assert "MUST delegate" in package_mcp.instructions
-    assert "run_python_code" in package_mcp.instructions
-
-
-@pytest.mark.unit
 def test_legacy_enable_agent_codegen_context_flag_is_rejected():
-    """Legacy flag should fail now that --on-aali is the single switch."""
+    """Legacy flag should fail."""
     from ansys.aedt.mcp.server import launcher
 
     with pytest.raises(SystemExit):
