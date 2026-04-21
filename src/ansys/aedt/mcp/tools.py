@@ -774,7 +774,10 @@ def analyze_design(
 
         from ansys.aedt.core import get_pyaedt_app
 
-        app = get_pyaedt_app(design_name=design_name)
+        app = get_pyaedt_app(
+            design_name=design_name,
+            desktop=desktop,
+        )
 
         kwargs = {}
         if num_cores is not None:
@@ -829,7 +832,7 @@ def export_results(
 
         from ansys.aedt.core import get_pyaedt_app
 
-        app_instance = get_pyaedt_app()
+        app_instance = get_pyaedt_app(desktop=desktop)
 
         setup_kwargs = {}
         if setup_name is not None:
@@ -1041,25 +1044,19 @@ def screenshot(
         temp_fd, temp_path = tempfile.mkstemp(suffix=".png", prefix="aedt_screenshot_")
         os.close(temp_fd)
 
-        # Use Hfss/application-level export which works over gRPC
+        # Use application-level export which works over gRPC
         try:
             from ansys.aedt.core import get_pyaedt_app
 
             app = get_pyaedt_app(
-                project_name=desktop.active_project().GetName() if design_name is None else None,
                 design_name=design_name,
+                desktop=desktop,
             )
-            app.post.export_model_picture(temp_path)
-        except Exception:
-            try:
-                # Fallback: export_design_preview_to_jpg
-                if hasattr(desktop, "export_design_preview_to_jpg"):
-                    desktop.export_design_preview_to_jpg(temp_path)
-                else:
-                    desktop.odesktop.ExportImage(temp_path, 1920, 1080)
-            except Exception as e:
-                logger.warning(f"Screenshot export failed: {e}")
-                return [TextContent(type="text", text=f"Screenshot capture failed: {str(e)}")]
+            app.post.export_model_picture(full_name=temp_path)
+            app.release_desktop(False, False)
+        except Exception as e:
+            logger.warning(f"Screenshot export failed: {e}")
+            return [TextContent(type="text", text=f"Screenshot capture failed: {str(e)}")]
 
         # Verify file was created
         image_path = Path(temp_path)
@@ -1134,7 +1131,7 @@ def export_touchstone(
 
         from ansys.aedt.core import get_pyaedt_app
 
-        app_instance = get_pyaedt_app()
+        app_instance = get_pyaedt_app(desktop=desktop)
 
         if not hasattr(app_instance, "export_touchstone"):
             return f"Touchstone export is not available for {type(app_instance).__name__} designs. Requires HFSS, Circuit, or similar RF design."
@@ -1201,7 +1198,10 @@ def export_3d_model(
 
         from ansys.aedt.core import get_pyaedt_app
 
-        app_instance = get_pyaedt_app(design_name=design_name)
+        app_instance = get_pyaedt_app(
+            design_name=design_name,
+            desktop=desktop,
+        )
 
         format_map = {"step": ".step", "iges": ".iges", "sat": ".sat", "stl": ".stl"}
         file_ext = format_map[fmt]
