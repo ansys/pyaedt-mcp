@@ -4,6 +4,10 @@ This example demonstrates a complete HFSS microstrip patch antenna workflow
 using the pyaedt-mcp tools. All steps below were validated live against
 ANSYS AEDT 2025 R2 on April 20, 2026.
 
+> **GUI Mode:** Launch AEDT with `non_graphical=false` so the GUI is visible
+> and you can see the antenna geometry, solved mesh, and S11 report plot
+> interactively in the AEDT window.
+
 ## 1. Check AEDT Installation
 
 **Tool:** `check_aedt_installed`
