@@ -836,7 +836,7 @@ def export_results(
 
         setup_kwargs = {}
         if setup_name is not None:
-            setup_kwargs["setup_name"] = setup_name
+            setup_kwargs["setup"] = setup_name
 
         if export_type == "touchstone":
             if not hasattr(app_instance, "export_touchstone"):
@@ -1138,9 +1138,9 @@ def export_touchstone(
 
         kwargs: dict[str, Any] = {"output_file": output_path}
         if setup_name:
-            kwargs["setup_name"] = setup_name
+            kwargs["setup"] = setup_name
         if solution_name:
-            kwargs["sweep_name"] = solution_name
+            kwargs["sweep"] = solution_name
 
         result = app_instance.export_touchstone(**kwargs)
 
