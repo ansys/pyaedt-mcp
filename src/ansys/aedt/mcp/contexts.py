@@ -206,8 +206,8 @@ setup.props["Frequency"] = "2.4GHz"
 hfss.create_linear_count_sweep(
     setup="Setup1",
     unit="GHz",
-    start=1,
-    stop=4,
+    start_frequency=1,
+    stop_frequency=4,
     num_of_freq_points=101
 )
 
