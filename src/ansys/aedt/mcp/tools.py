@@ -712,7 +712,10 @@ def create_design(
 
         logger.info(f"Creating {app_type} design: {design_name}")
 
-        kwargs: dict[str, Any] = {}
+        kwargs: dict[str, Any] = {
+            "port": desktop.port,
+            "non_graphical": desktop.non_graphical,
+        }
         if design_name:
             kwargs["design"] = design_name
         if project_name:
@@ -720,7 +723,7 @@ def create_design(
         if solution_type:
             kwargs["solution_type"] = solution_type
 
-        # Create the application/design
+        # Create the application/design using the existing desktop connection
         app_instance = app_class(**kwargs)
 
         return (
