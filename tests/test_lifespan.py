@@ -39,6 +39,7 @@ def test_app_context_default_values():
     assert ctx.non_graphical is True
     assert ctx.connect_on_startup is False
     assert ctx.http_host == "127.0.0.1"
+    assert ctx.include_context_tools is False
     assert ctx.http_port == 8080
     assert ctx.cors_origins is None
 
@@ -146,6 +147,7 @@ def test_context_cli_config_population():
             "http_host": "0.0.0.0",
             "http_port": 9000,
             "cors_origins": ["http://localhost:3000"],
+            "include_context_tools": True,
         },
     )
 
@@ -160,3 +162,4 @@ def test_context_cli_config_population():
     assert context.http_host == "0.0.0.0"
     assert context.http_port == 9000
     assert context.cors_origins == ["http://localhost:3000"]
+    assert context.include_context_tools is True

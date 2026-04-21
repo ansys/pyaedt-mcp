@@ -22,8 +22,8 @@ from ansys.aedt.mcp import app
 from ansys.aedt.mcp.helpers import (
     _is_docker,
     _probe_grpc_endpoint,
+    _resolve_aedt_executable,
     get_aedt_info,
-    resolve_design_app,
 )
 from ansys.aedt.mcp.server import session
 
@@ -31,8 +31,8 @@ logger = get_logger(__name__)
 
 # Tool timeout tiers (seconds)
 _TIMEOUT_QUICK = 30  # status checks, listing, info queries
-_TIMEOUT_MEDIUM = 120  # connect, launch, open/save, create design, screenshot
-_TIMEOUT_LONG = 300  # script execution, analysis, exports
+_TIMEOUT_MEDIUM = 120  # connect, open/save, create design, screenshot
+_TIMEOUT_LONG = 600  # launch, script execution, analysis, exports
 
 
 def _open_file_in_default_viewer(path: Path) -> str | None:
@@ -312,43 +312,25 @@ def check_aedt_installed(ctx: Context) -> str:
     if _is_docker():
         host = os.environ.get("AEDT_MACHINE", "host.docker.internal")
         port = int(os.environ.get("AEDT_PORT", "50051"))
-        reachable = _probe_grpc_endpoint(host, port)
-        if reachable:
+        probe = _probe_grpc_endpoint(host, port)
+        if probe["reachable"]:
             return f"Running inside Docker – AEDT gRPC endpoint at " f"{host}:{port} is reachable."
         return (
             f"Running inside Docker – AEDT gRPC endpoint at "
-            f"{host}:{port} is NOT reachable. Ensure AEDT is started "
-            f"with: ansysedt.exe -grpcsrv {port}"
+            f"{host}:{port} is NOT reachable (error: {probe['error']}). "
+            f"Ensure AEDT is started with: ansysedt.exe -grpcsrv {port}"
         )
 
     # ------- Native path: search for local installation -------
     try:
-        from ansys.aedt.core.desktop import Desktop
-
-        # Get installed versions without starting AEDT
-        temp_desktop = Desktop.__new__(Desktop)
-        installed = getattr(temp_desktop, "installed_versions", {})
-
-        if installed:
-            versions = list(installed.keys())
-            logger.info(f"AEDT installations found: {versions}")
-            return f"AEDT is installed on this system.\nAvailable versions: {', '.join(str(v) for v in versions)}"
-        else:
-            # Try alternative detection
-            import subprocess
-
-            result = subprocess.run(
-                ["where", "ansysedt.exe"], capture_output=True, text=True, timeout=30
-            )
-            if result.returncode == 0:
-                return f"AEDT executable found at: {result.stdout.strip()}"
-            else:
-                return (
-                    "AEDT is not installed on this system or cannot be found. "
-                    "Please ensure ANSYS Electronics Desktop is properly installed "
-                    "and the installation path is in the system PATH."
-                )
-
+        target_version, aedt_exe = _resolve_aedt_executable()
+        return (
+            f"AEDT is installed on this system.\n"
+            f"Version: {target_version}\n"
+            f"Executable: {aedt_exe}"
+        )
+    except RuntimeError as e:
+        return str(e)
     except Exception as e:
         error_msg = f"Error checking AEDT installation: {str(e)}"
         logger.error(error_msg)
@@ -523,7 +505,7 @@ def connect_to_aedt(
         # Connect to existing AEDT instance
         kwargs: dict[str, Any] = {
             "non_graphical": non_graphical,
-            "new_desktop": False,  # Connect to existing
+            "new_desktop": False,
             "machine": machine,
             "port": port,
         }
@@ -540,10 +522,6 @@ def connect_to_aedt(
                 design_name=design_name,
                 desktop=desktop,
             )
-            if connected_app is None:
-                raise RuntimeError(
-                    f"Unable to attach to project '{project_name}' design '{design_name}'"
-                )
 
         # Store in context for later use
         ctx.request_context.lifespan_context.desktop = desktop
@@ -611,7 +589,6 @@ def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
     except Exception as e:
         error_msg = f"Error during AEDT disconnect: {str(e)}"
         logger.error(error_msg)
-        # Clear the connection anyway
         ctx.request_context.lifespan_context.desktop = None
         return error_msg
 
@@ -644,15 +621,11 @@ def run_python_script(ctx: Context, script_path: str) -> str:
         )
 
     try:
-        # Verify file exists
         if not os.path.exists(script_path):
             return f"Script file not found: {script_path}"
 
         logger.info(f"Executing script: {script_path}")
-
-        # Execute using desktop's _run_script method or oDesktop API
         result = desktop.odesktop.RunScript(script_path)
-
         return f"Script executed successfully.\nResult: {result}"
 
     except Exception as e:
@@ -692,21 +665,15 @@ def run_python_code(ctx: Context, code: str) -> str:
     try:
         logger.info("Executing inline Python code in AEDT...")
 
-        # Keep AEDT alive when user code raises an exception.
         _configure_pyaedt_runtime_settings()
 
-        # Create a local namespace with desktop available
         local_ns = {
             "desktop": desktop,
             "odesktop": desktop.odesktop,
         }
 
-        # Execute the code
         exec(code, local_ns)
-
-        # Try to get result if defined
         result = local_ns.get("result", "Code executed successfully (no result variable set)")
-
         return str(result)
 
     except Exception as e:
@@ -949,7 +916,6 @@ def create_design(
         if solution_type:
             kwargs["solution_type"] = solution_type
 
-        # Create the application/design
         app_instance = app_class(**kwargs)
 
         return (
@@ -1057,16 +1023,18 @@ def analyze_design(
                 f"Result: {result}"
             )
 
-        app_instance, resolved_project_name, resolved_design_name = resolve_design_app(
-            desktop,
+        from ansys.aedt.core import get_pyaedt_app
+
+        app_instance = get_pyaedt_app(
             project_name=project_name,
             design_name=design_name,
+            desktop=desktop,
         )
 
         logger.info(
             "Running design analysis on project=%s design=%s setup=%s",
-            resolved_project_name or project_name or "active project",
-            resolved_design_name or design_name or "active design",
+            app_instance.project_name or project_name or "active project",
+            app_instance.design_name or design_name or "active design",
             setup_name or "all setups",
         )
 
@@ -1087,15 +1055,15 @@ def analyze_design(
         if not result:
             return (
                 "Analysis failed.\n"
-                f"Project: {resolved_project_name or 'Unknown'}\n"
-                f"Design: {resolved_design_name or 'Unknown'}\n"
+                f"Project: {app_instance.project_name or 'Unknown'}\n"
+                f"Design: {app_instance.design_name or 'Unknown'}\n"
                 f"Setup: {setup_name or 'all setups'}"
             )
 
         return (
             "Analysis completed successfully.\n"
-            f"Project: {resolved_project_name or getattr(app_instance, 'project_name', 'Unknown')}\n"
-            f"Design: {resolved_design_name or getattr(app_instance, 'design_name', 'Unknown')}\n"
+            f"Project: {app_instance.project_name or 'Unknown'}\n"
+            f"Design: {app_instance.design_name or 'Unknown'}\n"
             f"Setup: {setup_name or 'all setups'}\n"
             f"Mode: {'batch' if solve_in_batch else 'interactive'}\n"
             f"Blocking: {blocking}\n"
@@ -1144,9 +1112,42 @@ def export_results(
     try:
         logger.info(f"Exporting {export_type} results to: {output_path}")
 
-        # This would need access to the active application
-        # For now, return a placeholder
-        return "Export functionality requires an active application instance. Use create_design first to create an app-specific connection."
+        from ansys.aedt.core import get_pyaedt_app
+
+        app_instance = get_pyaedt_app(desktop=desktop)
+
+        setup_kwargs = {}
+        if setup_name is not None:
+            setup_kwargs["setup"] = setup_name
+
+        if export_type == "touchstone":
+            if not hasattr(app_instance, "export_touchstone"):
+                return (
+                    f"Touchstone export is not available for {type(app_instance).__name__} designs."
+                )
+            result = app_instance.export_touchstone(output_file=output_path, **setup_kwargs)
+            return f"Touchstone exported to: {output_path}\nResult: {result}"
+
+        elif export_type == "profile":
+            if not hasattr(app_instance, "export_profile"):
+                return f"Profile export is not available for {type(app_instance).__name__} designs."
+            result = app_instance.export_profile(**setup_kwargs)
+            return f"Profile exported successfully.\nResult: {result}"
+
+        elif export_type == "convergence":
+            if not hasattr(app_instance, "export_convergence"):
+                return f"Convergence export is not available for {type(app_instance).__name__} designs."
+            result = app_instance.export_convergence(**setup_kwargs)
+            return f"Convergence data exported.\nResult: {result}"
+
+        elif export_type == "mesh":
+            if not hasattr(app_instance, "export_mesh_stats"):
+                return f"Mesh export is not available for {type(app_instance).__name__} designs."
+            result = app_instance.export_mesh_stats(**setup_kwargs)
+            return f"Mesh stats exported.\nResult: {result}"
+
+        else:
+            return f"Unknown export type: {export_type}. Supported: touchstone, profile, convergence, mesh."
 
     except Exception as e:
         error_msg = f"Error exporting results: {str(e)}"
@@ -1208,10 +1209,14 @@ def screenshot(
     try:
         logger.info(f"Capturing AEDT screenshot (type: {plot_type})...")
         try:
-            app_instance, _, _ = resolve_design_app(
-                desktop, project_name=project, design_name=design
+            from ansys.aedt.core import get_pyaedt_app
+
+            app_instance = get_pyaedt_app(
+                project_name=project,
+                design_name=design,
+                desktop=desktop,
             )
-        except RuntimeError as resolve_error:
+        except Exception as resolve_error:
             return [TextContent(type="text", text=f"Cannot capture screenshot: {resolve_error}")]
 
         output_path = str(Path(path).expanduser().resolve())
@@ -1224,12 +1229,10 @@ def screenshot(
                 "Try saving the project first before exporting an image."
             ) from export_error
 
-        # Verify file was created
         image_path = Path(output_path)
         if not image_path.exists():
             raise RuntimeError(f"Screenshot file not created: {output_path}")
 
-        # Read and encode image
         with open(image_path, "rb") as f:
             image_data = f.read()
         base64_data = base64.b64encode(image_data).decode("utf-8")
@@ -1304,8 +1307,12 @@ def export_config(
     temp_config_file: str | None = None
 
     try:
-        app_instance, resolved_project, _ = resolve_design_app(
-            desktop, project_name=project, design_name=design
+        from ansys.aedt.core import get_pyaedt_app
+
+        app_instance = get_pyaedt_app(
+            project_name=project,
+            design_name=design,
+            desktop=desktop,
         )
 
         if output:
@@ -1328,7 +1335,7 @@ def export_config(
         data: dict[str, Any] = {
             "config": config_content,
             "design": app_instance.design_name,
-            "project": resolved_project,
+            "project": app_instance.project_name,
         }
         if output:
             data["config_file"] = config_file
@@ -1369,7 +1376,6 @@ def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
         logger.info("Clearing AEDT state...")
 
         if close_projects:
-            # Get list of projects and close them
             projects = desktop.project_list
             for proj in projects:
                 desktop.odesktop.CloseProject(proj)

@@ -10,7 +10,7 @@ A Model Context Protocol (MCP) server that enables AI assistants to interact wit
 - **Multi-Physics Support**: HFSS, Maxwell 2D/3D, Q3D, Q2D, Icepak, Circuit, TwinBuilder, and more
 - **Full Simulation Workflow**: Geometry creation, meshing, boundary setup, analysis, post-processing
 - **gRPC Remote Connection**: Connect to AEDT instances on local or remote machines
-- **Comprehensive Guidelines**: Context tools providing AEDT workflow guidance to AI assistants
+- **Optional Context Guidance**: Context tools providing AEDT workflow guidance to AI assistants when started with `--include-context`
 - **Parametric Studies**: Support for parametric sweeps, optimization, and DOE
 
 ## Supported AEDT Applications
@@ -99,6 +99,12 @@ ansys-aedt-mcp --transport http --http-host 127.0.0.1 --http-port 8080
 ansys-aedt-mcp --connect --machine localhost --port 50051
 ```
 
+#### Include Context Helper Tools
+
+```bash
+ansys-aedt-mcp --include-context
+```
+
 ### CLI Options
 
 | Option            | Description                       | Default     |
@@ -110,6 +116,7 @@ ansys-aedt-mcp --connect --machine localhost --port 50051
 | `--non-graphical` | Run AEDT in non-graphical mode    | `True`      |
 | `--graphical`     | Run AEDT in graphical mode        | `False`     |
 | `--connect`       | Connect to AEDT on startup        | `False`     |
+| `--include-context` | Register optional context helper tools | `False` |
 | `--http-host`     | HTTP transport host               | `127.0.0.1` |
 | `--http-port`     | HTTP transport port               | `8080`      |
 | `--cors-origins`  | Allowed CORS origins (HTTP only)  | None        |

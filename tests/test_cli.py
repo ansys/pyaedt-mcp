@@ -1,6 +1,7 @@
 """Unit tests for MCP CLI parsing and startup connection behavior."""
 
 import asyncio
+import importlib
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -24,6 +25,7 @@ def test_main_parses_defaults(monkeypatch):
     assert cfg["aedt_machine"] == "localhost"
     assert cfg["aedt_port"] == 50051
     assert cfg["connect_on_startup"] is False
+    assert cfg["include_context_tools"] is False
     assert cfg["http_host"] == "127.0.0.1"
     assert cfg["http_port"] == 8080
     assert cfg["cors_origins"] is None
@@ -84,6 +86,68 @@ def test_main_accepts_aedt_version():
 
 
 @pytest.mark.unit
+def test_main_accepts_include_context_flag():
+    """Test that include-context is captured in CLI config."""
+    from ansys.aedt.mcp import app as package_mcp
+    from ansys.aedt.mcp.server import launcher
+
+    with patch.object(asyncio, "run"):
+        launcher(["--include-context"])
+
+    cfg = getattr(package_mcp, "_cli_config", None)
+    assert cfg is not None
+    assert cfg["include_context_tools"] is True
+
+
+@pytest.mark.unit
+def test_launcher_disables_context_tag_by_default(monkeypatch):
+    """Context tools should always load but remain disabled by tag by default."""
+    from ansys.aedt.mcp.server import app, launcher
+
+    imported_modules = []
+    real_import_module = importlib.import_module
+
+    def tracking_import(name, package=None):
+        imported_modules.append(name)
+        return real_import_module(name, package)
+
+    monkeypatch.setattr(importlib, "import_module", tracking_import)
+
+    with patch.object(app, "disable") as mock_disable, patch.object(app, "enable") as mock_enable:
+        with patch.object(asyncio, "run"):
+            launcher([])
+
+    assert "ansys.aedt.mcp.prompts" in imported_modules
+    assert "ansys.aedt.mcp.tools" in imported_modules
+    assert "ansys.aedt.mcp.contexts" in imported_modules
+    mock_disable.assert_called_once_with(tags={"pyaedt_context"})
+    mock_enable.assert_not_called()
+
+
+@pytest.mark.unit
+def test_launcher_enables_context_tag_when_requested(monkeypatch):
+    """The include-context flag should enable the pyaedt_context tool tag."""
+    from ansys.aedt.mcp.server import app, launcher
+
+    imported_modules = []
+    real_import_module = importlib.import_module
+
+    def tracking_import(name, package=None):
+        imported_modules.append(name)
+        return real_import_module(name, package)
+
+    monkeypatch.setattr(importlib, "import_module", tracking_import)
+
+    with patch.object(app, "disable") as mock_disable, patch.object(app, "enable") as mock_enable:
+        with patch.object(asyncio, "run"):
+            launcher(["--include-context"])
+
+    assert "ansys.aedt.mcp.contexts" in imported_modules
+    mock_enable.assert_called_once_with(tags={"pyaedt_context"})
+    mock_disable.assert_not_called()
+
+
+@pytest.mark.unit
 def test_product_startup_connects_when_connect_flag_is_true():
     """MCP startup should initialize AEDT Desktop when connect_on_startup is True."""
     from ansys.aedt.mcp.server import PyAEDTMCP
@@ -103,6 +167,7 @@ def test_product_startup_connects_when_connect_flag_is_true():
                 "aedt_version": None,
                 "non_graphical": True,
                 "connect_on_startup": True,
+                "include_context_tools": False,
                 "http_host": "127.0.0.1",
                 "http_port": 8080,
                 "cors_origins": None,
@@ -138,6 +203,7 @@ def test_product_startup_does_not_connect_by_default():
                 "aedt_version": None,
                 "non_graphical": True,
                 "connect_on_startup": False,
+                "include_context_tools": False,
                 "http_host": "127.0.0.1",
                 "http_port": 8080,
                 "cors_origins": None,

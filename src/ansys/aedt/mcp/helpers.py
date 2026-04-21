@@ -4,6 +4,7 @@ This module provides utility functions for working with AEDT Desktop
 instances and extracting information from them.
 """
 
+import os
 import socket
 from pathlib import Path
 from typing import Any
@@ -13,26 +14,12 @@ from ansys.common.mcp import get_logger
 logger = get_logger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Docker / container detection helpers
-# ---------------------------------------------------------------------------
-
-
 def _is_docker() -> bool:
-    """Detect whether the current process is running inside a Docker container.
-
-    Checks for ``/.dockerenv`` and ``/run/.containerenv`` marker files that
-    Docker and Podman create inside containers.
-
-    Returns
-    -------
-    bool
-        ``True`` when running inside a container, ``False`` otherwise.
-    """
+    """Detect whether the current process is running inside a Docker container."""
     return Path("/.dockerenv").exists() or Path("/run/.containerenv").exists()
 
 
-def _probe_grpc_endpoint(host: str, port: int, timeout: float = 2.0) -> bool:
+def _probe_grpc_endpoint(host: str, port: int, timeout: float = 2.0) -> dict[str, Any]:
     """Test whether a gRPC endpoint is reachable via a TCP connect probe.
 
     Parameters
@@ -46,14 +33,77 @@ def _probe_grpc_endpoint(host: str, port: int, timeout: float = 2.0) -> bool:
 
     Returns
     -------
-    bool
-        ``True`` if the TCP connection succeeded, ``False`` otherwise.
+    dict[str, Any]
+        ``{"reachable": bool, "host": str, "port": int, "error": str | None}``
     """
     try:
         with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except (OSError, ConnectionRefusedError, TimeoutError):
-        return False
+            return {"reachable": True, "host": host, "port": port, "error": None}
+    except Exception as e:
+        return {"reachable": False, "host": host, "port": port, "error": str(e)}
+
+
+def _resolve_aedt_executable(
+    version: str | None = None,
+) -> tuple[str, Path]:
+    """Resolve AEDT version and locate the executable.
+
+    Parameters
+    ----------
+    version : str | None
+        Requested version (e.g. ``"2026.1"``, ``"261"``).  ``None`` picks
+        the latest installed version.
+
+    Returns
+    -------
+    tuple[str, Path]
+        ``(target_version_key, path_to_ansysedt_exe)``
+
+    Raises
+    ------
+    RuntimeError
+        If no AEDT installation is found or the requested version is
+        unavailable.
+    """
+    from ansys.aedt.core.desktop import Desktop
+
+    temp = Desktop.__new__(Desktop)
+    available = getattr(temp, "installed_versions", {})
+    if not available:
+        raise RuntimeError("No AEDT versions found installed on this system.")
+
+    # Filter AWP root entries (not valid version IDs)
+    versions = {k: v for k, v in available.items() if not k.endswith("AWP")}
+    if not versions:
+        versions = available
+
+    # Resolve requested version
+    if version:
+        target = version
+        install_dir = versions.get(target)
+        if install_dir is None:
+            for v, path in versions.items():
+                if version in v or v in version:
+                    target, install_dir = v, path
+                    break
+        if install_dir is None:
+            raise RuntimeError(
+                f"AEDT version '{version}' not found. Available: {list(versions.keys())}"
+            )
+    else:
+        target = list(versions.keys())[-1]
+        install_dir = versions[target]
+
+    # Locate executable
+    exe_name = "ansysedt.exe" if os.name == "nt" else "ansysedt"
+    for candidate in [
+        Path(install_dir) / exe_name,
+        Path(install_dir) / "AnsysEM" / exe_name,
+    ]:
+        if candidate.exists():
+            return target, candidate
+
+    raise RuntimeError(f"AEDT executable not found under: {install_dir}")
 
 
 def get_aedt_info(desktop: Any) -> dict[str, Any]:

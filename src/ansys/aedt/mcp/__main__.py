@@ -11,6 +11,7 @@ Options:
     --non-graphical          Run AEDT in non-graphical mode (default)
     --graphical              Run AEDT in graphical mode
     --connect                Connect to AEDT on startup
+    --include-context        Register optional context helper tools
     --http-host HOST         HTTP transport host (default: 127.0.0.1)
     --http-port PORT         HTTP transport port (default: 8080)
     --cors-origins ORIGINS   Allowed CORS origins for HTTP transport
