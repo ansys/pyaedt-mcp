@@ -7,6 +7,11 @@ ANSYS AEDT 2025 R2 on April 20, 2026.
 > **GUI Mode:** Launch AEDT with `non_graphical=false` so the GUI is visible
 > and you can see the antenna geometry, solved mesh, and S11 report plot
 > interactively in the AEDT window.
+>
+> **IMPORTANT:** When creating PyAEDT app instances (Hfss, Maxwell3d, etc.)
+> inside `run_python_code`, always pass `port=desktop.port` to ensure the
+> app connects to the **same** AEDT Desktop instance that was launched.
+> Without `port=`, PyAEDT may connect to a different or new AEDT process.
 
 ## 1. Check AEDT Installation
 
@@ -61,7 +66,7 @@ Response:
 
 ```python
 from ansys.aedt.core import Hfss
-hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation")
+hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation", port=desktop.port)
 
 # Create substrate (40x40x1.6 mm FR4)
 substrate = hfss.modeler.create_box(
@@ -105,7 +110,7 @@ Response: Geometry and boundaries created. Objects: ['Substrate', 'Ground', 'Pat
 
 ```python
 from ansys.aedt.core import Hfss
-hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation")
+hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation", port=desktop.port)
 
 # Feed line (3mm wide, centered in X, from y=0 to patch edge at y=8mm)
 feed_x = (40 - 3) / 2
@@ -156,7 +161,7 @@ Response: Feed, port, and airbox added. Objects: ['FeedLine', 'Substrate', 'Grou
 
 ```python
 from ansys.aedt.core import Hfss
-hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation")
+hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation", port=desktop.port)
 
 # Create setup at 2.4 GHz
 setup = hfss.create_setup(name="Setup1")
@@ -200,7 +205,7 @@ Returns a PNG image of the AEDT viewport showing the antenna geometry.
 ```python
 import time
 from ansys.aedt.core import Hfss
-hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation")
+hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation", port=desktop.port)
 
 hfss.save_project()
 t0 = time.time()
@@ -224,7 +229,7 @@ Response: Solved: True, Time: 81s
 import os, math
 from ansys.aedt.core import Hfss
 
-hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation")
+hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation", port=desktop.port)
 
 # Create S11 report via native API
 report_module = hfss.odesign.GetModule("ReportSetup")
@@ -281,7 +286,7 @@ Returns a PNG showing the S11_Return_Loss report visible in the AEDT GUI.
 import os
 from ansys.aedt.core import Hfss
 
-hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation")
+hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation", port=desktop.port)
 
 step_path = r"D:\ANSYS-DEV\screenshots\PatchAntenna_Validation.step"
 export_ok = hfss.export_3d_model(

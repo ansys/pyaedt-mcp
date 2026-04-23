@@ -83,8 +83,8 @@ from ansys.aedt.core import Hfss, Desktop
 # Launch or connect to AEDT
 desktop = Desktop(version="2025.2", non_graphical=True)
 
-# Create an application
-hfss = Hfss(project="MyProject", design="MyDesign")
+# Create an application — ALWAYS pass port=desktop.port to reuse the same AEDT instance
+hfss = Hfss(project="MyProject", design="MyDesign", port=desktop.port)
 
 # Create geometry
 box = hfss.modeler.create_box([0, 0, 0], [10, 10, 2], name="Substrate", material="FR4_epoxy")
@@ -146,8 +146,8 @@ HFSS (High Frequency Structure Simulator) is used for high-frequency electromagn
 ```python
 from ansys.aedt.core import Hfss
 
-# Create HFSS design
-hfss = Hfss(project="Antenna", design="PatchAntenna", solution_type="Modal")
+# Create HFSS design — ALWAYS pass port=desktop.port to reuse the launched AEDT instance
+hfss = Hfss(project="Antenna", design="PatchAntenna", solution_type="Modal", port=desktop.port)
 
 # Set units
 hfss.modeler.model_units = "mm"
@@ -294,11 +294,12 @@ Maxwell is used for low-frequency electromagnetic simulations including electric
 ```python
 from ansys.aedt.core import Maxwell3d
 
-# Create Maxwell 3D design
+# Create Maxwell 3D design — ALWAYS pass port=desktop.port to reuse the launched AEDT instance
 m3d = Maxwell3d(
     project="Motor",
     design="IPM_Motor",
-    solution_type="Transient"
+    solution_type="Transient",
+    port=desktop.port
 )
 
 # Set units
@@ -439,11 +440,12 @@ Icepak is used for thermal management and CFD analysis of electronic systems.
 ```python
 from ansys.aedt.core import Icepak
 
-# Create Icepak design
+# Create Icepak design — ALWAYS pass port=desktop.port to reuse the launched AEDT instance
 ipk = Icepak(
     project="PCB_Cooling",
     design="ThermalAnalysis",
-    solution_type="SteadyState"
+    solution_type="SteadyState",
+    port=desktop.port
 )
 
 # Set units
@@ -600,10 +602,11 @@ Circuit Design is used for circuit-level simulations, system integration, and co
 ```python
 from ansys.aedt.core import Circuit
 
-# Create Circuit design
+# Create Circuit design — ALWAYS pass port=desktop.port to reuse the launched AEDT instance
 cir = Circuit(
     project="Filter",
-    design="LPF"
+    design="LPF",
+    port=desktop.port
 )
 
 # Create schematic components
@@ -667,13 +670,13 @@ cir.export_touchstone("filter_output.s2p", setup_name="LinearSetup")
 ```python
 from ansys.aedt.core import Circuit, Hfss
 
-# Create HFSS design first
-hfss = Hfss(project="System", design="Antenna3D")
+# Create HFSS design first — ALWAYS pass port=desktop.port
+hfss = Hfss(project="System", design="Antenna3D", port=desktop.port)
 # ... create 3D model ...
 hfss.analyze()
 
 # Create Circuit design in same project
-cir = Circuit(project="System", design="MatchingNetwork")
+cir = Circuit(project="System", design="MatchingNetwork", port=desktop.port)
 
 # Import HFSS design as dynamic link
 cir.modeler.schematic.add_subcircuit_dynamic_link(
