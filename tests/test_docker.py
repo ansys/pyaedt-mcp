@@ -78,7 +78,12 @@ class TestProbeGrpcEndpoint:
         port = server.getsockname()[1]
         server.listen(1)
         try:
-            assert _probe_grpc_endpoint("127.0.0.1", port, timeout=2.0) is True
+            assert _probe_grpc_endpoint("127.0.0.1", port, timeout=2.0) == {
+                "reachable": True,
+                "host": "127.0.0.1",
+                "port": port,
+                "error": None,
+            }
         finally:
             server.close()
 
@@ -89,15 +94,27 @@ class TestProbeGrpcEndpoint:
         server.bind(("127.0.0.1", 0))
         port = server.getsockname()[1]
         server.close()
-        assert _probe_grpc_endpoint("127.0.0.1", port, timeout=0.5) is False
+        probe = _probe_grpc_endpoint("127.0.0.1", port, timeout=0.5)
+        assert probe["reachable"] is False
+        assert probe["host"] == "127.0.0.1"
+        assert probe["port"] == port
+        assert probe["error"] is not None
 
     def test_unresolvable_host(self):
         """Probe a non-existent host → False."""
-        assert _probe_grpc_endpoint("host.that.does.not.exist.invalid", 50051, timeout=0.5) is False
+        probe = _probe_grpc_endpoint("host.that.does.not.exist.invalid", 50051, timeout=0.5)
+        assert probe["reachable"] is False
+        assert probe["host"] == "host.that.does.not.exist.invalid"
+        assert probe["port"] == 50051
+        assert probe["error"] is not None
 
     def test_custom_timeout(self):
         """Very short timeout on unreachable host → False quickly."""
-        assert _probe_grpc_endpoint("192.0.2.1", 50051, timeout=0.1) is False
+        probe = _probe_grpc_endpoint("192.0.2.1", 50051, timeout=0.1)
+        assert probe["reachable"] is False
+        assert probe["host"] == "192.0.2.1"
+        assert probe["port"] == 50051
+        assert probe["error"] is not None
 
 
 # ------------------------------------------------------------------ #
@@ -114,7 +131,10 @@ class TestCheckAEDTInstalledDocker:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
-            patch("ansys.aedt.mcp.tools._probe_grpc_endpoint", return_value=True),
+            patch(
+                "ansys.aedt.mcp.tools._probe_grpc_endpoint",
+                return_value={"reachable": True, "host": "aedt-host", "port": 50051, "error": None},
+            ),
             patch.dict(os.environ, {"AEDT_MACHINE": "aedt-host", "AEDT_PORT": "50051"}),
         ):
             result = check_aedt_installed(mock_context_no_desktop)
@@ -128,7 +148,15 @@ class TestCheckAEDTInstalledDocker:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
-            patch("ansys.aedt.mcp.tools._probe_grpc_endpoint", return_value=False),
+            patch(
+                "ansys.aedt.mcp.tools._probe_grpc_endpoint",
+                return_value={
+                    "reachable": False,
+                    "host": "badhost",
+                    "port": 9999,
+                    "error": "connection refused",
+                },
+            ),
             patch.dict(os.environ, {"AEDT_MACHINE": "badhost", "AEDT_PORT": "9999"}),
         ):
             result = check_aedt_installed(mock_context_no_desktop)
@@ -141,7 +169,15 @@ class TestCheckAEDTInstalledDocker:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
-            patch("ansys.aedt.mcp.tools._probe_grpc_endpoint", return_value=True),
+            patch(
+                "ansys.aedt.mcp.tools._probe_grpc_endpoint",
+                return_value={
+                    "reachable": True,
+                    "host": "host.docker.internal",
+                    "port": 50051,
+                    "error": None,
+                },
+            ),
             patch.dict(os.environ, {}, clear=True),
         ):
             # Need to remove AEDT_MACHINE/AEDT_PORT if set

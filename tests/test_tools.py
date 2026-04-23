@@ -455,7 +455,7 @@ class TestScreenshot:
         mock_app.export_design_preview_to_jpg.side_effect = _export_image
 
         with (
-            patch("ansys.aedt.core.Hfss", return_value=mock_app),
+            patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app),
             patch(
                 "ansys.aedt.mcp.tools._open_file_in_default_viewer", return_value=None
             ) as mock_open_viewer,
@@ -488,7 +488,7 @@ class TestScreenshot:
         )
 
         with (
-            patch("ansys.aedt.core.Hfss", return_value=mock_app),
+            patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app),
             patch(
                 "ansys.aedt.mcp.tools._open_file_in_default_viewer",
                 return_value="Viewer launch failed: test error",
@@ -511,7 +511,7 @@ class TestScreenshot:
         mock_app = MagicMock()
         mock_app.export_design_preview_to_jpg.side_effect = RuntimeError("preview export failed")
 
-        with patch("ansys.aedt.core.Hfss", return_value=mock_app):
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
             result = screenshot(mock_context)
 
         assert len(result) == 1
@@ -532,10 +532,7 @@ class TestAnalyzeDesign:
         mock_app.design_name = "Design1"
         mock_app.analyze.return_value = True
 
-        with patch(
-            "ansys.aedt.mcp.tools.resolve_design_app",
-            return_value=(mock_app, "Project1", "Design1"),
-        ) as mock_resolve:
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app) as mock_get_app:
             result = analyze_design(
                 mock_context,
                 setup_name="Setup1",
@@ -553,10 +550,10 @@ class TestAnalyzeDesign:
                 blocking=False,
             )
 
-        mock_resolve.assert_called_once_with(
-            mock_context.request_context.lifespan_context.desktop,
+        mock_get_app.assert_called_once_with(
             project_name="Project1",
             design_name="Design1",
+            desktop=mock_context.request_context.lifespan_context.desktop,
         )
         mock_app.analyze.assert_called_once_with(
             setup="Setup1",
@@ -653,7 +650,7 @@ class TestExportConfig:
         mock_app.configurations.export_config.side_effect = _export_config
 
         with (
-            patch("ansys.aedt.core.Hfss", return_value=mock_app),
+            patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app),
             patch("tempfile.mkstemp", return_value=(0, str(config_path))),
             patch("os.close"),
             patch("os.remove"),
@@ -688,7 +685,7 @@ class TestExportConfig:
 
         mock_app.configurations.export_config.side_effect = _export_config
 
-        with patch("ansys.aedt.core.Hfss", return_value=mock_app):
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
             result = export_config(mock_context, output=str(output_path), overwrite=True)
 
         data = json.loads(result)
@@ -706,7 +703,7 @@ class TestExportConfig:
         mock_app = MagicMock()
         mock_app.configurations.export_config.return_value = None
 
-        with patch("ansys.aedt.core.Hfss", return_value=mock_app):
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
             result = export_config(mock_context)
 
         assert "Failed to export configuration" in result
@@ -758,7 +755,10 @@ class TestCheckAEDTInstalled:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
-            patch("ansys.aedt.mcp.tools._probe_grpc_endpoint", return_value=True),
+            patch(
+                "ansys.aedt.mcp.tools._probe_grpc_endpoint",
+                return_value={"reachable": True, "host": "myhost", "port": 50052, "error": None},
+            ),
             patch.dict("os.environ", {"AEDT_MACHINE": "myhost", "AEDT_PORT": "50052"}),
         ):
             result = check_aedt_installed(mock_context)
@@ -773,7 +773,15 @@ class TestCheckAEDTInstalled:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
-            patch("ansys.aedt.mcp.tools._probe_grpc_endpoint", return_value=False),
+            patch(
+                "ansys.aedt.mcp.tools._probe_grpc_endpoint",
+                return_value={
+                    "reachable": False,
+                    "host": "myhost",
+                    "port": 50052,
+                    "error": "connection refused",
+                },
+            ),
             patch.dict("os.environ", {"AEDT_MACHINE": "myhost", "AEDT_PORT": "50052"}),
         ):
             result = check_aedt_installed(mock_context)
@@ -785,12 +793,12 @@ class TestCheckAEDTInstalled:
         """Test native path with installed AEDT versions found."""
         from ansys.aedt.mcp.tools import check_aedt_installed
 
-        mock_instance = MagicMock()
-        mock_instance.installed_versions = {"261": "C:\\ANSYS\\v261"}
-
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
-            patch("ansys.aedt.core.desktop.Desktop.__new__", return_value=mock_instance),
+            patch(
+                "ansys.aedt.mcp.tools._resolve_aedt_executable",
+                return_value=("261", Path("C:/ANSYS/v261/AnsysEM/ansysedt.exe")),
+            ),
         ):
             result = check_aedt_installed(mock_context)
 
@@ -801,18 +809,16 @@ class TestCheckAEDTInstalled:
         """Test native path when AEDT is not found."""
         from ansys.aedt.mcp.tools import check_aedt_installed
 
-        mock_instance = MagicMock()
-        mock_instance.installed_versions = {}
-
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
-            patch("ansys.aedt.core.desktop.Desktop.__new__", return_value=mock_instance),
-            patch("subprocess.run") as mock_run,
+            patch(
+                "ansys.aedt.mcp.tools._resolve_aedt_executable",
+                side_effect=RuntimeError("No AEDT versions found installed on this system."),
+            ),
         ):
-            mock_run.return_value = MagicMock(returncode=1)
             result = check_aedt_installed(mock_context)
 
-        assert "not installed" in result.lower() or "cannot be found" in result.lower()
+        assert "no aedt versions found installed" in result.lower()
 
     def test_native_exception(self, mock_context):
         """Test native path when an exception occurs."""
@@ -820,7 +826,10 @@ class TestCheckAEDTInstalled:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
-            patch("ansys.aedt.core.desktop.Desktop", side_effect=ImportError("no module")),
+            patch(
+                "ansys.aedt.mcp.tools._resolve_aedt_executable",
+                side_effect=ImportError("no module"),
+            ),
         ):
             result = check_aedt_installed(mock_context)
 

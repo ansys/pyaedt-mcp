@@ -1031,10 +1031,13 @@ def analyze_design(
             desktop=desktop,
         )
 
+        resolved_project_name = app_instance.project_name or project_name
+        resolved_design_name = app_instance.design_name or design_name
+
         logger.info(
             "Running design analysis on project=%s design=%s setup=%s",
-            app_instance.project_name or project_name or "active project",
-            app_instance.design_name or design_name or "active design",
+            resolved_project_name or app_instance.project_name or "active project",
+            resolved_design_name or app_instance.design_name or "active design",
             setup_name or "all setups",
         )
 
@@ -1055,15 +1058,15 @@ def analyze_design(
         if not result:
             return (
                 "Analysis failed.\n"
-                f"Project: {app_instance.project_name or 'Unknown'}\n"
-                f"Design: {app_instance.design_name or 'Unknown'}\n"
+                f"Project: {resolved_project_name or app_instance.project_name or 'Unknown'}\n"
+                f"Design: {resolved_design_name or app_instance.design_name or 'Unknown'}\n"
                 f"Setup: {setup_name or 'all setups'}"
             )
 
         return (
             "Analysis completed successfully.\n"
-            f"Project: {app_instance.project_name or 'Unknown'}\n"
-            f"Design: {app_instance.design_name or 'Unknown'}\n"
+            f"Project: {resolved_project_name or app_instance.project_name or 'Unknown'}\n"
+            f"Design: {resolved_design_name or app_instance.design_name or 'Unknown'}\n"
             f"Setup: {setup_name or 'all setups'}\n"
             f"Mode: {'batch' if solve_in_batch else 'interactive'}\n"
             f"Blocking: {blocking}\n"
@@ -1112,9 +1115,21 @@ def export_results(
     try:
         logger.info(f"Exporting {export_type} results to: {output_path}")
 
-        from ansys.aedt.core import get_pyaedt_app
+        try:
+            from ansys.aedt.core import get_pyaedt_app
 
-        app_instance = get_pyaedt_app(desktop=desktop)
+            app_instance = get_pyaedt_app(desktop=desktop)
+        except Exception as resolve_error:
+            logger.info("Unable to resolve active design for export: %s", resolve_error)
+            return (
+                "Export functionality requires an active application. "
+                "Connect to a design or provide an active design context first."
+            )
+        if app_instance is None:
+            return (
+                "Export functionality requires an active application. "
+                "Connect to a design or provide an active design context first."
+            )
 
         setup_kwargs = {}
         if setup_name is not None:
