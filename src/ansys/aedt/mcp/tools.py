@@ -408,13 +408,12 @@ def launch_aedt(
             "new_desktop": new_desktop,
         }
 
-        if version is None:
-            version = aedt_versions.current_version or aedt_versions.latest_version
-            if not version:
-                raise RuntimeError("No AEDT versions found installed on this system.")
-        kwargs["version"] = version
-
         if application is None:
+            if version is None:
+                version = aedt_versions.current_version or aedt_versions.latest_version
+                if not version:
+                    raise RuntimeError("No AEDT versions found installed on this system.")
+            kwargs["version"] = version
             desktop = Desktop(**kwargs)
             launched_target = "AEDT Desktop"
         else:
@@ -422,6 +421,11 @@ def launch_aedt(
             if app_class is None:
                 return f"Unsupported application type: {application}"
 
+            if version is None:
+                version = aedt_versions.current_version or aedt_versions.latest_version
+                if not version:
+                    raise RuntimeError("No AEDT versions found installed on this system.")
+            kwargs["version"] = version
             app_instance = app_class(**kwargs)
             desktop = getattr(app_instance, "desktop_class", None)
             if desktop is None:
