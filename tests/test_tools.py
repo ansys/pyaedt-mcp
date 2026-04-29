@@ -995,6 +995,10 @@ class TestLaunchAEDTExtended:
         """Test launching AEDT with a specific application type."""
         from ansys.aedt.mcp.tools import launch_aedt
 
+        mock_versions = MagicMock()
+        mock_versions.current_version = "2026.1"
+        mock_versions.latest_version = "2026.1"
+
         mock_app_instance = MagicMock()
         mock_app_instance.desktop_class = MagicMock()
         mock_app_instance.desktop_class.aedt_version_id = "2026.1"
@@ -1003,6 +1007,7 @@ class TestLaunchAEDTExtended:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.mcp.tools.aedt_versions", mock_versions),
             patch("ansys.aedt.core.Hfss", return_value=mock_app_instance),
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
         ):
