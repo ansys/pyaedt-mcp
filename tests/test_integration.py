@@ -139,7 +139,7 @@ result = desktop.aedt_version_id
         result = run_python_code(mock_ctx_connected, code=code)
 
         # Should return the version string
-        assert "25" in result or "24" in result or "23" in result
+        assert "26" in result or "25" in result or "24" in result or "23" in result
 
     def test_run_aedt_command(self, mock_ctx_connected):
         """Test running AEDT-specific command."""

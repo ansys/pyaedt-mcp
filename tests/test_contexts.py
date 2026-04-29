@@ -5,13 +5,17 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_context_tools_registered():
-    """Test that all context tools are registered with the MCP server."""
+    """Test that context tools are available when the context tag is enabled."""
     # Import contexts and tools to register them with the app
     from ansys.aedt.mcp import contexts, tools  # noqa: F401
     from ansys.aedt.mcp.server import app
 
-    # Get list of registered tools
-    tool_list = await app.list_tools()
+    app.enable(tags={"pyaedt_context"})
+    try:
+        # Get list of registered tools
+        tool_list = await app.list_tools()
+    finally:
+        app.disable(tags={"pyaedt_context"})
 
     # Expected tool names
     expected_tools = [
