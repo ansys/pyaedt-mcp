@@ -36,7 +36,7 @@ PyAEDT code directly and should usually execute it with `run_python_code`.
 1. Check connection first with `check_aedt_status`.
 2. Prefer direct MCP tools for supported AEDT operations.
 3. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code directly and prefer `run_python_code` over `run_python_script` unless the user already has a script file.
-4. Before code intended for `run_python_code`, include `from ansys.aedt.core import settings` and set `settings.release_on_exception = False`.
+4. Before code intended for `run_python_code`, include `from ansys.aedt.core import settings`, set `settings.release_on_exception = False` and `settings.pyedb_use_grpc = True`.
 5. Use the correct PyAEDT app class for the solver: `Hfss`, `Maxwell3d`, `Maxwell2d`, `Icepak`, `Circuit`, `Q3d`, `Q2d`, `TwinBuilder`, `Mechanical`, `Emit`, `RMXprt`, `Hfss3dLayout`.
 """
 

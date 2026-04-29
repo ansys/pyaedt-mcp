@@ -2,7 +2,11 @@
 
 from unittest.mock import MagicMock
 
-from ansys.aedt.mcp.helpers import get_aedt_info, get_design_info, parse_aedt_version
+from ansys.aedt.mcp.helpers import (
+    get_aedt_info,
+    get_design_info,
+    parse_aedt_version,
+)
 
 
 class TestGetAEDTInfo:

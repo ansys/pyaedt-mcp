@@ -118,8 +118,13 @@ class TestLaunchAEDT:
         """Test launch_aedt defaults to graphical mode."""
         from ansys.aedt.mcp.tools import launch_aedt
 
+        mock_versions = MagicMock()
+        mock_versions.current_version = "2026.1"
+        mock_versions.latest_version = "2026.1"
+
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.mcp.tools.aedt_versions", mock_versions),
             patch("ansys.aedt.core.Desktop") as mock_desktop,
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings") as mock_cfg,
         ):
@@ -133,6 +138,7 @@ class TestLaunchAEDT:
 
             call_kwargs = mock_desktop.call_args[1]
             assert call_kwargs["non_graphical"] is False
+            assert call_kwargs["version"] == "2026.1"
             mock_cfg.assert_called_once_with()
             assert "Successfully launched AEDT Desktop" in result
 
@@ -793,28 +799,36 @@ class TestCheckAEDTInstalled:
         """Test native path with installed AEDT versions found."""
         from ansys.aedt.mcp.tools import check_aedt_installed
 
+        mock_versions = MagicMock()
+        mock_versions.installed_versions = {
+            "2026.1": "C:/ANSYS/v261/AnsysEM",
+            "2025.2": "C:/ANSYS/v252/AnsysEM",
+        }
+        mock_versions.current_version = "2026.1"
+        mock_versions.latest_version = "2026.1"
+
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
-            patch(
-                "ansys.aedt.mcp.tools._resolve_aedt_executable",
-                return_value=("261", Path("C:/ANSYS/v261/AnsysEM/ansysedt.exe")),
-            ),
+            patch("ansys.aedt.mcp.tools.aedt_versions", mock_versions),
         ):
             result = check_aedt_installed(mock_context)
 
         assert "AEDT is installed" in result
-        assert "261" in result
+        assert "2026.1" in result
+        assert "2025.2" in result
 
     def test_native_not_installed(self, mock_context):
         """Test native path when AEDT is not found."""
         from ansys.aedt.mcp.tools import check_aedt_installed
 
+        mock_versions = MagicMock()
+        mock_versions.installed_versions = {}
+        mock_versions.current_version = ""
+        mock_versions.latest_version = ""
+
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
-            patch(
-                "ansys.aedt.mcp.tools._resolve_aedt_executable",
-                side_effect=RuntimeError("No AEDT versions found installed on this system."),
-            ),
+            patch("ansys.aedt.mcp.tools.aedt_versions", mock_versions),
         ):
             result = check_aedt_installed(mock_context)
 
@@ -824,12 +838,14 @@ class TestCheckAEDTInstalled:
         """Test native path when an exception occurs."""
         from ansys.aedt.mcp.tools import check_aedt_installed
 
+        mock_versions = MagicMock()
+        type(mock_versions).installed_versions = property(
+            lambda _self: (_ for _ in ()).throw(ImportError("no module"))
+        )
+
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
-            patch(
-                "ansys.aedt.mcp.tools._resolve_aedt_executable",
-                side_effect=ImportError("no module"),
-            ),
+            patch("ansys.aedt.mcp.tools.aedt_versions", mock_versions),
         ):
             result = check_aedt_installed(mock_context)
 

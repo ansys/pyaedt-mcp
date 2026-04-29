@@ -14,6 +14,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Literal
 
+from ansys.aedt.core.internal.aedt_versions import aedt_versions
 from fastmcp.server import Context
 from fastmcp.server.server import get_logger
 from mcp.types import ImageContent, TextContent
@@ -22,7 +23,6 @@ from ansys.aedt.mcp import app
 from ansys.aedt.mcp.helpers import (
     _is_docker,
     _probe_grpc_endpoint,
-    _resolve_aedt_executable,
     get_aedt_info,
 )
 from ansys.aedt.mcp.server import session
@@ -323,14 +323,20 @@ def check_aedt_installed(ctx: Context) -> str:
 
     # ------- Native path: search for local installation -------
     try:
-        target_version, aedt_exe = _resolve_aedt_executable()
+        installed_versions = dict(aedt_versions.installed_versions)
+        if not installed_versions:
+            return "No AEDT versions found installed on this system."
+
+        target_version = aedt_versions.current_version or aedt_versions.latest_version
+        if target_version not in installed_versions:
+            target_version = next(iter(installed_versions))
+
         return (
             f"AEDT is installed on this system.\n"
             f"Version: {target_version}\n"
-            f"Executable: {aedt_exe}"
+            f"Installation Directory: {installed_versions[target_version]}\n"
+            f"Installed Versions: {', '.join(installed_versions)}"
         )
-    except RuntimeError as e:
-        return str(e)
     except Exception as e:
         error_msg = f"Error checking AEDT installation: {str(e)}"
         logger.error(error_msg)
@@ -402,8 +408,11 @@ def launch_aedt(
             "new_desktop": new_desktop,
         }
 
-        if version is not None:
-            kwargs["version"] = version
+        if version is None:
+            version = aedt_versions.current_version or aedt_versions.latest_version
+            if not version:
+                raise RuntimeError("No AEDT versions found installed on this system.")
+        kwargs["version"] = version
 
         if application is None:
             desktop = Desktop(**kwargs)
