@@ -9,31 +9,35 @@ from io import BytesIO
 
 try:
     import matplotlib
+
     # Use non-interactive backend to prevent blocking on plot displays
-    matplotlib.use('Agg')
+    matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
 
 try:
     import pyvista as pv
+
     # Enable off-screen rendering globally
     pv.OFF_SCREEN = True
     # Set a clean default theme
-    pv.set_plot_theme('document')
+    pv.set_plot_theme("document")
     PYVISTA_AVAILABLE = True
 except ImportError:
     PYVISTA_AVAILABLE = False
 
 try:
     from PIL import Image
+
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
 
 
-def save_matplotlib_plot(filename='plot.png', return_base64=False, dpi=150):
+def save_matplotlib_plot(filename="plot.png", return_base64=False, dpi=150):
     """
     Save matplotlib plot to file and optionally return as base64.
     Uses the current matplotlib figure.
@@ -57,19 +61,19 @@ def save_matplotlib_plot(filename='plot.png', return_base64=False, dpi=150):
 
     if return_base64:
         buffer = BytesIO()
-        plt.savefig(buffer, format='PNG', dpi=dpi, bbox_inches='tight')
+        plt.savefig(buffer, format="PNG", dpi=dpi, bbox_inches="tight")
         buffer.seek(0)
         plt.close()
 
-        img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+        img_base64 = base64.b64encode(buffer.read()).decode("utf-8")
         return f"data:image/png;base64,{img_base64}"
     else:
-        plt.savefig(filename, dpi=dpi, bbox_inches='tight')
+        plt.savefig(filename, dpi=dpi, bbox_inches="tight")
         plt.close()
         return f"Plot saved to {filename}"
 
 
-def save_pyvista_plot(plotter, filename='plot.png', return_base64=False):
+def save_pyvista_plot(plotter, filename="plot.png", return_base64=False):
     """
     Save PyVista plot to file and optionally return as base64.
 
@@ -96,10 +100,10 @@ def save_pyvista_plot(plotter, filename='plot.png', return_base64=False):
 
         img = Image.fromarray(img_array)
         buffer = BytesIO()
-        img.save(buffer, format='PNG')
+        img.save(buffer, format="PNG")
         buffer.seek(0)
 
-        img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+        img_base64 = base64.b64encode(buffer.read()).decode("utf-8")
         return f"data:image/png;base64,{img_base64}"
     else:
         plotter.screenshot(filename, transparent_background=False)
@@ -112,6 +116,7 @@ def get_aedt_version():
     """Get the PyAEDT version."""
     try:
         import ansys.aedt.core as aedt
+
         return aedt.__version__
     except ImportError:
         return "PyAEDT not available"
@@ -133,5 +138,5 @@ def list_aedt_applications():
         "Mechanical - Structural Analysis",
         "Emit - EMI/EMC Analysis",
         "RMXprt - Rotating Machine Design",
-        "Hfss3dLayout - High-Speed Electronics Layout"
+        "Hfss3dLayout - High-Speed Electronics Layout",
     ]

@@ -2,7 +2,7 @@
 
 This example demonstrates a complete HFSS microstrip patch antenna workflow
 using the pyaedt-mcp tools. All steps below were validated live against
-ANSYS AEDT 2025 R2 on April 20, 2026.
+ANSYS AEDT 2026 R1 on April 20, 2026.
 
 > **GUI Mode:** Launch AEDT with `non_graphical=false` so the GUI is visible
 > and you can see the antenna geometry, solved mesh, and S11 report plot
@@ -15,8 +15,8 @@ ANSYS AEDT 2025 R2 on April 20, 2026.
 ```
 Response:
   AEDT is installed on this system.
-  Version: 2025.2
-  Executable: C:\Program Files\ANSYS Inc\v252\AnsysEM\ansysedt.exe
+  Version: 2026.1
+  Executable: C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe
 ```
 
 ## 2. Launch AEDT
@@ -32,7 +32,7 @@ Response:
 ```
 Response:
   Successfully launched AEDT Desktop
-  Version: 2025.2
+  Version: 2026.1
   gRPC Port: 59661
   PID: 2600
   Startup Time: ~18s
@@ -273,34 +273,7 @@ Response: S11 Report created! Resonance: 2.8000 GHz, S11 = -5.22 dB
 
 Returns a PNG showing the S11_Return_Loss report visible in the AEDT GUI.
 
-## 11. Export 3D Model
-
-**Tool:** `run_python_code`
-
-```python
-import os
-from ansys.aedt.core import Hfss
-
-hfss = Hfss(project=desktop.project_list[0], design="PatchAntenna_Validation")
-
-step_path = r"D:\ANSYS-DEV\screenshots\PatchAntenna_Validation.step"
-export_ok = hfss.export_3d_model(
-    file_name="PatchAntenna_Validation",
-    file_path=r"D:\ANSYS-DEV\screenshots",
-    file_format=".step"
-)
-hfss.save_project()
-
-result = "STEP export: {}, size: {} bytes".format(
-    export_ok, os.path.getsize(step_path) if os.path.exists(step_path) else 0
-)
-```
-
-```
-Response: STEP export: True, size: 30257 bytes
-```
-
-## 12. Clear AEDT (Optional)
+## 11. Clear AEDT (Optional)
 
 **Tool:** `clear_aedt`
 

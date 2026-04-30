@@ -9,16 +9,16 @@ import pytest
 def mock_desktop():
     """Create a mock AEDT Desktop instance."""
     desktop = MagicMock()
-    desktop.aedt_version_id = "2025.2"
-    desktop.aedt_version_string = "AEDT 2025 R2"
-    desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v252\\AnsysEM"
+    desktop.aedt_version_id = "2026.1"
+    desktop.aedt_version_string = "AEDT 2026 R1"
+    desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v261\\AnsysEM"
     desktop.is_grpc_api = True
     desktop.machine = "localhost"
     desktop.port = 50051
     desktop.non_graphical = True
     desktop.aedt_process_id = 12345
     desktop.project_list = ["Project1", "Project2"]
-    desktop.installed_versions = {"252": "C:\\Program Files\\ANSYS Inc\\v252"}
+    desktop.installed_versions = {"261": "C:\\Program Files\\ANSYS Inc\\v261"}
     return desktop
 
 
@@ -26,6 +26,7 @@ def mock_desktop():
 def app_context(mock_desktop):
     """Create a PyAEDTAppContext with a mock Desktop instance."""
     from ansys.aedt.mcp.server import PyAEDTAppContext
+
     ctx = PyAEDTAppContext()
     ctx.desktop = mock_desktop
     return ctx
@@ -35,6 +36,7 @@ def app_context(mock_desktop):
 def app_context_no_desktop():
     """Create a PyAEDTAppContext without Desktop."""
     from ansys.aedt.mcp.server import PyAEDTAppContext
+
     ctx = PyAEDTAppContext()
     ctx.desktop = None
     return ctx
@@ -98,11 +100,7 @@ class TestErrorHandling:
 
         # Mock Desktop to raise connection error
         with patch("ansys.aedt.core.Desktop", side_effect=RuntimeError("Connection refused")):
-            result = connect_to_aedt(
-                mock_context_no_desktop,
-                machine="invalid-server",
-                port=50051
-            )
+            result = connect_to_aedt(mock_context_no_desktop, machine="invalid-server", port=50051)
             assert "Error" in result or "Failed" in result or "Connection refused" in result
 
     def test_invalid_project_path(self, mock_context):
@@ -144,14 +142,6 @@ class TestErrorHandling:
         result = run_python_code(mock_context, "def foo( :")
         # Should handle the error gracefully
         assert isinstance(result, str)
-
-    def test_list_files_permission_error(self, mock_context):
-        """Test handling of permission errors in list_files."""
-        from ansys.aedt.mcp.tools import list_files
-
-        with patch("glob.glob", side_effect=PermissionError("Access denied")):
-            result = list_files(mock_context, "C:\\Protected\\Folder")
-            assert "Error" in result or "denied" in result.lower() or "files" in result.lower()
 
     def test_export_results_no_solution(self, mock_context_no_desktop):
         """Test export when no solution is available."""

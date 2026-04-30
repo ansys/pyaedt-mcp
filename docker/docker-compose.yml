@@ -8,8 +8,8 @@
 # 2. AEDT installed on the host machine with proper licensing
 #
 # For most use cases, run AEDT directly on your machine:
-#   Windows: "C:\Program Files\ANSYS Inc\v252\AnsysEM\ansysedt.exe" -grpcsrv 50051
-#   Linux:   /ansys_inc/v252/AnsysEM/Linux64/ansysedt -grpcsrv 50051
+#   Windows: "C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe" -grpcsrv 50051
+#   Linux:   /ansys_inc/v261/AnsysEM/Linux64/ansysedt -grpcsrv 50051
 
 services:
   # PyAEDT MCP Server
@@ -22,15 +22,15 @@ services:
         PYANSYS_PYPI_INDEX_URL: ${PYANSYS_PYPI_INDEX_URL:-}
     container_name: pyaedt-mcp
     ports:
-      - "8080:8080"  # HTTP transport port
+      - "8080:8080" # HTTP transport port
     environment:
       - AEDT_MACHINE=${AEDT_MACHINE:-host.docker.internal}
       - AEDT_PORT=${AEDT_PORT:-50051}
-      - AEDT_VERSION=${AEDT_VERSION:-2025.2}
+      - AEDT_VERSION=${AEDT_VERSION:-2026.1}
       - AEDT_NON_GRAPHICAL=${AEDT_NON_GRAPHICAL:-true}
       - CONNECT_ON_STARTUP=${CONNECT_ON_STARTUP:-true}
     extra_hosts:
-      - "host.docker.internal:host-gateway"  # For connecting to host AEDT
+      - "host.docker.internal:host-gateway" # For connecting to host AEDT
     restart: unless-stopped
     networks:
       - pyaedt-network
@@ -42,7 +42,7 @@ networks:
 # Usage Examples:
 #
 # 1. Start AEDT on host machine first:
-#    "C:\Program Files\ANSYS Inc\v252\AnsysEM\ansysedt.exe" -grpcsrv 50051
+#    "C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe" -grpcsrv 50051
 #
 # 2. Build and start MCP server:
 #    docker compose up -d --build
@@ -58,7 +58,7 @@ networks:
 # Environment Variables:
 #   AEDT_MACHINE          - AEDT server hostname (default: host.docker.internal)
 #   AEDT_PORT             - AEDT gRPC port (default: 50051)
-#   AEDT_VERSION          - AEDT version (default: 2025.2)
+#   AEDT_VERSION          - AEDT version (default: 2026.1)
 #   CONNECT_ON_STARTUP    - Connect to AEDT on startup (default: true)
 #   PYANSYS_PYPI_INDEX_URL - Private PyPI for ansys-common-mcp (build-time)
-#   AEDT_VERSION - AEDT version (default: 2025.2)
+#   AEDT_VERSION - AEDT version (default: 2026.1)

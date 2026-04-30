@@ -16,9 +16,7 @@ def test_version():
 @pytest.mark.unit
 def test_package_imports():
     """Test that all expected functions and classes can be imported."""
-    from ansys.aedt.mcp import (
-        app,
-    )
+    from ansys.aedt.mcp import app
 
     assert app is not None
 
@@ -41,16 +39,17 @@ def test_all_exports():
 def test_app_context_creation():
     """Test that PyAEDTAppContext can be created with Desktop instance."""
     from unittest.mock import MagicMock
+
     from ansys.aedt.mcp.server import PyAEDTAppContext
 
     mock_desktop = MagicMock()
-    mock_desktop.aedt_version_id = "2025.2"
-    
+    mock_desktop.aedt_version_id = "2026.1"
+
     ctx = PyAEDTAppContext()
     ctx.desktop = mock_desktop
-    
+
     assert ctx.desktop is not None
-    assert ctx.desktop.aedt_version_id == "2025.2"
+    assert ctx.desktop.aedt_version_id == "2026.1"
 
 
 @pytest.mark.unit
@@ -60,5 +59,5 @@ def test_app_context_no_desktop():
 
     ctx = PyAEDTAppContext()
     ctx.desktop = None
-    
+
     assert ctx.desktop is None

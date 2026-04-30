@@ -10,13 +10,11 @@ Tests cover:
 
 import os
 import socket
-import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from ansys.aedt.mcp.helpers import _is_docker, _probe_grpc_endpoint
-
 
 # ------------------------------------------------------------------ #
 # _is_docker()
@@ -35,6 +33,7 @@ class TestIsDocker:
     def test_dockerenv_marker(self):
         """Detect Docker via /.dockerenv."""
         with patch("ansys.aedt.mcp.helpers.Path") as MockPath:
+
             def exists_side_effect(p=None):
                 m = MagicMock()
                 if str(MockPath.call_args_list[-1][0][0]) == "/.dockerenv":
@@ -59,9 +58,7 @@ class TestIsDocker:
     def test_no_markers(self):
         """No marker files → not Docker."""
         with patch("ansys.aedt.mcp.helpers.Path") as MockPath:
-            MockPath.side_effect = lambda p: (
-                type("P", (), {"exists": lambda self: False})()
-            )
+            MockPath.side_effect = lambda p: (type("P", (), {"exists": lambda self: False})())
             assert _is_docker() is False
 
 
@@ -81,7 +78,12 @@ class TestProbeGrpcEndpoint:
         port = server.getsockname()[1]
         server.listen(1)
         try:
-            assert _probe_grpc_endpoint("127.0.0.1", port, timeout=2.0) is True
+            assert _probe_grpc_endpoint("127.0.0.1", port, timeout=2.0) == {
+                "reachable": True,
+                "host": "127.0.0.1",
+                "port": port,
+                "error": None,
+            }
         finally:
             server.close()
 
@@ -92,15 +94,27 @@ class TestProbeGrpcEndpoint:
         server.bind(("127.0.0.1", 0))
         port = server.getsockname()[1]
         server.close()
-        assert _probe_grpc_endpoint("127.0.0.1", port, timeout=0.5) is False
+        probe = _probe_grpc_endpoint("127.0.0.1", port, timeout=0.5)
+        assert probe["reachable"] is False
+        assert probe["host"] == "127.0.0.1"
+        assert probe["port"] == port
+        assert probe["error"] is not None
 
     def test_unresolvable_host(self):
         """Probe a non-existent host → False."""
-        assert _probe_grpc_endpoint("host.that.does.not.exist.invalid", 50051, timeout=0.5) is False
+        probe = _probe_grpc_endpoint("host.that.does.not.exist.invalid", 50051, timeout=0.5)
+        assert probe["reachable"] is False
+        assert probe["host"] == "host.that.does.not.exist.invalid"
+        assert probe["port"] == 50051
+        assert probe["error"] is not None
 
     def test_custom_timeout(self):
         """Very short timeout on unreachable host → False quickly."""
-        assert _probe_grpc_endpoint("192.0.2.1", 50051, timeout=0.1) is False
+        probe = _probe_grpc_endpoint("192.0.2.1", 50051, timeout=0.1)
+        assert probe["reachable"] is False
+        assert probe["host"] == "192.0.2.1"
+        assert probe["port"] == 50051
+        assert probe["error"] is not None
 
 
 # ------------------------------------------------------------------ #
@@ -117,7 +131,10 @@ class TestCheckAEDTInstalledDocker:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
-            patch("ansys.aedt.mcp.tools._probe_grpc_endpoint", return_value=True),
+            patch(
+                "ansys.aedt.mcp.tools._probe_grpc_endpoint",
+                return_value={"reachable": True, "host": "aedt-host", "port": 50051, "error": None},
+            ),
             patch.dict(os.environ, {"AEDT_MACHINE": "aedt-host", "AEDT_PORT": "50051"}),
         ):
             result = check_aedt_installed(mock_context_no_desktop)
@@ -131,7 +148,15 @@ class TestCheckAEDTInstalledDocker:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
-            patch("ansys.aedt.mcp.tools._probe_grpc_endpoint", return_value=False),
+            patch(
+                "ansys.aedt.mcp.tools._probe_grpc_endpoint",
+                return_value={
+                    "reachable": False,
+                    "host": "badhost",
+                    "port": 9999,
+                    "error": "connection refused",
+                },
+            ),
             patch.dict(os.environ, {"AEDT_MACHINE": "badhost", "AEDT_PORT": "9999"}),
         ):
             result = check_aedt_installed(mock_context_no_desktop)
@@ -144,7 +169,15 @@ class TestCheckAEDTInstalledDocker:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
-            patch("ansys.aedt.mcp.tools._probe_grpc_endpoint", return_value=True) as mock_probe,
+            patch(
+                "ansys.aedt.mcp.tools._probe_grpc_endpoint",
+                return_value={
+                    "reachable": True,
+                    "host": "host.docker.internal",
+                    "port": 50051,
+                    "error": None,
+                },
+            ),
             patch.dict(os.environ, {}, clear=True),
         ):
             # Need to remove AEDT_MACHINE/AEDT_PORT if set
@@ -180,13 +213,13 @@ class TestLaunchAEDTDocker:
             patch("ansys.aedt.core.Desktop") as MockDesktop,
         ):
             mock_desk = MagicMock()
-            mock_desk.aedt_version_id = "252"
+            mock_desk.aedt_version_id = "261"
             mock_desk.aedt_install_dir = "/opt/ansys"
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
-            result = launch_aedt(mock_context_no_desktop, version="252")
-            assert "successfully launched" in result.lower() or "252" in result
+            result = launch_aedt(mock_context_no_desktop, version="261")
+            assert "successfully launched" in result.lower() or "261" in result
 
 
 # ------------------------------------------------------------------ #
@@ -205,14 +238,14 @@ class TestConnectToAEDTDocker:
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
             patch.dict(os.environ, {"AEDT_MACHINE": "remote-host", "AEDT_PORT": "55555"}),
             patch("ansys.aedt.core.Desktop") as MockDesktop,
-            patch("ansys.aedt.core.generic.settings.settings") as mock_settings,
+            patch("ansys.aedt.core.generic.settings.settings"),
         ):
             mock_desk = MagicMock()
-            mock_desk.aedt_version_id = "252"
+            mock_desk.aedt_version_id = "261"
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
-            result = connect_to_aedt(mock_context_no_desktop)
+            connect_to_aedt(mock_context_no_desktop)
 
             # Desktop should have been called with overridden host/port
             call_kwargs = MockDesktop.call_args[1]
@@ -227,17 +260,15 @@ class TestConnectToAEDTDocker:
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
             patch.dict(os.environ, {"AEDT_MACHINE": "env-host", "AEDT_PORT": "55555"}),
             patch("ansys.aedt.core.Desktop") as MockDesktop,
-            patch("ansys.aedt.core.generic.settings.settings") as mock_settings,
+            patch("ansys.aedt.core.generic.settings.settings"),
         ):
             mock_desk = MagicMock()
-            mock_desk.aedt_version_id = "252"
+            mock_desk.aedt_version_id = "261"
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
             # Pass explicit non-default values
-            result = connect_to_aedt(
-                mock_context_no_desktop, port=9999, machine="my-server"
-            )
+            connect_to_aedt(mock_context_no_desktop, port=9999, machine="my-server")
 
             call_kwargs = MockDesktop.call_args[1]
             # Explicit values should be preserved, NOT overridden
@@ -251,14 +282,14 @@ class TestConnectToAEDTDocker:
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
             patch("ansys.aedt.core.Desktop") as MockDesktop,
-            patch("ansys.aedt.core.generic.settings.settings") as mock_settings,
+            patch("ansys.aedt.core.generic.settings.settings"),
         ):
             mock_desk = MagicMock()
-            mock_desk.aedt_version_id = "252"
+            mock_desk.aedt_version_id = "261"
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
-            result = connect_to_aedt(mock_context_no_desktop)
+            connect_to_aedt(mock_context_no_desktop)
 
             call_kwargs = MockDesktop.call_args[1]
             assert call_kwargs["machine"] == "localhost"

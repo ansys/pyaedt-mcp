@@ -4,7 +4,6 @@ This module provides utility functions for working with AEDT Desktop
 instances and extracting information from them.
 """
 
-import os
 import socket
 from pathlib import Path
 from typing import Any
@@ -43,69 +42,6 @@ def _probe_grpc_endpoint(host: str, port: int, timeout: float = 2.0) -> dict[str
         return {"reachable": False, "host": host, "port": port, "error": str(e)}
 
 
-def _resolve_aedt_executable(
-    version: str | None = None,
-) -> tuple[str, Path]:
-    """Resolve AEDT version and locate the executable.
-
-    Parameters
-    ----------
-    version : str | None
-        Requested version (e.g. ``"2025.2"``, ``"252"``).  ``None`` picks
-        the latest installed version.
-
-    Returns
-    -------
-    tuple[str, Path]
-        ``(target_version_key, path_to_ansysedt_exe)``
-
-    Raises
-    ------
-    RuntimeError
-        If no AEDT installation is found or the requested version is
-        unavailable.
-    """
-    from ansys.aedt.core.desktop import Desktop
-
-    temp = Desktop.__new__(Desktop)
-    available = getattr(temp, "installed_versions", {})
-    if not available:
-        raise RuntimeError("No AEDT versions found installed on this system.")
-
-    # Filter AWP root entries (not valid version IDs)
-    versions = {k: v for k, v in available.items() if not k.endswith("AWP")}
-    if not versions:
-        versions = available
-
-    # Resolve requested version
-    if version:
-        target = version
-        install_dir = versions.get(target)
-        if install_dir is None:
-            for v, path in versions.items():
-                if version in v or v in version:
-                    target, install_dir = v, path
-                    break
-        if install_dir is None:
-            raise RuntimeError(
-                f"AEDT version '{version}' not found. Available: {list(versions.keys())}"
-            )
-    else:
-        target = list(versions.keys())[-1]
-        install_dir = versions[target]
-
-    # Locate executable
-    exe_name = "ansysedt.exe" if os.name == "nt" else "ansysedt"
-    for candidate in [
-        Path(install_dir) / exe_name,
-        Path(install_dir) / "AnsysEM" / exe_name,
-    ]:
-        if candidate.exists():
-            return target, candidate
-
-    raise RuntimeError(f"AEDT executable not found under: {install_dir}")
-
-
 def get_aedt_info(desktop: Any) -> dict[str, Any]:
     """Get comprehensive information from an AEDT Desktop instance.
 
@@ -134,9 +70,17 @@ def get_aedt_info(desktop: Any) -> dict[str, Any]:
     try:
         # Connection information
         info["connection"] = {
-            "version": str(desktop.aedt_version_id) if hasattr(desktop, "aedt_version_id") else "Unknown",
-            "version_string": str(desktop.aedt_version_string) if hasattr(desktop, "aedt_version_string") else "Unknown",
-            "install_dir": str(desktop.aedt_install_dir) if hasattr(desktop, "aedt_install_dir") else "Unknown",
+            "version": (
+                str(desktop.aedt_version_id) if hasattr(desktop, "aedt_version_id") else "Unknown"
+            ),
+            "version_string": (
+                str(desktop.aedt_version_string)
+                if hasattr(desktop, "aedt_version_string")
+                else "Unknown"
+            ),
+            "install_dir": (
+                str(desktop.aedt_install_dir) if hasattr(desktop, "aedt_install_dir") else "Unknown"
+            ),
             "is_grpc": desktop.is_grpc_api if hasattr(desktop, "is_grpc_api") else False,
             "machine": str(desktop.machine) if hasattr(desktop, "machine") else "localhost",
             "port": desktop.port if hasattr(desktop, "port") else None,
@@ -154,17 +98,29 @@ def get_aedt_info(desktop: Any) -> dict[str, Any]:
 
     try:
         # Active project
-        active_proj = desktop.active_project() if hasattr(desktop, "active_project") and callable(desktop.active_project) else None
+        active_proj = (
+            desktop.active_project()
+            if hasattr(desktop, "active_project") and callable(desktop.active_project)
+            else None
+        )
         if active_proj:
-            info["active_project"] = active_proj.GetName() if hasattr(active_proj, "GetName") else str(active_proj)
+            info["active_project"] = (
+                active_proj.GetName() if hasattr(active_proj, "GetName") else str(active_proj)
+            )
     except Exception:
         info["active_project"] = None
 
     try:
         # Active design
-        active_design = desktop.active_design() if hasattr(desktop, "active_design") and callable(desktop.active_design) else None
+        active_design = (
+            desktop.active_design()
+            if hasattr(desktop, "active_design") and callable(desktop.active_design)
+            else None
+        )
         if active_design:
-            info["active_design"] = active_design.GetName() if hasattr(active_design, "GetName") else str(active_design)
+            info["active_design"] = (
+                active_design.GetName() if hasattr(active_design, "GetName") else str(active_design)
+            )
     except Exception:
         info["active_design"] = None
 
@@ -198,7 +154,9 @@ def get_design_info(app: Any) -> dict[str, Any]:
         info["project_name"] = app.project_name if hasattr(app, "project_name") else "Unknown"
         info["design_type"] = app.design_type if hasattr(app, "design_type") else "Unknown"
         info["solution_type"] = app.solution_type if hasattr(app, "solution_type") else "Unknown"
-        info["working_directory"] = app.working_directory if hasattr(app, "working_directory") else "Unknown"
+        info["working_directory"] = (
+            app.working_directory if hasattr(app, "working_directory") else "Unknown"
+        )
         info["project_path"] = app.project_path if hasattr(app, "project_path") else "Unknown"
     except Exception as e:
         info["error"] = str(e)
@@ -239,7 +197,7 @@ def parse_aedt_version(version_str: str | None) -> str | None:
     Parameters
     ----------
     version_str : str | None
-        Version string in various formats (e.g., "2025.2", "252", "25.2")
+        Version string in various formats (e.g., "2026.1", "261", "26.1")
 
     Returns
     -------
@@ -255,7 +213,7 @@ def parse_aedt_version(version_str: str | None) -> str | None:
     if len(version_str) == 3 and version_str.isdigit():
         return version_str
 
-    # Format: "2025.2" -> "252"
+    # Format: "2026.1" -> "261"
     if "." in version_str:
         parts = version_str.split(".")
         if len(parts) == 2:
@@ -267,7 +225,7 @@ def parse_aedt_version(version_str: str | None) -> str | None:
             except ValueError:
                 pass
 
-    # Format: "25.2" -> "252"
+    # Format: "26.1" -> "261"
     if "." in version_str:
         try:
             parts = version_str.split(".")
@@ -277,3 +235,98 @@ def parse_aedt_version(version_str: str | None) -> str | None:
             pass
 
     return version_str
+
+
+def get_design_type_map() -> dict[str, Any]:
+    """Return a mapping from AEDT design-type strings to PyAEDT application classes.
+
+    The keys are the design-type identifiers returned by
+    ``Desktop.design_type()``.  The values are the corresponding PyAEDT
+    application classes that can be instantiated to attach to an existing
+    AEDT session.
+
+    Returns
+    -------
+    dict[str, Any]
+        Mapping of design-type string to PyAEDT app class.
+    """
+    import ansys.aedt.core as aedt_module
+
+    return {
+        "HFSS": aedt_module.Hfss,
+        "Maxwell 3D": aedt_module.Maxwell3d,
+        "Maxwell 2D": aedt_module.Maxwell2d,
+        "Icepak": aedt_module.Icepak,
+        "Q3D Extractor": aedt_module.Q3d,
+        "2D Extractor": aedt_module.Q2d,
+        "Circuit Design": aedt_module.Circuit,
+        "Twin Builder": aedt_module.TwinBuilder,
+        "Mechanical": aedt_module.Mechanical,
+        "EMIT": aedt_module.Emit,
+        "RMxprt": getattr(aedt_module, "Rmxprt", None),
+        "HFSS 3D Layout Design": aedt_module.Hfss3dLayout,
+    }
+
+
+def resolve_design_app(
+    desktop: Any,
+    project_name: str | None = None,
+    design_name: str | None = None,
+) -> tuple[Any, str | None, str | None]:
+    """Resolve and attach to the PyAEDT app for a target design.
+
+    Parameters
+    ----------
+    desktop : Any
+        Connected AEDT Desktop instance.
+    project_name : str, optional
+        Project name to resolve. If omitted, the active project is used.
+    design_name : str, optional
+        Design name to resolve. If omitted, the active design is used.
+
+    Returns
+    -------
+    tuple[Any, str | None, str | None]
+        Tuple containing the attached PyAEDT app instance, resolved project
+        name, and resolved design name.
+
+    Raises
+    ------
+    RuntimeError
+        If the design type is unsupported.
+    """
+    active_project = (
+        desktop.active_project() if callable(getattr(desktop, "active_project", None)) else None
+    )
+    resolved_project_name = project_name or (
+        active_project.GetName()
+        if active_project is not None and hasattr(active_project, "GetName")
+        else None
+    )
+
+    active_design = (
+        desktop.active_design() if callable(getattr(desktop, "active_design", None)) else None
+    )
+    resolved_design_name = design_name or (
+        active_design.GetName()
+        if active_design is not None and hasattr(active_design, "GetName")
+        else None
+    )
+
+    design_type = desktop.design_type(design_name=resolved_design_name)
+    app_class = get_design_type_map().get(design_type)
+    if app_class is None:
+        raise RuntimeError(f"Unsupported design type '{design_type}'")
+
+    app_kwargs: dict[str, Any] = {"new_desktop": False}
+    if resolved_project_name:
+        app_kwargs["project"] = resolved_project_name
+    if resolved_design_name:
+        app_kwargs["design"] = resolved_design_name
+
+    app_instance = app_class(**app_kwargs)
+    return (
+        app_instance,
+        resolved_project_name or getattr(app_instance, "project_name", None),
+        resolved_design_name or getattr(app_instance, "design_name", None),
+    )

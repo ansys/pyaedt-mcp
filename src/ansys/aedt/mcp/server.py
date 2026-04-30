@@ -1,14 +1,12 @@
 """Lifespan and CLI entry for the PyAEDT MCP server with startup options."""
 
 import argparse
+import importlib
 import sys
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from ansys.common.mcp import (
-    PyAnsysBaseMCP,
-    get_logger,
-)
+from ansys.common.mcp import PyAnsysBaseMCP, get_logger
 from ansys.common.mcp.context import PyAnsysBaseAppContext
 from ansys.common.mcp.helpers import PersistentPythonSession
 
@@ -35,6 +33,8 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
         Whether to run AEDT in non-graphical mode.
     connect_on_startup : bool
         Whether to attempt AEDT connection on MCP startup.
+    include_context_tools : bool
+        Whether to register optional context helper tools.
     http_host : str
         Host address for HTTP transport.
     http_port : int
@@ -50,6 +50,7 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
     aedt_version: str | None = None
     non_graphical: bool = True
     connect_on_startup: bool = False
+    include_context_tools: bool = False
     http_host: str = "127.0.0.1"
     http_port: int = 8080
     cors_origins: list[str] | None = None
@@ -109,6 +110,9 @@ class PyAEDTMCP(PyAnsysBaseMCP):
             context.non_graphical = cli_cfg.get("non_graphical", context.non_graphical)
             context.connect_on_startup = cli_cfg.get(
                 "connect_on_startup", context.connect_on_startup
+            )
+            context.include_context_tools = cli_cfg.get(
+                "include_context_tools", context.include_context_tools
             )
             context.http_host = cli_cfg.get("http_host", context.http_host)
             context.http_port = cli_cfg.get("http_port", context.http_port)
@@ -172,7 +176,6 @@ class SessionContext:
     """Session context for storing CLI options."""
 
     connect_on_startup: bool = False
-    on_aali: bool = False
 
     @property
     def locked_connection(self) -> bool:
@@ -225,7 +228,7 @@ def launcher(argv: list[str] | None = None) -> None:
         "--version",
         dest="aedt_version",
         default=None,
-        help="AEDT version to use (e.g., '2025.2' or '252')",
+        help="AEDT version to use (e.g., '2026.1' or '261')",
     )
     parser.add_argument(
         "--non-graphical",
@@ -247,6 +250,12 @@ def launcher(argv: list[str] | None = None) -> None:
         help="Attempt to connect to AEDT on startup",
     )
     parser.add_argument(
+        "--include-context",
+        dest="include_context_tools",
+        action="store_true",
+        help="Register optional AEDT context helper tools",
+    )
+    parser.add_argument(
         "--http-host",
         dest="http_host",
         default="127.0.0.1",
@@ -266,14 +275,6 @@ def launcher(argv: list[str] | None = None) -> None:
         default=None,
         help="Allowed CORS origins for HTTP transport",
     )
-    parser.add_argument(
-        "--on-aali",
-        dest="on_aali",
-        action="store_true",
-        default=False,
-        help="Indicates running on AALI platform (disables certain tools)",
-    )
-
     args = parser.parse_args(argv)
 
     # Parse CORS origins if provided
@@ -283,7 +284,6 @@ def launcher(argv: list[str] | None = None) -> None:
 
     # Attach CLI config to server so lifespan can read it
     session.connect_on_startup = bool(args.connect_on_startup)
-    session.on_aali = bool(args.on_aali)
 
     if session.connect_on_startup:
         logger.info(
@@ -303,21 +303,25 @@ def launcher(argv: list[str] | None = None) -> None:
             "aedt_version": args.aedt_version,
             "non_graphical": args.non_graphical,
             "connect_on_startup": session.connect_on_startup,
+            "include_context_tools": bool(args.include_context_tools),
             "http_host": args.http_host,
             "http_port": args.http_port,
             "cors_origins": cors_origins,
-            "on_aali": session.on_aali,
         },
     )
 
     # Run server using selected transport
     import asyncio
 
-    # Import tools, contexts, and prompts to register them with the app
-    if not session.on_aali:
-        from ansys.aedt.mcp import contexts  # noqa: F401
-    from ansys.aedt.mcp import prompts  # noqa: F401
-    from ansys.aedt.mcp import tools  # noqa: F401
+    # Import required modules so their registrations are applied to the app.
+    prompts = importlib.import_module("ansys.aedt.mcp.prompts")
+    importlib.import_module("ansys.aedt.mcp.tools")
+    importlib.import_module("ansys.aedt.mcp.contexts")
+
+    if args.include_context_tools:
+        app.enable(tags={"pyaedt_context"})
+    else:
+        app.disable(tags={"pyaedt_context"})
 
     # Guarantee the system prompt is delivered during the MCP initialize handshake
     app.instructions = prompts.SYSTEM_PROMPT

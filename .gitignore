@@ -117,3 +117,4 @@ tmp/
 temp/
 *.tmp
 *.bak
+*batch.log
