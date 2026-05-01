@@ -436,6 +436,7 @@ def launch_aedt(
 
         # Store in context for later use
         ctx.request_context.lifespan_context.desktop = desktop
+        ctx.request_context.lifespan_context.aedt_port = getattr(desktop, "port", None)
 
         logger.info(f"AEDT launched successfully! Target: {launched_target}")
         return (
@@ -538,6 +539,7 @@ def connect_to_aedt(
 
         # Store in context for later use
         ctx.request_context.lifespan_context.desktop = desktop
+        ctx.request_context.lifespan_context.aedt_port = port
 
         logger.info(f"Connected to AEDT successfully at {machine}:{port}!")
         message = (
@@ -662,6 +664,7 @@ def run_python_code(ctx: Context, code: str) -> str:
         The Python code to execute. The code has access to:
         - `desktop`: The PyAEDT Desktop instance
         - `odesktop`: The native AEDT oDesktop COM object
+        - `aedt_port`: The gRPC port of the connected AEDT instance
 
     Returns
     -------
@@ -680,9 +683,11 @@ def run_python_code(ctx: Context, code: str) -> str:
 
         _configure_pyaedt_runtime_settings()
 
+        # Include aedt_port so user code can do Hfss(..., port=aedt_port)
         local_ns = {
             "desktop": desktop,
             "odesktop": desktop.odesktop,
+            "aedt_port": getattr(desktop, "port", ctx.request_context.lifespan_context.aedt_port),
         }
 
         exec(code, local_ns)
