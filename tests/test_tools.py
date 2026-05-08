@@ -1188,3 +1188,55 @@ class TestRequiresAEDTVisibility:
             assert "requires_aedt" in (
                 tool_registry[tool_name].tags or set()
             ), f"Tool '{tool_name}' missing 'requires_aedt' tag"
+
+    def test_no_tool_surface_drift(self):
+        """Every tool must be in the always-available allowlist or carry
+        the ``requires_aedt`` gating tag.
+
+        This test prevents accidental "tool surface drift" — i.e. someone
+        adding a new tool that needs an AEDT connection but forgetting to
+        tag it ``requires_aedt``. Without the tag, the tool would be
+        exposed to clients before any AEDT session exists and would crash
+        at call time.
+
+        If you add a brand-new tool that legitimately must be reachable
+        BEFORE any AEDT connection is established (e.g. a pure
+        installation / diagnostic helper), add its name to
+        ``ALWAYS_AVAILABLE_TOOLS`` below. Otherwise, tag the tool
+        ``requires_aedt`` (see ``REQUIRES_AEDT_TAG`` in tools.py).
+        """
+        import asyncio
+
+        from ansys.aedt.mcp.server import app
+
+        # Tools that are intentionally reachable before any AEDT session.
+        # Keep this list minimal — anything that touches a connected
+        # Desktop/Project/Design must NOT be here.
+        ALWAYS_AVAILABLE_TOOLS = {
+            "check_aedt_installed",
+            "launch_aedt",
+            "connect_to_aedt",
+            "get_pyaedt_logs",
+            "get_guidelines_for",
+        }
+
+        async def _list():
+            return await app._local_provider._list_tools()
+
+        tools = asyncio.run(_list())
+        offenders = []
+        for t in tools:
+            tags = t.tags or set()
+            if t.name in ALWAYS_AVAILABLE_TOOLS:
+                continue
+            if "requires_aedt" not in tags:
+                offenders.append(t.name)
+
+        assert not offenders, (
+            "The following tools are missing the 'requires_aedt' tag and "
+            "are not in the ALWAYS_AVAILABLE_TOOLS allowlist:\n  - "
+            + "\n  - ".join(sorted(offenders))
+            + "\n\nEither tag the tool with REQUIRES_AEDT_TAG (the common "
+            "case) or — if the tool genuinely does not need an AEDT "
+            "session — add it to ALWAYS_AVAILABLE_TOOLS in this test."
+        )
