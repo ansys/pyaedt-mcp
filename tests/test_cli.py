@@ -120,7 +120,8 @@ def test_launcher_disables_context_tag_by_default(monkeypatch):
     assert "ansys.aedt.mcp.prompts" in imported_modules
     assert "ansys.aedt.mcp.tools" in imported_modules
     assert "ansys.aedt.mcp.contexts" in imported_modules
-    mock_disable.assert_called_once_with(tags={"pyaedt_context"})
+    disable_calls = [c.kwargs.get("tags") for c in mock_disable.call_args_list]
+    assert {"pyaedt_context"} in disable_calls
     mock_enable.assert_not_called()
 
 
@@ -144,7 +145,9 @@ def test_launcher_enables_context_tag_when_requested(monkeypatch):
 
     assert "ansys.aedt.mcp.contexts" in imported_modules
     mock_enable.assert_called_once_with(tags={"pyaedt_context"})
-    mock_disable.assert_not_called()
+    # disable may still be called for requires_aedt tag (tools requiring AEDT connection)
+    for call in mock_disable.call_args_list:
+        assert call.kwargs.get("tags") != {"pyaedt_context"}
 
 
 @pytest.mark.unit

@@ -10,7 +10,7 @@ Tests cover:
 
 import os
 import socket
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -195,16 +195,18 @@ class TestCheckAEDTInstalledDocker:
 class TestLaunchAEDTDocker:
     """Tests for launch_aedt tool inside Docker."""
 
-    def test_docker_guard(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_docker_guard(self, mock_context_no_desktop):
         """launch_aedt should refuse to run inside Docker."""
         from ansys.aedt.mcp.tools import launch_aedt
 
         with patch("ansys.aedt.mcp.tools._is_docker", return_value=True):
-            result = launch_aedt(mock_context_no_desktop)
+            result = await launch_aedt(mock_context_no_desktop)
             assert "not supported" in result.lower()
             assert "connect_to_aedt" in result
 
-    def test_native_proceeds(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_native_proceeds(self, mock_context_no_desktop):
         """launch_aedt on native should NOT hit Docker guard."""
         from ansys.aedt.mcp.tools import launch_aedt
 
@@ -218,7 +220,7 @@ class TestLaunchAEDTDocker:
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
-            result = launch_aedt(mock_context_no_desktop, version="261")
+            result = await launch_aedt(mock_context_no_desktop, version="261")
             assert "successfully launched" in result.lower() or "261" in result
 
 
@@ -230,7 +232,8 @@ class TestLaunchAEDTDocker:
 class TestConnectToAEDTDocker:
     """Tests for connect_to_aedt tool inside Docker."""
 
-    def test_docker_overrides_defaults(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_docker_overrides_defaults(self, mock_context_no_desktop):
         """Inside Docker, defaults should be overridden by env vars."""
         from ansys.aedt.mcp.tools import connect_to_aedt
 
@@ -245,14 +248,15 @@ class TestConnectToAEDTDocker:
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
-            connect_to_aedt(mock_context_no_desktop)
+            await connect_to_aedt(mock_context_no_desktop)
 
             # Desktop should have been called with overridden host/port
             call_kwargs = MockDesktop.call_args[1]
             assert call_kwargs["machine"] == "remote-host"
             assert call_kwargs["port"] == 55555
 
-    def test_docker_no_override_when_explicit(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_docker_no_override_when_explicit(self, mock_context_no_desktop):
         """Explicit non-default port/machine should NOT be overridden."""
         from ansys.aedt.mcp.tools import connect_to_aedt
 
@@ -268,14 +272,15 @@ class TestConnectToAEDTDocker:
             MockDesktop.return_value = mock_desk
 
             # Pass explicit non-default values
-            connect_to_aedt(mock_context_no_desktop, port=9999, machine="my-server")
+            await connect_to_aedt(mock_context_no_desktop, port=9999, machine="my-server")
 
             call_kwargs = MockDesktop.call_args[1]
             # Explicit values should be preserved, NOT overridden
             assert call_kwargs["machine"] == "my-server"
             assert call_kwargs["port"] == 9999
 
-    def test_native_no_override(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_native_no_override(self, mock_context_no_desktop):
         """Outside Docker, defaults remain localhost:50051."""
         from ansys.aedt.mcp.tools import connect_to_aedt
 
@@ -289,7 +294,7 @@ class TestConnectToAEDTDocker:
             mock_desk.is_grpc_api = True
             MockDesktop.return_value = mock_desk
 
-            connect_to_aedt(mock_context_no_desktop)
+            await connect_to_aedt(mock_context_no_desktop)
 
             call_kwargs = MockDesktop.call_args[1]
             assert call_kwargs["machine"] == "localhost"
@@ -312,4 +317,6 @@ def mock_context_no_desktop():
     context = MagicMock()
     context.request_context = MagicMock()
     context.request_context.lifespan_context = app_ctx
+    context.enable_components = AsyncMock()
+    context.disable_components = AsyncMock()
     return context

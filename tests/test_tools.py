@@ -5,7 +5,7 @@ These tests mock the AEDT Desktop instance and verify tool behavior.
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -57,6 +57,8 @@ def mock_context(app_context):
     context = MagicMock()
     context.request_context = MagicMock()
     context.request_context.lifespan_context = app_context
+    context.enable_components = AsyncMock()
+    context.disable_components = AsyncMock()
     return context
 
 
@@ -66,6 +68,8 @@ def mock_context_no_desktop(app_context_no_desktop):
     context = MagicMock()
     context.request_context = MagicMock()
     context.request_context.lifespan_context = app_context_no_desktop
+    context.enable_components = AsyncMock()
+    context.disable_components = AsyncMock()
     return context
 
 
@@ -105,16 +109,18 @@ class TestCheckAEDTStatus:
 class TestLaunchAEDT:
     """Tests for launch_aedt tool."""
 
-    def test_already_connected(self, mock_context):
+    @pytest.mark.asyncio
+    async def test_already_connected(self, mock_context):
         """Test launch when already connected."""
         from ansys.aedt.mcp.tools import launch_aedt
 
         with patch("ansys.aedt.mcp.tools.session") as mock_session:
             mock_session.locked_connection = False
-            result = launch_aedt(mock_context)
+            result = await launch_aedt(mock_context)
             assert "Already connected" in result
 
-    def test_launch_defaults_to_graphical_mode(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_launch_defaults_to_graphical_mode(self, mock_context_no_desktop):
         """Test launch_aedt defaults to graphical mode."""
         from ansys.aedt.mcp.tools import launch_aedt
 
@@ -134,7 +140,7 @@ class TestLaunchAEDT:
             fake_desktop.is_grpc_api = True
             mock_desktop.return_value = fake_desktop
 
-            result = launch_aedt(mock_context_no_desktop)
+            result = await launch_aedt(mock_context_no_desktop)
 
             call_kwargs = mock_desktop.call_args[1]
             assert call_kwargs["non_graphical"] is False
@@ -147,16 +153,18 @@ class TestLaunchAEDT:
 class TestConnectToAEDT:
     """Tests for connect_to_aedt tool."""
 
-    def test_already_connected(self, mock_context):
+    @pytest.mark.asyncio
+    async def test_already_connected(self, mock_context):
         """Test connect when already connected."""
         from ansys.aedt.mcp.tools import connect_to_aedt
 
         with patch("ansys.aedt.mcp.tools.session") as mock_session:
             mock_session.locked_connection = False
-            result = connect_to_aedt(mock_context, port=50051)
+            result = await connect_to_aedt(mock_context, port=50051)
             assert "Already connected" in result
 
-    def test_connect_configures_grpc_runtime_settings(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_connect_configures_grpc_runtime_settings(self, mock_context_no_desktop):
         """Test connect_to_aedt configures gRPC and runtime safety settings."""
         from ansys.aedt.mcp.tools import connect_to_aedt
 
@@ -170,7 +178,7 @@ class TestConnectToAEDT:
             fake_desktop.is_grpc_api = True
             mock_desktop.return_value = fake_desktop
 
-            result = connect_to_aedt(mock_context_no_desktop, port=50051)
+            result = await connect_to_aedt(mock_context_no_desktop, port=50051)
 
             mock_cfg.assert_called_once_with(enable_grpc=True)
             assert "Successfully connected to AEDT" in result
@@ -180,22 +188,24 @@ class TestConnectToAEDT:
 class TestDisconnectFromAEDT:
     """Tests for disconnect_from_aedt tool."""
 
-    def test_no_connection(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_no_connection(self, mock_context_no_desktop):
         """Test disconnect with no connection."""
         from ansys.aedt.mcp.tools import disconnect_from_aedt
 
         with patch("ansys.aedt.mcp.tools.session") as mock_session:
             mock_session.locked_connection = False
-            result = disconnect_from_aedt(mock_context_no_desktop)
+            result = await disconnect_from_aedt(mock_context_no_desktop)
             assert "No AEDT Desktop connection" in result
 
-    def test_disconnect_success(self, mock_context):
+    @pytest.mark.asyncio
+    async def test_disconnect_success(self, mock_context):
         """Test successful disconnect."""
         from ansys.aedt.mcp.tools import disconnect_from_aedt
 
         with patch("ansys.aedt.mcp.tools.session") as mock_session:
             mock_session.locked_connection = False
-            result = disconnect_from_aedt(mock_context)
+            result = await disconnect_from_aedt(mock_context)
             assert "Successfully disconnected" in result
 
 
@@ -720,8 +730,8 @@ async def test_tools_registered():
     """Test that all tools are registered with the MCP server."""
     from ansys.aedt.mcp.server import app
 
-    # Get list of registered tools
-    tool_list = await app.list_tools()
+    # Use the local provider's unfiltered list to avoid visibility-state interference
+    tool_list = await app._local_provider._list_tools()
 
     # Expected tool names
     expected_tools = [
@@ -981,17 +991,19 @@ class TestGetModelInfo:
 class TestLaunchAEDTExtended:
     """Extended tests for launch_aedt tool."""
 
-    def test_launch_in_docker_returns_error(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_launch_in_docker_returns_error(self, mock_context_no_desktop):
         """Test that launching AEDT inside Docker is blocked."""
         from ansys.aedt.mcp.tools import launch_aedt
 
         with patch("ansys.aedt.mcp.tools._is_docker", return_value=True):
-            result = launch_aedt(mock_context_no_desktop)
+            result = await launch_aedt(mock_context_no_desktop)
 
         assert "Docker" in result
         assert "not supported" in result
 
-    def test_launch_with_application(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_launch_with_application(self, mock_context_no_desktop):
         """Test launching AEDT with a specific application type."""
         from ansys.aedt.mcp.tools import launch_aedt
 
@@ -1011,11 +1023,12 @@ class TestLaunchAEDTExtended:
             patch("ansys.aedt.core.Hfss", return_value=mock_app_instance),
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
         ):
-            result = launch_aedt(mock_context_no_desktop, application="Hfss")
+            result = await launch_aedt(mock_context_no_desktop, application="Hfss")
 
         assert "Successfully launched Hfss" in result
 
-    def test_launch_unsupported_application(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_launch_unsupported_application(self, mock_context_no_desktop):
         """Test launching AEDT with an unsupported application type."""
         from ansys.aedt.mcp.tools import launch_aedt
 
@@ -1023,7 +1036,9 @@ class TestLaunchAEDTExtended:
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
         ):
-            result = launch_aedt(mock_context_no_desktop, application="InvalidApp")  # type: ignore
+            result = await launch_aedt(
+                mock_context_no_desktop, application="InvalidApp"
+            )  # type: ignore
 
         assert "Unsupported application type" in result
 
@@ -1032,7 +1047,8 @@ class TestLaunchAEDTExtended:
 class TestConnectToAEDTExtended:
     """Extended tests for connect_to_aedt tool."""
 
-    def test_connect_docker_overrides_defaults(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_connect_docker_overrides_defaults(self, mock_context_no_desktop):
         """Test that Docker overrides default machine/port from env vars."""
         from ansys.aedt.mcp.tools import connect_to_aedt
 
@@ -1046,14 +1062,15 @@ class TestConnectToAEDTExtended:
             patch("ansys.aedt.core.Desktop", return_value=fake_desktop) as mock_desktop,
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
         ):
-            result = connect_to_aedt(mock_context_no_desktop)
+            result = await connect_to_aedt(mock_context_no_desktop)
 
         call_kwargs = mock_desktop.call_args[1]
         assert call_kwargs["machine"] == "docker-host"
         assert call_kwargs["port"] == 50099
         assert "Successfully connected" in result
 
-    def test_connect_with_design_name(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_connect_with_design_name(self, mock_context_no_desktop):
         """Test connecting directly to a design."""
         from ansys.aedt.mcp.tools import connect_to_aedt
 
@@ -1072,7 +1089,7 @@ class TestConnectToAEDTExtended:
             patch("ansys.aedt.core.get_pyaedt_app", return_value=fake_app),
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
         ):
-            result = connect_to_aedt(
+            result = await connect_to_aedt(
                 mock_context_no_desktop,
                 design_name="Design1",
                 project_name="Project1",
@@ -1081,3 +1098,93 @@ class TestConnectToAEDTExtended:
         assert "Successfully connected" in result
         assert "Design: Design1" in result
         assert "Project: Project1" in result
+
+
+@pytest.mark.unit
+class TestRequiresAEDTVisibility:
+    """Tests for AEDT-connection-aware tool visibility."""
+
+    @pytest.mark.asyncio
+    async def test_connect_enables_requires_aedt_tools(self, mock_context_no_desktop):
+        """Successful connect_to_aedt should call ctx.enable_components for the tag."""
+        from ansys.aedt.mcp.tools import connect_to_aedt
+
+        with (
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
+            patch("ansys.aedt.core.Desktop") as mock_desktop_cls,
+        ):
+            fake_desktop = MagicMock()
+            fake_desktop.aedt_version_id = "2026.1"
+            fake_desktop.is_grpc_api = True
+            mock_desktop_cls.return_value = fake_desktop
+
+            await connect_to_aedt(mock_context_no_desktop)
+            mock_context_no_desktop.enable_components.assert_called_once_with(
+                tags={"requires_aedt"}
+            )
+
+    @pytest.mark.asyncio
+    async def test_launch_enables_requires_aedt_tools(self, mock_context_no_desktop):
+        """Successful launch_aedt should call ctx.enable_components for the tag."""
+        from ansys.aedt.mcp.tools import launch_aedt
+
+        mock_versions = MagicMock()
+        mock_versions.current_version = "2026.1"
+        mock_versions.latest_version = "2026.1"
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.mcp.tools.aedt_versions", mock_versions),
+            patch("ansys.aedt.core.Desktop") as mock_desktop_cls,
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
+        ):
+            fake_desktop = MagicMock()
+            fake_desktop.aedt_version_id = "2026.1"
+            fake_desktop.aedt_install_dir = "C:/test"
+            fake_desktop.is_grpc_api = True
+            mock_desktop_cls.return_value = fake_desktop
+
+            await launch_aedt(mock_context_no_desktop)
+            mock_context_no_desktop.enable_components.assert_called_once_with(
+                tags={"requires_aedt"}
+            )
+
+    @pytest.mark.asyncio
+    async def test_disconnect_disables_requires_aedt_tools(self, mock_context):
+        """Successful disconnect_from_aedt should call ctx.disable_components."""
+        from ansys.aedt.mcp.tools import disconnect_from_aedt
+
+        await disconnect_from_aedt(mock_context)
+        mock_context.disable_components.assert_called_once_with(tags={"requires_aedt"})
+
+    def test_requires_aedt_tag_present_on_correct_tools(self):
+        """Tools that need AEDT should have the requires_aedt tag."""
+        import asyncio
+
+        from ansys.aedt.mcp.server import app
+
+        async def _check():
+            return {t.name: t for t in await app._local_provider._list_tools()}
+
+        tool_registry = asyncio.run(_check())
+        expected_tagged = {
+            "check_aedt_status",
+            "disconnect_from_aedt",
+            "run_python_script",
+            "run_python_code",
+            "list_designs",
+            "open_project",
+            "save_project",
+            "create_design",
+            "analyze_design",
+            "export_results",
+            "screenshot",
+            "export_config",
+            "clear_aedt",
+            "get_model_info",
+        }
+        for tool_name in expected_tagged:
+            assert tool_name in tool_registry, f"Tool '{tool_name}' not found"
+            assert "requires_aedt" in (
+                tool_registry[tool_name].tags or set()
+            ), f"Tool '{tool_name}' missing 'requires_aedt' tag"

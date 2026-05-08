@@ -29,6 +29,12 @@ from ansys.aedt.mcp.server import session
 
 logger = get_logger(__name__)
 
+
+# Tag applied to all tools that require an active AEDT Desktop connection.
+# These tools are disabled at startup (before AEDT is connected) and enabled
+# once a connection is established via connect_to_aedt or launch_aedt.
+REQUIRES_AEDT_TAG = "requires_aedt"
+
 # Tool timeout tiers (seconds)
 _TIMEOUT_QUICK = 30  # status checks, listing, info queries
 _TIMEOUT_MEDIUM = 120  # connect, open/save, create design, screenshot
@@ -167,7 +173,7 @@ def _get_aedt_app_class(app_type: AEDTAppType) -> Any | None:
     return app_map.get(app_type)
 
 
-@app.tool(timeout=_TIMEOUT_QUICK)
+@app.tool(tags={REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_QUICK)
 def check_aedt_status(ctx: Context) -> str:
     """Check the status of AEDT Desktop initialization.
 
@@ -195,7 +201,10 @@ def check_aedt_status(ctx: Context) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool to establish a connection."
+        return (
+            "No AEDT Desktop connection available. "
+            "Use connect_to_aedt or launch_aedt tool to establish a connection."
+        )
 
     try:
         info = get_aedt_info(desktop)
@@ -344,7 +353,7 @@ def check_aedt_installed(ctx: Context) -> str:
 
 
 @app.tool(tags={"aedt_tools", "locked_connection"}, timeout=_TIMEOUT_MEDIUM)
-def launch_aedt(
+async def launch_aedt(
     ctx: Context,
     version: str | None = None,
     non_graphical: bool = False,
@@ -367,7 +376,7 @@ def launch_aedt(
         installed version will be used.
     non_graphical : bool, optional
         Whether to launch AEDT in non-graphical mode. Default is False
-        (launch in graphical mode).
+        (launch with the AEDT GUI visible).
     new_desktop : bool, optional
         Whether to launch a new AEDT instance even if one is already running.
         Default is True.
@@ -438,6 +447,7 @@ def launch_aedt(
         ctx.request_context.lifespan_context.desktop = desktop
         ctx.request_context.lifespan_context.aedt_port = getattr(desktop, "port", None)
 
+        await ctx.enable_components(tags={REQUIRES_AEDT_TAG})
         logger.info(f"AEDT launched successfully! Target: {launched_target}")
         return (
             f"Successfully launched {launched_target}\n"
@@ -454,7 +464,7 @@ def launch_aedt(
 
 
 @app.tool(tags={"aedt_tools", "locked_connection"}, timeout=_TIMEOUT_MEDIUM)
-def connect_to_aedt(
+async def connect_to_aedt(
     ctx: Context,
     port: int = 50051,
     machine: str = "localhost",
@@ -541,6 +551,7 @@ def connect_to_aedt(
         ctx.request_context.lifespan_context.desktop = desktop
         ctx.request_context.lifespan_context.aedt_port = port
 
+        await ctx.enable_components(tags={REQUIRES_AEDT_TAG})
         logger.info(f"Connected to AEDT successfully at {machine}:{port}!")
         message = (
             f"Successfully connected to AEDT at {machine}:{port}\n"
@@ -567,8 +578,8 @@ def connect_to_aedt(
         return error_msg
 
 
-@app.tool(tags={"aedt_tools", "locked_connection"}, timeout=_TIMEOUT_MEDIUM)
-def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
+@app.tool(tags={"aedt_tools", "locked_connection", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
+async def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
     """Disconnect from the AEDT Desktop instance.
 
     This tool closes the connection to the AEDT Desktop instance and releases
@@ -598,6 +609,7 @@ def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
         desktop.release_desktop(close_projects=close_projects)
         ctx.request_context.lifespan_context.desktop = None
 
+        await ctx.disable_components(tags={REQUIRES_AEDT_TAG})
         logger.info("Disconnected from AEDT successfully!")
         return "Successfully disconnected from AEDT Desktop."
 
@@ -608,7 +620,7 @@ def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
         return error_msg
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_LONG)
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_LONG)
 def run_python_script(ctx: Context, script_path: str) -> str:
     """Execute a Python script file inside AEDT.
 
@@ -649,7 +661,7 @@ def run_python_script(ctx: Context, script_path: str) -> str:
         return error_msg
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_LONG)
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_LONG)
 def run_python_code(ctx: Context, code: str) -> str:
     """Execute Python code inside AEDT.
 
@@ -700,7 +712,7 @@ def run_python_code(ctx: Context, code: str) -> str:
         return error_msg
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_QUICK)
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_QUICK)
 def list_designs(ctx: Context, project_name: str | None = None) -> str:
     """List projects and designs for the connected AEDT instance.
 
@@ -774,8 +786,20 @@ def list_designs(ctx: Context, project_name: str | None = None) -> str:
         return error_msg
 
 
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_QUICK)
 def list_projects(ctx: Context) -> str:
-    """Backward-compatible wrapper for callers expecting project-only listing."""
+    """List all currently open AEDT projects.
+
+    Parameters
+    ----------
+    ctx : Context
+        The MCP context containing server session and application context.
+
+    Returns
+    -------
+    str
+        JSON string containing the list of open projects and their count.
+    """
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
@@ -797,7 +821,7 @@ def list_projects(ctx: Context) -> str:
         return error_msg
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_MEDIUM)
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
 def open_project(ctx: Context, project_path: str, design_name: str | None = None) -> str:
     """Open an AEDT project file.
 
@@ -841,7 +865,7 @@ def open_project(ctx: Context, project_path: str, design_name: str | None = None
         return error_msg
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_MEDIUM)
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
 def save_project(ctx: Context, project_name: str | None = None, save_as: str | None = None) -> str:
     """Save an AEDT project.
 
@@ -882,7 +906,7 @@ def save_project(ctx: Context, project_name: str | None = None, save_as: str | N
         return error_msg
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_MEDIUM)
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
 def create_design(
     ctx: Context,
     app_type: AEDTAppType,
@@ -949,7 +973,7 @@ def create_design(
         return error_msg
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_LONG)
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_LONG)
 def analyze_design(
     ctx: Context,
     setup_name: str | None = None,
@@ -1097,7 +1121,7 @@ def analyze_design(
         return error_msg
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_LONG)
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_LONG)
 def export_results(
     ctx: Context,
     output_path: str,
@@ -1169,18 +1193,24 @@ def export_results(
 
         elif export_type == "convergence":
             if not hasattr(app_instance, "export_convergence"):
-                return f"Convergence export is not available for {type(app_instance).__name__} designs."
+                return (
+                    "Convergence export is not available for "
+                    f"{type(app_instance).__name__} designs."
+                )
             result = app_instance.export_convergence(**setup_kwargs)
             return f"Convergence data exported.\nResult: {result}"
 
         elif export_type == "mesh":
             if not hasattr(app_instance, "export_mesh_stats"):
-                return f"Mesh export is not available for {type(app_instance).__name__} designs."
+                return "Mesh export is not available for " f"{type(app_instance).__name__} designs."
             result = app_instance.export_mesh_stats(**setup_kwargs)
             return f"Mesh stats exported.\nResult: {result}"
 
         else:
-            return f"Unknown export type: {export_type}. Supported: touchstone, profile, convergence, mesh."
+            return (
+                f"Unknown export type: {export_type}. "
+                "Supported: touchstone, profile, convergence, mesh."
+            )
 
     except Exception as e:
         error_msg = f"Error exporting results: {str(e)}"
@@ -1188,7 +1218,7 @@ def export_results(
         return error_msg
 
 
-@app.tool(timeout=_TIMEOUT_MEDIUM)
+@app.tool(tags={REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
 def screenshot(
     ctx: Context,
     path: str = "screenshot.jpg",
@@ -1252,7 +1282,12 @@ def screenshot(
         except Exception as resolve_error:
             return [TextContent(type="text", text=f"Cannot capture screenshot: {resolve_error}")]
 
-        output_path = str(Path(path).expanduser().resolve())
+        # AEDT only exports JPEG; force a .jpg extension so the file content
+        # matches the file name (avoids writing JPEG bytes to a .png file).
+        resolved_output = Path(path).expanduser().resolve()
+        if resolved_output.suffix.lower() not in {".jpg", ".jpeg"}:
+            resolved_output = resolved_output.with_suffix(".jpg")
+        output_path = str(resolved_output)
 
         try:
             app_instance.export_design_preview_to_jpg(output_path)
@@ -1299,7 +1334,7 @@ def screenshot(
         return [TextContent(type="text", text=error_msg)]
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_MEDIUM)
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
 def export_config(
     ctx: Context,
     output: str | None = None,
@@ -1384,7 +1419,7 @@ def export_config(
             os.remove(temp_config_file)
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_MEDIUM)
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
 def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
     """Clear AEDT state by closing all projects.
 
@@ -1423,7 +1458,7 @@ def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
         return error_msg
 
 
-@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_QUICK)
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_QUICK)
 def get_model_info(ctx: Context, design_name: str | None = None) -> str:
     """Get information about the current model/design.
 
