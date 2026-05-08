@@ -1223,9 +1223,9 @@ class TestRequiresAEDTVisibility:
         async def _list():
             return await app._local_provider._list_tools()
 
-        tools = asyncio.run(_list())
+        registered = asyncio.run(_list())
         offenders = []
-        for t in tools:
+        for t in registered:
             tags = t.tags or set()
             if t.name in ALWAYS_AVAILABLE_TOOLS:
                 continue
