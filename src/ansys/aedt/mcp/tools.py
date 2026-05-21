@@ -173,9 +173,18 @@ def _get_aedt_app_class(app_type: AEDTAppType) -> Any | None:
     return app_map.get(app_type)
 
 
-@app.tool(tags={REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_QUICK)
+@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_QUICK)
 def check_aedt_status(ctx: Context) -> str:
     """Check the status of AEDT Desktop initialization.
+
+    Always reachable, even before a connection has been established. When no
+    AEDT session is active this tool returns a short hint describing how to
+    establish one (``launch_aedt`` or ``connect_to_aedt``); when a session is
+    active it returns full status information.
+
+    This makes it the recommended pre-flight call to decide whether to
+    ``launch_aedt`` (no active session) or ``connect_to_aedt`` (existing
+    session detected).
 
     This tool retrieves comprehensive information from the connected AEDT
     Desktop instance including version, active projects, designs, and

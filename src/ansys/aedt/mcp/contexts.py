@@ -94,8 +94,8 @@ AEDT includes multiple physics solvers:
 ```python
 from ansys.aedt.core import Hfss, Desktop
 
-# Launch or connect to AEDT
-desktop = Desktop(version="2026.1", non_graphical=True)
+# Launch or connect to AEDT (omit ``version`` to use the latest installed AEDT)
+desktop = Desktop(non_graphical=True)
 
 # Create an application — ALWAYS pass port=desktop.port to reuse the same AEDT instance
 hfss = Hfss(project="MyProject", design="MyDesign", port=desktop.port)

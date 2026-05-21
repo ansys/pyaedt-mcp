@@ -30,13 +30,16 @@ call depends on whether an AEDT session is connected.
 **Available before any AEDT connection:**
 
 - `check_aedt_installed` — verify an AEDT installation exists.
+- `check_aedt_status` — detect whether this MCP already holds an active
+  AEDT session (use it to decide between `launch_aedt` and
+  `connect_to_aedt`).
 - `launch_aedt` — start a new AEDT Desktop session.
 - `connect_to_aedt` — attach to an already-running AEDT instance.
 - `get_pyaedt_logs` — read the local PyAEDT log file.
 
 **Unlocked automatically once `launch_aedt` or `connect_to_aedt` succeeds:**
 
-- Status & lifecycle: `check_aedt_status`, `disconnect_from_aedt`
+- Lifecycle: `disconnect_from_aedt`
 - Project / design: `list_designs`, `list_projects`, `open_project`,
   `save_project`, `create_design`, `analyze_design`
 - Execution: `run_python_script`, `run_python_code`
@@ -47,9 +50,12 @@ call depends on whether an AEDT session is connected.
 ## Rules
 
 1. Before any AEDT call, run `check_aedt_installed` first.
-2. Establish a session with `launch_aedt` (new) or `connect_to_aedt` (attach).
-3. After the session exists, use `check_aedt_status` to verify connection
-   health. Prefer direct MCP tools for supported AEDT operations.
+2. Call `check_aedt_status` to see whether this MCP is already connected
+   to an AEDT session. If the user wants to attach to an already-running
+   AEDT instance, use `connect_to_aedt`; otherwise call `launch_aedt` to
+   start a new session.
+3. After the session exists, `check_aedt_status` will report full project
+   and design info. Prefer direct MCP tools for supported AEDT operations.
 4. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
    directly and prefer `run_python_code` over `run_python_script` unless the
    user already has a script file.

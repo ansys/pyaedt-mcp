@@ -1168,7 +1168,6 @@ class TestRequiresAEDTVisibility:
 
         tool_registry = asyncio.run(_check())
         expected_tagged = {
-            "check_aedt_status",
             "disconnect_from_aedt",
             "run_python_script",
             "run_python_code",
@@ -1214,6 +1213,7 @@ class TestRequiresAEDTVisibility:
         # Desktop/Project/Design must NOT be here.
         ALWAYS_AVAILABLE_TOOLS = {
             "check_aedt_installed",
+            "check_aedt_status",
             "launch_aedt",
             "connect_to_aedt",
             "get_pyaedt_logs",
