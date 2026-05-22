@@ -1,95 +1,161 @@
-# CI workflow for PyAEDT MCP Server
-name: CI
+name: CI/CD
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
   pull_request:
-    branches: [main]
+  push:
+    tags:
+      - "v*"
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: {}
+
 env:
-  PYTHON_VERSION: "3.12"
+  ON_CI: "true"
+  MAIN_PYTHON_VERSION: "3.12"
+  PACKAGE_NAME: "ansys-aedt-mcp"
+  DOCUMENTATION_CNAME: "aedt-mcp.docs.pyansys.com"
 
 jobs:
-  # ------------------------------------------------------------------ #
-  # Code style checks
-  # ------------------------------------------------------------------ #
-  code-style:
-    name: Code style
+
+  update-changelog:
+    name: "Update CHANGELOG (on release)"
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: ansys/actions/doc-deploy-changelog@v10
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
+          bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}
+          bot-email: ${{ secrets.PYANSYS_CI_BOT_EMAIL }}
 
-      - name: Install pre-commit
-        run: pip install pre-commit
-
-      - name: Run pre-commit hooks
-        run: pre-commit run --all-files
-
-  # ------------------------------------------------------------------ #
-  # Unit tests
-  # ------------------------------------------------------------------ #
-  tests:
-    name: Tests (Python ${{ matrix.python-version }})
-    needs: code-style
+  lint:
+    name: "Code style checks"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+      - name: "Checkout code"
+        uses: actions/checkout@v4
 
       - name: "Configure pip for private PyPI"
         run: |
           pip config set global.extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
 
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -e ".[dev]"
+      - name: "Cache pre-commit hooks"
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            pre-commit-${{ runner.os }}-
 
-      - name: Run tests
-        run: python -m pytest tests/ -x --tb=short -q
+      - name: "Run PyAnsys code style checks"
+        uses: ansys/actions/code-style@v10
+        with:
+          checkout: false
+          python-version: ${{ env.MAIN_PYTHON_VERSION }}
+          use-python-cache: true
 
-  # ------------------------------------------------------------------ #
-  # Package build verification
-  # ------------------------------------------------------------------ #
-  package:
-    name: Build package
-    needs: tests
-    runs-on: ubuntu-latest
+  test:
+    name: "Test Python ${{ matrix.python-version }} on ${{ matrix.os }}"
+    runs-on: ${{ matrix.os }}
+    needs: [lint]
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
     steps:
-      - uses: actions/checkout@v4
+      - name: "Checkout code"
+        uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: "Set up Python ${{ matrix.python-version }}"
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
 
-      - name: Install build tools
-        run: pip install build
+      - name: "Configure pip for private PyPI"
+        run: |
+          pip config set global.extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
 
-      - name: Build sdist and wheel
-        run: python -m build
+      - name: "Install dependencies"
+        run: |
+          pip install --upgrade pip
+          pip install -e .[tests]
+          pip list
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: "Run unit tests"
+        run: |
+          pytest -m "not integration" --cov=ansys.aedt.mcp --cov-report=xml --cov-report=term
+
+  package:
+    name: "Package library"
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+
+      - name: "Configure pip for private PyPI"
+        run: |
+          pip config set global.extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
+
+      - name: "Build library source and wheel artifacts"
+        uses: ansys/actions/build-library@v10
+        env:
+          UV_EXTRA_INDEX_URL: 'https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/'
         with:
-          name: pyaedt-mcp-dist
-          path: dist/
+          library-name: ${{ env.PACKAGE_NAME }}
+          python-version: ${{ env.MAIN_PYTHON_VERSION }}
+          checkout: false
+
+  release:
+    name: "Release project"
+    if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags') }}
+    needs: [package, update-changelog]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: "Download the library artifacts from build-library step"
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PACKAGE_NAME }}-artifacts
+          path: ${{ env.PACKAGE_NAME }}-artifacts
+          pattern: ${{ env.PACKAGE_NAME }}-artifacts
+
+      - name: "Display structure of downloaded files"
+        run: ls -Rla
+
+      - name: "Release to GitHub"
+        uses: ansys/actions/release-github@v10
+        with:
+          library-name: ${{ env.PACKAGE_NAME }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          only-code: true
+          add-artifact-attestation-notes: true
+          changelog-release-notes: true
+
+      - name: "Release to private PyPI"
+        uses: ansys/actions/release-pypi-private@v10
+        with:
+          library-name: ${{ env.PACKAGE_NAME }}
+          twine-username: "__token__"
+          twine-token: ${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}

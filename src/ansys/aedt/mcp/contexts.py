@@ -8,10 +8,24 @@ aspects of electromagnetic and thermal simulations.
 
 # flake8: noqa: E501
 
+from typing import Literal
+
 from ansys.aedt.mcp import app
 
+GuidelinesContent = Literal[
+    "workflow",
+    "hfss",
+    "maxwell",
+    "icepak",
+    "circuit",
+    "geometry",
+    "mesh",
+    "boundaries",
+    "postprocessing",
+    "parametric",
+]
 
-@app.tool(tags={"pyaedt_context"})
+
 def get_guidelines_for_workflow_overview() -> str:
     """Get general AEDT simulation workflow guidelines.
 
@@ -80,8 +94,8 @@ AEDT includes multiple physics solvers:
 ```python
 from ansys.aedt.core import Hfss, Desktop
 
-# Launch or connect to AEDT
-desktop = Desktop(version="2026.1", non_graphical=True)
+# Launch or connect to AEDT (omit ``version`` to use the latest installed AEDT)
+desktop = Desktop(non_graphical=True)
 
 # Create an application — ALWAYS pass port=desktop.port to reuse the same AEDT instance
 hfss = Hfss(project="MyProject", design="MyDesign", port=desktop.port)
@@ -118,7 +132,6 @@ hfss = Hfss(machine="remote_server", port=50051)
 """
 
 
-@app.tool(tags={"pyaedt_context"})
 def get_guidelines_for_hfss() -> str:
     """Get HFSS-specific workflow guidelines.
 
@@ -258,7 +271,6 @@ hfss.post.export_field_jpg(
 """
 
 
-@app.tool(tags={"pyaedt_context"})
 def get_guidelines_for_maxwell() -> str:
     """Get Maxwell 2D/3D workflow guidelines.
 
@@ -415,7 +427,6 @@ m3d.post.plot_field(
 """
 
 
-@app.tool(tags={"pyaedt_context"})
 def get_guidelines_for_icepak() -> str:
     """Get Icepak thermal analysis guidelines.
 
@@ -573,7 +584,6 @@ max_temp = ipk.post.get_solution_data(
 """
 
 
-@app.tool(tags={"pyaedt_context"})
 def get_guidelines_for_circuit() -> str:
     """Get Circuit simulation guidelines.
 
@@ -718,7 +728,6 @@ cir.post.create_report(
 """
 
 
-@app.tool(tags={"pyaedt_context"})
 def get_guidelines_for_geometry() -> str:
     """Get geometry creation guidelines for AEDT.
 
@@ -931,7 +940,6 @@ modeler.assign_material(obj, "MyMaterial")
 """
 
 
-@app.tool(tags={"pyaedt_context"})
 def get_guidelines_for_mesh() -> str:
     """Get mesh setup guidelines for AEDT.
 
@@ -1104,7 +1112,6 @@ setup.props["BroadbandFrequencyRange"] = ["1GHz", "10GHz"]
 """
 
 
-@app.tool(tags={"pyaedt_context"})
 def get_guidelines_for_boundaries() -> str:
     """Get boundary and excitation guidelines for AEDT.
 
@@ -1349,7 +1356,6 @@ ipk.assign_fan(
 """
 
 
-@app.tool(tags={"pyaedt_context"})
 def get_guidelines_for_postprocessing() -> str:
     """Get postprocessing guidelines for AEDT.
 
@@ -1570,7 +1576,6 @@ plt.savefig("s11_plot.png")
 """
 
 
-@app.tool(tags={"pyaedt_context"})
 def get_guidelines_for_parametric() -> str:
     """Get parametric analysis and optimization guidelines for AEDT.
 
@@ -1785,3 +1790,50 @@ hfss.deactivate_variable_tuning("patch_length")
 5. **Monitor convergence** - Check that each variation converges properly
 6. **Export results regularly** - Save data for post-processing
 """
+
+
+_CONTENT_MAP = {
+    "workflow": get_guidelines_for_workflow_overview,
+    "hfss": get_guidelines_for_hfss,
+    "maxwell": get_guidelines_for_maxwell,
+    "icepak": get_guidelines_for_icepak,
+    "circuit": get_guidelines_for_circuit,
+    "geometry": get_guidelines_for_geometry,
+    "mesh": get_guidelines_for_mesh,
+    "boundaries": get_guidelines_for_boundaries,
+    "postprocessing": get_guidelines_for_postprocessing,
+    "parametric": get_guidelines_for_parametric,
+}
+
+
+@app.tool(tags={"pyaedt_context"})
+def get_guidelines_for(content: GuidelinesContent) -> str:
+    """Get PyAEDT/AEDT simulation guidelines for a specific topic.
+
+    Use this tool before writing PyAEDT or Ansys AEDT scripting code to
+    retrieve the relevant guidelines for the workflow step or solver you are
+    about to use. Call it once per topic needed; it is strongly recommended
+    before every code-generation task.
+
+    Parameters
+    ----------
+    content : str
+        The guideline topic to retrieve. One of:
+
+        - ``"workflow"``: PyAEDT workflow overview.
+        - ``"hfss"``: HFSS (high-frequency electromagnetics) guidelines.
+        - ``"maxwell"``: Maxwell (low-frequency electromagnetics).
+        - ``"icepak"``: Icepak (electronics thermal) guidelines.
+        - ``"circuit"``: Circuit / Twin Builder guidelines.
+        - ``"geometry"``: Geometry creation and modeling.
+        - ``"mesh"``: Mesh operations and refinement.
+        - ``"boundaries"``: Boundary conditions and excitations.
+        - ``"postprocessing"``: Reports, fields, and visualization.
+        - ``"parametric"``: Parametric sweeps and optimization.
+
+    Returns
+    -------
+    str
+        Guideline text for the requested topic.
+    """
+    return _CONTENT_MAP[content]()

@@ -8,6 +8,22 @@ ANSYS AEDT 2026 R1 on April 20, 2026.
 > and you can see the antenna geometry, solved mesh, and S11 report plot
 > interactively in the AEDT window.
 
+## Tool Visibility Model
+
+`pyaedt-mcp` uses a connection-aware visibility model so the LLM client
+sees a small, focused tool surface up front and additional tools unlock
+once an AEDT session exists. This avoids "tool not available — connect
+first" round-trips and reduces token cost.
+
+| Stage                    | Tools available                                                                          |
+|--------------------------|------------------------------------------------------------------------------------------|
+| Server start (no AEDT)   | `check_aedt_installed`, `launch_aedt`, `connect_to_aedt`, `get_guidelines_for`           |
+| After `launch_aedt` /    | + `check_aedt_status`, `create_design`, `open_project`, `save_project`,                  |
+|     `connect_to_aedt`    | &nbsp;&nbsp; `analyze_design`, `screenshot`, `run_python_code`, `run_python_script`, ... |
+
+The expansion happens automatically as part of the launch / connect tool
+call (`await ctx.enable_components(tags={"requires_connection"})`).
+
 ## 1. Check AEDT Installation
 
 **Tool:** `check_aedt_installed`

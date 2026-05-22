@@ -5,36 +5,19 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_context_tools_registered():
-    """Test that context tools are available when the context tag is enabled."""
+    """Test that the consolidated context tool is available when the context tag is enabled."""
     # Import contexts and tools to register them with the app
     from ansys.aedt.mcp import contexts, tools  # noqa: F401
     from ansys.aedt.mcp.server import app
 
     app.enable(tags={"pyaedt_context"})
     try:
-        # Get list of registered tools
         tool_list = await app.list_tools()
     finally:
         app.disable(tags={"pyaedt_context"})
 
-    # Expected tool names
-    expected_tools = [
-        "get_guidelines_for_workflow_overview",
-        "get_guidelines_for_hfss",
-        "get_guidelines_for_maxwell",
-        "get_guidelines_for_icepak",
-        "get_guidelines_for_circuit",
-        "get_guidelines_for_geometry",
-        "get_guidelines_for_mesh",
-        "get_guidelines_for_boundaries",
-        "get_guidelines_for_postprocessing",
-        "get_guidelines_for_parametric",
-    ]
-
-    # Check each expected tool is registered
     tool_names = [t.name for t in tool_list]
-    for expected_name in expected_tools:
-        assert expected_name in tool_names, f"Tool {expected_name} not found"
+    assert "get_guidelines_for" in tool_names
 
 
 class TestGuidelineTools:

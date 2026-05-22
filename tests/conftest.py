@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -59,6 +59,8 @@ def mock_context(app_context):
     context = MagicMock()
     context.request_context = MagicMock()
     context.request_context.lifespan_context = app_context
+    context.enable_components = AsyncMock()
+    context.disable_components = AsyncMock()
     return context
 
 
@@ -68,4 +70,6 @@ def mock_context_no_desktop(app_context_no_desktop):
     context = MagicMock()
     context.request_context = MagicMock()
     context.request_context.lifespan_context = app_context_no_desktop
+    context.enable_components = AsyncMock()
+    context.disable_components = AsyncMock()
     return context

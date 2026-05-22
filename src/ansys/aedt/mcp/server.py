@@ -136,7 +136,8 @@ class PyAEDTMCP(PyAnsysBaseMCP):
                 settings.use_grpc_api = True
 
                 logger.info(
-                    f"Attempting to connect to AEDT at {context.aedt_machine}:{context.aedt_port}..."
+                    "Attempting to connect to AEDT at "
+                    f"{context.aedt_machine}:{context.aedt_port}..."
                 )
 
                 # Connect to running AEDT instance
@@ -325,6 +326,14 @@ def launcher(argv: list[str] | None = None) -> None:
 
     # Guarantee the system prompt is delivered during the MCP initialize handshake
     app.instructions = prompts.SYSTEM_PROMPT
+
+    # Disable tools that require an active AEDT connection until one is established.
+    # When connect_on_startup is True, AEDT will be connected during server startup,
+    # so these tools are available immediately and should not be disabled here.
+    if not session.connect_on_startup:
+        from ansys.aedt.mcp.tools import REQUIRES_AEDT_TAG
+
+        app.disable(tags={REQUIRES_AEDT_TAG})
 
     if args.transport_type == "stdio":
         asyncio.run(app.run_stdio_async())

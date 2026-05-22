@@ -1,6 +1,6 @@
 """Tests for error handling in PyAEDT MCP Server."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -48,6 +48,8 @@ def mock_context(app_context):
     context = MagicMock()
     context.request_context = MagicMock()
     context.request_context.lifespan_context = app_context
+    context.enable_components = AsyncMock()
+    context.disable_components = AsyncMock()
     return context
 
 
@@ -57,6 +59,8 @@ def mock_context_no_desktop(app_context_no_desktop):
     context = MagicMock()
     context.request_context = MagicMock()
     context.request_context.lifespan_context = app_context_no_desktop
+    context.enable_components = AsyncMock()
+    context.disable_components = AsyncMock()
     return context
 
 
@@ -94,13 +98,16 @@ class TestErrorHandling:
         result = check_aedt_status(invalid_context)
         assert "No AEDT Desktop connection available" in result
 
-    def test_desktop_connection_error(self, mock_context_no_desktop):
+    @pytest.mark.asyncio
+    async def test_desktop_connection_error(self, mock_context_no_desktop):
         """Test handling of Desktop connection errors."""
         from ansys.aedt.mcp.tools import connect_to_aedt
 
         # Mock Desktop to raise connection error
         with patch("ansys.aedt.core.Desktop", side_effect=RuntimeError("Connection refused")):
-            result = connect_to_aedt(mock_context_no_desktop, machine="invalid-server", port=50051)
+            result = await connect_to_aedt(
+                mock_context_no_desktop, machine="invalid-server", port=50051
+            )
             assert "Error" in result or "Failed" in result or "Connection refused" in result
 
     def test_invalid_project_path(self, mock_context):
