@@ -318,6 +318,7 @@ def launcher(argv: list[str] | None = None) -> None:
     prompts = importlib.import_module("ansys.aedt.mcp.prompts")
     importlib.import_module("ansys.aedt.mcp.tools")
     importlib.import_module("ansys.aedt.mcp.contexts")
+    importlib.import_module("ansys.aedt.mcp.toolsets")
 
     if args.include_context_tools:
         app.enable(tags={"pyaedt_context"})
