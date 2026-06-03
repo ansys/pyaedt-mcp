@@ -38,6 +38,7 @@ def test_app_context_default_values():
     assert ctx.aedt_version is None
     assert ctx.non_graphical is True
     assert ctx.connect_on_startup is False
+    assert ctx.dynamic_tool_discovery is False
     assert ctx.http_host == "127.0.0.1"
     assert ctx.include_context_tools is False
     assert ctx.http_port == 8080
@@ -144,6 +145,7 @@ def test_context_cli_config_population():
             "aedt_version": "2026.1",
             "non_graphical": False,
             "connect_on_startup": True,
+            "dynamic_tool_discovery": True,
             "http_host": "0.0.0.0",
             "http_port": 9000,
             "cors_origins": ["http://localhost:3000"],
@@ -159,6 +161,7 @@ def test_context_cli_config_population():
     assert context.aedt_version == "2026.1"
     assert context.non_graphical is False
     assert context.connect_on_startup is True
+    assert context.dynamic_tool_discovery is True
     assert context.http_host == "0.0.0.0"
     assert context.http_port == 9000
     assert context.cors_origins == ["http://localhost:3000"]
