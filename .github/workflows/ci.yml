@@ -139,9 +139,9 @@ jobs:
           add-artifact-attestation-notes: true
           changelog-release-notes: true
 
-      - name: "Release to public PyPI"
-        uses: ansys/actions/release-pypi-public@v10
+      - name: "Release to private PyPI"
+        uses: ansys/actions/release-pypi-private@v10
         with:
           library-name: ${{ env.PACKAGE_NAME }}
           twine-username: "__token__"
-          twine-token: ${{ secrets.PYPI_TOKEN }}
+          twine-token: ${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}
