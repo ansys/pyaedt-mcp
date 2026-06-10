@@ -46,10 +46,6 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v4
 
-      - name: "Configure pip for private PyPI"
-        run: |
-          pip config set global.extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
-
       - name: "Cache pre-commit hooks"
         uses: actions/cache@v4
         with:
@@ -87,10 +83,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
-      - name: "Configure pip for private PyPI"
-        run: |
-          pip config set global.extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
-
       - name: "Install dependencies"
         run: |
           pip install --upgrade pip
@@ -111,14 +103,8 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v4
 
-      - name: "Configure pip for private PyPI"
-        run: |
-          pip config set global.extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
-
       - name: "Build library source and wheel artifacts"
         uses: ansys/actions/build-library@v10
-        env:
-          UV_EXTRA_INDEX_URL: 'https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/'
         with:
           library-name: ${{ env.PACKAGE_NAME }}
           python-version: ${{ env.MAIN_PYTHON_VERSION }}

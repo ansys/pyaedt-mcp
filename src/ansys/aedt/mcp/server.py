@@ -35,6 +35,8 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
         Whether to attempt AEDT connection on MCP startup.
     include_context_tools : bool
         Whether to register optional context helper tools.
+    dynamic_tool_discovery : bool
+        Whether tool visibility should be dynamically gated by AEDT connection state.
     http_host : str
         Host address for HTTP transport.
     http_port : int
@@ -51,6 +53,7 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
     non_graphical: bool = True
     connect_on_startup: bool = False
     include_context_tools: bool = False
+    dynamic_tool_discovery: bool = False
     http_host: str = "127.0.0.1"
     http_port: int = 8080
     cors_origins: list[str] | None = None
@@ -113,6 +116,9 @@ class PyAEDTMCP(PyAnsysBaseMCP):
             )
             context.include_context_tools = cli_cfg.get(
                 "include_context_tools", context.include_context_tools
+            )
+            context.dynamic_tool_discovery = cli_cfg.get(
+                "dynamic_tool_discovery", context.dynamic_tool_discovery
             )
             context.http_host = cli_cfg.get("http_host", context.http_host)
             context.http_port = cli_cfg.get("http_port", context.http_port)
@@ -257,6 +263,12 @@ def launcher(argv: list[str] | None = None) -> None:
         help="Register optional AEDT context helper tools",
     )
     parser.add_argument(
+        "--dynamic-tool-discovery",
+        dest="dynamic_tool_discovery",
+        action="store_true",
+        help="Dynamically hide AEDT-only tools until a connection is established",
+    )
+    parser.add_argument(
         "--http-host",
         dest="http_host",
         default="127.0.0.1",
@@ -305,6 +317,7 @@ def launcher(argv: list[str] | None = None) -> None:
             "non_graphical": args.non_graphical,
             "connect_on_startup": session.connect_on_startup,
             "include_context_tools": bool(args.include_context_tools),
+            "dynamic_tool_discovery": bool(args.dynamic_tool_discovery),
             "http_host": args.http_host,
             "http_port": args.http_port,
             "cors_origins": cors_origins,
@@ -326,12 +339,11 @@ def launcher(argv: list[str] | None = None) -> None:
         app.disable(tags={"pyaedt_context"})
 
     # Guarantee the system prompt is delivered during the MCP initialize handshake
-    app.instructions = prompts.SYSTEM_PROMPT
+    app.instructions = prompts.build_system_prompt(bool(args.dynamic_tool_discovery))
 
-    # Disable tools that require an active AEDT connection until one is established.
-    # When connect_on_startup is True, AEDT will be connected during server startup,
-    # so these tools are available immediately and should not be disabled here.
-    if not session.connect_on_startup:
+    # Optionally disable tools that require an active AEDT connection until one is
+    # established. Static exposure remains the default surface for compatibility.
+    if args.dynamic_tool_discovery and not session.connect_on_startup:
         from ansys.aedt.mcp.tools import REQUIRES_AEDT_TAG
 
         app.disable(tags={REQUIRES_AEDT_TAG})

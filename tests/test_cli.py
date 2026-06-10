@@ -26,6 +26,7 @@ def test_main_parses_defaults(monkeypatch):
     assert cfg["aedt_port"] == 50051
     assert cfg["connect_on_startup"] is False
     assert cfg["include_context_tools"] is False
+    assert cfg["dynamic_tool_discovery"] is False
     assert cfg["http_host"] == "127.0.0.1"
     assert cfg["http_port"] == 8080
     assert cfg["cors_origins"] is None
@@ -100,8 +101,22 @@ def test_main_accepts_include_context_flag():
 
 
 @pytest.mark.unit
-def test_launcher_disables_context_tag_by_default(monkeypatch):
-    """Context tools should always load but remain disabled by tag by default."""
+def test_main_accepts_dynamic_tool_discovery_flag():
+    """Test that dynamic tool discovery is captured in CLI config."""
+    from ansys.aedt.mcp import app as package_mcp
+    from ansys.aedt.mcp.server import launcher
+
+    with patch.object(asyncio, "run"):
+        launcher(["--dynamic-tool-discovery"])
+
+    cfg = getattr(package_mcp, "_cli_config", None)
+    assert cfg is not None
+    assert cfg["dynamic_tool_discovery"] is True
+
+
+@pytest.mark.unit
+def test_launcher_disables_only_context_tag_by_default(monkeypatch):
+    """Default startup should keep the full AEDT tool surface visible."""
     from ansys.aedt.mcp.server import app, launcher
 
     imported_modules = []
@@ -122,6 +137,7 @@ def test_launcher_disables_context_tag_by_default(monkeypatch):
     assert "ansys.aedt.mcp.contexts" in imported_modules
     disable_calls = [c.kwargs.get("tags") for c in mock_disable.call_args_list]
     assert {"pyaedt_context"} in disable_calls
+    assert {"requires_aedt"} not in disable_calls
     mock_enable.assert_not_called()
 
 
@@ -151,6 +167,31 @@ def test_launcher_enables_context_tag_when_requested(monkeypatch):
 
 
 @pytest.mark.unit
+def test_launcher_disables_requires_aedt_tag_when_dynamic_discovery_requested(monkeypatch):
+    """Opt-in dynamic discovery should hide AEDT-only tools until connected."""
+    from ansys.aedt.mcp.server import app, launcher
+
+    imported_modules = []
+    real_import_module = importlib.import_module
+
+    def tracking_import(name, package=None):
+        imported_modules.append(name)
+        return real_import_module(name, package)
+
+    monkeypatch.setattr(importlib, "import_module", tracking_import)
+
+    with patch.object(app, "disable") as mock_disable, patch.object(app, "enable") as mock_enable:
+        with patch.object(asyncio, "run"):
+            launcher(["--dynamic-tool-discovery"])
+
+    assert "ansys.aedt.mcp.tools" in imported_modules
+    disable_calls = [c.kwargs.get("tags") for c in mock_disable.call_args_list]
+    assert {"pyaedt_context"} in disable_calls
+    assert {"requires_aedt"} in disable_calls
+    mock_enable.assert_not_called()
+
+
+@pytest.mark.unit
 def test_product_startup_connects_when_connect_flag_is_true():
     """MCP startup should initialize AEDT Desktop when connect_on_startup is True."""
     from ansys.aedt.mcp.server import PyAEDTMCP
@@ -171,6 +212,7 @@ def test_product_startup_connects_when_connect_flag_is_true():
                 "non_graphical": True,
                 "connect_on_startup": True,
                 "include_context_tools": False,
+                "dynamic_tool_discovery": False,
                 "http_host": "127.0.0.1",
                 "http_port": 8080,
                 "cors_origins": None,
@@ -207,6 +249,7 @@ def test_product_startup_does_not_connect_by_default():
                 "non_graphical": True,
                 "connect_on_startup": False,
                 "include_context_tools": False,
+                "dynamic_tool_discovery": False,
                 "http_host": "127.0.0.1",
                 "http_port": 8080,
                 "cors_origins": None,
