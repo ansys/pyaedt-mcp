@@ -173,7 +173,7 @@ jobs:
         with:
           library-name: ${{ env.PACKAGE_NAME }}
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
-          attest-provenance: true
+          attest-provenance: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags') }}
 
   doc-deploy-dev:
     name: "Deploy development documentation"

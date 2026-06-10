@@ -144,7 +144,7 @@ Edit ``~/Library/Application Support/Claude/claude_desktop_config.json``
      }
    }
 
-Claude Code vs. Visual Studio Code
+Claude Code and Visual Studio Code
 ------------------------------------
 
 .. list-table::

@@ -145,7 +145,7 @@ Inspecting the model
 
 *"Get a summary of the active design including its boundaries and variables."*
 
-*"Show me the last 50 PyAEDT log lines."*
+*"Show the last 50 PyAEDT log lines."*
 
 Exporting results
 ~~~~~~~~~~~~~~~~~

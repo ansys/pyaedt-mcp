@@ -95,6 +95,6 @@ When adding a new ``@app.tool(...)`` to ``src/ansys/aedt/mcp/tools.py``:
    ``src/ansys/aedt/mcp/toolsets.py`` so that it appears in the
    ``toolsets://definition`` discovery resource. The
    ``test_toolsets.py::TestToolsetsResource::test_every_registered_tool_appears_in_some_toolset``
-   test will fail if it is missing.
+   test fails if it is missing.
 
 4. **Document the tool** in :doc:`../user_guide/tools_and_capabilities`.
