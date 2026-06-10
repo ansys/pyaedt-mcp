@@ -54,6 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # Needed to checkout the code
+      checks: write # Needed for reviewdog to create check runs
     steps:
       - name: "Run Ansys documentation style checks"
         uses: ansys/actions/doc-style@d946b24b9a765f4169bcc94afdb27bd1a0533741 #v10.3.2
