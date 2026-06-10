@@ -16,4 +16,3 @@ Or install from source:
    git clone https://github.com/ansys/pyaedt-mcp
    cd pyaedt-mcp
    pip install -e .
-
