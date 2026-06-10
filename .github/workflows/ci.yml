@@ -90,13 +90,15 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # Needed to checkout the code
+      security-events: write # Needed to create security advisories
+      issues: write # Needed to create issues for new advisories
     steps:
       - uses: ansys/actions/check-vulnerabilities@d946b24b9a765f4169bcc94afdb27bd1a0533741 #v10.3.2
         with:
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
           python-package-name: ${{ env.PACKAGE_NAME }}
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
-          dev-mode: false
+          dev-mode: ${{ github.ref != 'refs/heads/main' }}
           exit-with-error-on-new-advisory: false
 
   smoke-tests:
