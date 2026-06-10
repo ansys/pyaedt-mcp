@@ -84,8 +84,11 @@ def test_mcp_server_tool_registration():
 
     from ansys.aedt.mcp import app
 
-    # Get the list of tools from the server (unfiltered to avoid visibility-state interference)
-    tools = asyncio.get_event_loop().run_until_complete(app._local_provider._list_tools())
+    async def _list():
+        return await app._local_provider._list_tools()
+
+    # Get the list of tools from the server
+    tools = asyncio.run(_list())
 
     # Should have multiple tools registered
     assert len(tools) > 0
