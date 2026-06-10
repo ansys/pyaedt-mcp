@@ -3,46 +3,34 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A Model Context Protocol (MCP) server that enables AI assistants to interact with Ansys Electronics Desktop (AEDT) through PyAEDT. This server exposes AEDT capabilities to large language models, allowing them to create, configure, run, and analyze electromagnetic, thermal, and circuit simulations.
+`ansys-aedt-mcp` is an MCP server for Ansys Electronics Desktop (AEDT). It gives an AI client a small set of reliable AEDT tools, plus a persistent PyAEDT-backed Python session for the steps that do not fit a dedicated tool.
 
-## Features
+## What it does
 
-- **Multi-Physics Support**: HFSS, Maxwell 2D/3D, Q3D, Q2D, Icepak, Circuit, TwinBuilder, and more
-- **Full Simulation Workflow**: Geometry creation, meshing, boundary setup, analysis, post-processing
-- **gRPC Remote Connection**: Connect to AEDT instances on local or remote machines
-- **Optional Context Guidance**: Context tools providing AEDT workflow guidance to AI assistants when started with `--include-context`
-- **Parametric Studies**: Support for parametric sweeps, optimization, and DOE
+The server is built around one runtime loop:
 
-## Supported AEDT Applications
+1. Check whether AEDT is installed or already reachable.
+2. Launch AEDT or connect to an existing gRPC session.
+3. Open projects, create designs, run analyses, inspect the model, and export results.
+4. Fall back to `run_python_code` or `run_python_script` for custom PyAEDT work.
 
-| Application    | Description                                                         |
-| -------------- | ------------------------------------------------------------------- |
-| HFSS           | High-frequency electromagnetic simulation (RF, microwave, antennas) |
-| Maxwell 2D/3D  | Low-frequency electromagnetic simulation (motors, transformers)     |
-| Q3D/Q2D        | Parasitic extraction (capacitance, inductance, resistance)          |
-| Icepak         | Thermal management and CFD analysis                                 |
-| Circuit        | Circuit-level simulation                                            |
-| TwinBuilder    | System-level modeling                                               |
-| Mechanical     | Structural analysis                                                 |
-| EMIT           | EMI/EMC analysis                                                    |
-| RMXprt         | Rotating machine design                                             |
-| HFSS 3D Layout | High-speed electronic layout analysis                               |
+Supported AEDT applications include HFSS, Maxwell 2D/3D, Q2D, Q3D, Icepak, Circuit, TwinBuilder, Mechanical, EMIT, RMXprt, and HFSS 3D Layout.
 
-## Installation
+## Install
 
-### Using uvx (Recommended)
+### Run without cloning
 
 ```bash
 uvx --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp
 ```
 
-### Using pip
+### Install locally
 
 ```bash
 pip install git+https://github.com/ansys/pyaedt-mcp.git
 ```
 
-### Development Installation
+### Install for development
 
 ```bash
 git clone https://github.com/ansys/pyaedt-mcp.git
@@ -51,131 +39,45 @@ pip install -e ".[dev]"
 pre-commit install
 ```
 
-Run the style hooks against the full repository at any time with:
-
-```bash
-pre-commit run --all-files
-```
-
 ## Requirements
 
-- Python >= 3.10
-- PyAEDT >= 0.10.0
-- fastmcp >= 0.1.0
-- ansys-common-mcp >= 0.1.0
-- Ansys Electronics Desktop 2022 R2 or later (for gRPC support)
+- Python 3.10 or later
+- AEDT 2022 R2 or later for gRPC workflows
+- A local AEDT installation, or a reachable remote AEDT gRPC endpoint
 
-## Usage
+## Quick start
 
-### Starting AEDT in gRPC Server Mode
-
-Before connecting via MCP, start AEDT with gRPC server enabled:
+### 1. Start AEDT in gRPC mode when connecting to an existing session
 
 ```bash
-# Windows
 "C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe" -grpcsrv 50051
-
-# Linux
-/ansys_inc/v261/AnsysEM/Linux64/ansysedt -grpcsrv 50051
 ```
 
-### Running the MCP Server
-
-#### STDIO Transport (Default)
+### 2. Start the MCP server
 
 ```bash
 ansys-aedt-mcp
 ```
 
-#### HTTP Transport
+Common variants:
 
 ```bash
-ansys-aedt-mcp --transport http --http-host 127.0.0.1 --http-port 8080
-```
-
-#### Auto-Connect on Startup
-
-```bash
+# Connect on startup
 ansys-aedt-mcp --connect --machine localhost --port 50051
-```
 
-#### Include Context Helper Tools
+# Expose HTTP transport instead of stdio
+ansys-aedt-mcp --transport http --http-host 127.0.0.1 --http-port 8080
 
-```bash
+# Register optional context helper tools
 ansys-aedt-mcp --include-context
+
+# Hide AEDT-only tools until a connection exists
+ansys-aedt-mcp --dynamic-tool-discovery
 ```
 
-### CLI Options
+### 3. Point an MCP client at the server
 
-| Option            | Description                       | Default     |
-| ----------------- | --------------------------------- | ----------- |
-| `--transport`     | Transport type: `stdio` or `http` | `stdio`     |
-| `--machine`       | AEDT machine hostname/IP          | `localhost` |
-| `--port`          | AEDT gRPC port                    | `50051`     |
-| `--version`       | AEDT version (e.g., "2026.1")     | Auto-detect |
-| `--non-graphical` | Run AEDT in non-graphical mode    | `True`      |
-| `--graphical`     | Run AEDT in graphical mode        | `False`     |
-| `--connect`       | Connect to AEDT on startup        | `False`     |
-| `--include-context` | Register optional context helper tools | `False` |
-| `--http-host`     | HTTP transport host               | `127.0.0.1` |
-| `--http-port`     | HTTP transport port               | `8080`      |
-| `--cors-origins`  | Allowed CORS origins (HTTP only)  | None        |
-
-## MCP Tools
-
-### Connection & Status Tools
-
-| Tool                   | Description                          |
-| ---------------------- | ------------------------------------ |
-| `check_aedt_status`    | Check AEDT Desktop connection status |
-| `check_aedt_installed` | Verify AEDT installation on system   |
-| `get_pyaedt_logs`      | Retrieve PyAEDT log file contents    |
-| `launch_aedt`          | Launch new AEDT Desktop instance     |
-| `connect_to_aedt`      | Connect to running AEDT via gRPC     |
-| `disconnect_from_aedt` | Disconnect from AEDT                 |
-
-### Project & Design Tools
-
-| Tool             | Description                             |
-| ---------------- | --------------------------------------- |
-| `list_designs`   | List designs in a project               |
-| `open_project`   | Open an AEDT project file (.aedt)       |
-| `save_project`   | Save current project                    |
-| `create_design`  | Create new design (HFSS, Maxwell, etc.) |
-| `analyze_design` | Run simulation analysis                 |
-| `export_results` | Export simulation results               |
-
-### Script Execution Tools
-
-| Tool                | Description                        |
-| ------------------- | ---------------------------------- |
-| `run_python_script` | Execute Python script file in AEDT |
-| `run_python_code`   | Execute inline Python code in AEDT |
-
-### Utility Tools
-
-| Tool             | Description                               |
-| ---------------- | ----------------------------------------- |
-| `clear_aedt`     | Clear AEDT state (close projects)         |
-| `get_model_info` | Get current design information            |
-| `screenshot`     | Capture screenshot of current design view |
-| `export_config`  | Export design configuration               |
-
-### Tool Timeouts
-
-Every tool has a timeout guard to prevent the MCP server from freezing if AEDT
-becomes unresponsive. When a tool exceeds its timeout the server returns an error
-and stays alive for the next call.
-
-| Tier | Timeout | Tools |
-|------|---------|-------|
-| Quick | **30 s** | `check_aedt_status`, `check_aedt_installed`, `get_pyaedt_logs`, `list_designs`, `get_model_info` |
-| Medium | **120 s** | `launch_aedt`, `connect_to_aedt`, `disconnect_from_aedt`, `open_project`, `save_project`, `create_design`, `screenshot`, `clear_aedt`, `export_config` |
-| Long | **300 s** | `run_python_script`, `run_python_code`, `analyze_design`, `export_results` |
-
-## VS Code Configuration
-
-Add to your VS Code `settings.json`:
+#### VS Code
 
 ```json
 {
@@ -194,28 +96,7 @@ Add to your VS Code `settings.json`:
 }
 ```
 
-### With Auto-Connect
-
-```json
-{
-  "mcp": {
-    "servers": {
-      "pyaedt-mcp": {
-        "command": "uvx",
-        "args": [
-          "--index-strategy", "unsafe-best-match",
-          "--from", "git+https://github.com/ansys/pyaedt-mcp.git",
-          "ansys-aedt-mcp"
-        ]
-      }
-    }
-  }
-}
-```
-
-## Claude Desktop Configuration
-
-Add to your Claude Desktop configuration:
+#### Claude Desktop
 
 ```json
 {
@@ -231,148 +112,71 @@ Add to your Claude Desktop configuration:
 }
 ```
 
-## Example Workflows
+## Tool surface
 
-### HFSS Patch Antenna Design
+| Area | Main tools |
+| --- | --- |
+| Lifecycle | `check_aedt_installed`, `check_aedt_status`, `launch_aedt`, `connect_to_aedt`, `disconnect_from_aedt`, `clear_aedt` |
+| Project management | `list_projects`, `list_designs`, `open_project`, `save_project`, `create_design` |
+| Simulation | `analyze_design`, `export_config` |
+| Scripting | `run_python_code`, `run_python_script` |
+| Inspection | `get_model_info`, `screenshot`, `get_pyaedt_logs` |
+| Results | `export_results` |
+| Optional guidance | `get_guidelines_for` when the server starts with `--include-context` |
 
-```
-User: Create a 2.4 GHz patch antenna with FR4 substrate
+Every tool has a timeout guard so the server can fail a stalled request without taking down the whole process.
 
-AI Assistant uses:
-1. connect_to_aedt - Connect to running AEDT
-2. create_design - Create HFSS design
-3. run_python_code - Create geometry, assign materials, boundaries
-4. run_python_code - Create setup and frequency sweep
-5. analyze_design - Run simulation
-6. run_python_code - Create S-parameter report
-7. export_results - Export touchstone file
-```
+## How the repo is organized
 
-### Maxwell Motor Analysis
+The core package lives in `src\ansys\aedt\mcp`:
 
-```
-User: Analyze torque vs speed for a brushless DC motor
+| File | Role |
+| --- | --- |
+| `__main__.py` | Module entry point that forwards to the CLI launcher |
+| `server.py` | CLI parsing, app setup, context creation, startup cleanup, transport selection |
+| `tools.py` | Runtime tool implementations for AEDT lifecycle, project, scripting, and export workflows |
+| `helpers.py` | Small utilities for probing endpoints, normalizing versions, and extracting model data |
+| `prompts.py` | System prompt content shown to MCP clients |
+| `contexts.py` | Optional context helper tools enabled by `--include-context` |
+| `toolsets.py` | `toolsets://definition` resource used for logical tool discovery |
+| `aedt_helper\startup_code.py` | Startup code loaded into the persistent Python session |
 
-AI Assistant uses:
-1. connect_to_aedt - Connect to AEDT
-2. create_design - Create Maxwell3d transient design
-3. run_python_code - Create motor geometry
-4. run_python_code - Assign windings and excitations
-5. run_python_code - Set up motion and transient analysis
-6. analyze_design - Run simulation
-7. run_python_code - Create torque report
-```
+Other top-level folders:
 
-### Icepak Thermal Analysis
+- `doc\source`: Sphinx documentation
+- `tests`: unit and integration coverage
+- `docker`: container assets
+- `examples`: sample assets used by the project
 
-```
-User: Analyze thermal performance of a PCB with multiple ICs
+## Development workflow
 
-AI Assistant uses:
-1. connect_to_aedt - Connect to AEDT
-2. create_design - Create Icepak design
-3. run_python_code - Create PCB and component geometry
-4. run_python_code - Assign heat sources and boundary conditions
-5. analyze_design - Run steady-state analysis
-6. run_python_code - Create temperature contour plot
-7. export_results - Export thermal summary
-```
-
-## Testing
-
-### Run Unit Tests
+Run the main checks from the repository root:
 
 ```bash
-pytest tests/ -v --ignore=tests/test_integration.py
+pytest -q
+python -m sphinx -W -b html doc\source doc\_build\html
+pre-commit run --all-files
 ```
 
-### Run Integration Tests
+Integration tests expect a real AEDT session:
 
 ```bash
-# Start AEDT in gRPC mode first
-pytest tests/test_integration.py -v -m integration
+pytest tests\test_integration.py -m integration
 ```
 
-### With Environment Variables
+## Adding a new tool
 
-```bash
-AEDT_PORT=50051 AEDT_MACHINE=localhost pytest tests/test_integration.py -v
-```
+Most tools require a live AEDT connection. Tag those tools with `REQUIRES_AEDT_TAG` in `src\ansys\aedt\mcp\tools.py` so they can be hidden until the session exists when dynamic discovery is enabled.
 
-## Project Structure
-
-```
-pyaedt-mcp/
-├── src/
-│   └── ansys/
-│       └── aedt/
-│           └── mcp/
-│               ├── __init__.py       # Package initialization
-│               ├── __main__.py       # Entry point
-│               ├── server.py         # MCP server and lifespan
-│               ├── tools.py          # MCP tools (connection, project, etc.)
-│               ├── helpers.py        # Utility functions
-│               ├── prompts.py        # Prompt templates
-│               ├── py.typed          # PEP 561 marker
-│               └── aedt_helper/      # AEDT helper modules
-│                   ├── __init__.py
-│                   └── startup_code.py
-├── tests/
-│   ├── conftest.py
-│   ├── test_tools.py
-│   ├── test_helpers.py
-│   └── test_integration.py
-├── docker/
-│   └── docker-compose.yml
-├── pyproject.toml
-├── LICENSE
-└── README.md
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests: `pytest tests/ -v`
-5. Submit a pull request
-
-### Adding a New Tool
-
-`pyaedt-mcp` uses connection-aware tool visibility: tools that need a live
-AEDT session are hidden until `launch_aedt` or `connect_to_aedt` succeeds.
-This is enforced via tool **tags**.
-
-When you add a new `@app.tool(...)` to `src/ansys/aedt/mcp/tools.py`:
-
-- **Default case — the tool needs an AEDT connection.** Tag it with
-  `REQUIRES_AEDT_TAG` (defined at the top of `tools.py`):
-
-  ```python
-  @app.tool(tags={REQUIRES_AEDT_TAG})
-  def my_new_tool(ctx: Context, ...) -> str:
-      ...
-  ```
-
-  No further action is required — the server disables it until a session
-  exists, then `enable_components(tags={REQUIRES_AEDT_TAG})` unlocks it.
-
-- **Special case — the tool is genuinely usable BEFORE any AEDT session**
-  (e.g. an installation check or log reader). Do NOT add the tag, and add
-  the tool's name to the `ALWAYS_AVAILABLE_TOOLS` allowlist in
-  `tests/test_tools.py::TestRequiresAEDTVisibility::test_no_tool_surface_drift`.
-
-The `test_no_tool_surface_drift` test will fail if a new tool is neither
-tagged nor on the allowlist. This is intentional — it forces every
-contributor to make an explicit decision about pre-connection visibility.
+If a tool is intentionally available before connection, leave that tag off and make sure the visibility tests in `tests\test_tools.py` still describe the expected surface.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License. See [LICENSE](LICENSE).
 
-## Related Projects
+## Related projects
 
-- [PyAEDT](https://github.com/ansys/pyaedt) - Python library for AEDT
-- [PyMAPDL MCP](https://github.com/ansys/pymapdl-mcp) - MCP server for MAPDL
-- [PyMechanical MCP](https://github.com/ansys/pymechanical-mcp) - MCP server for Mechanical
-- [Model Context Protocol](https://modelcontextprotocol.io/) - MCP specification
+- [PyAEDT](https://github.com/ansys/pyaedt)
+- [PyMAPDL MCP](https://github.com/ansys/pymapdl-mcp)
+- [PyMechanical MCP](https://github.com/ansys/pymechanical-mcp)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
