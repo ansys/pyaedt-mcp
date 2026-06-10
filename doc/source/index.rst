@@ -14,7 +14,7 @@ PyAEDT-MCP
    examples/index
    changelog
 
-Welcome to the PyAEDT-MCP documentation! PyAEDT-MCP is a Model Context Protocol
+Welcome to the PyAEDT-MCP documentation. PyAEDT-MCP is a Model Context Protocol
 (MCP) server that provides seamless integration between AI assistants and
 Ansys AEDT through PyAnsys.
 
