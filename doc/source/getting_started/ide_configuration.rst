@@ -164,7 +164,7 @@ Claude Code vs. Visual Studio Code
      - STDIO or HTTP
    * - Team sharing
      - Via project config files
-     - Via ``.vscode/mcp.json`` in the repo
+      - Via ``.vscode/mcp.json`` in the repository
    * - Learning curve
      - Low (CLI-based)
      - Medium (JSON configuration)
