@@ -44,8 +44,8 @@ maintainers = [
 ]
 name = "ansys-aedt-mcp"
 readme = "README.md"
-requires-python = ">=3.10"
-version = "0.0.1"
+requires-python = ">=3.10,<3.14"
+version = "0.1.0"
 
 dependencies = [
   "pyaedt[all]>=0.10.0",
