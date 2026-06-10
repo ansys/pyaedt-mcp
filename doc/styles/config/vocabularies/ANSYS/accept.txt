@@ -41,3 +41,4 @@ electromagnetic
 RF
 thermal
 EDA
+CLI
