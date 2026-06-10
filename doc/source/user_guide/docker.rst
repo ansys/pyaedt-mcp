@@ -72,7 +72,7 @@ Configure the container by setting environment variables before running
      - ``true``
      - Attempt to attach to AEDT when the container starts.
 
-Example — connect to a remote AEDT instance:
+Example: connect to a remote AEDT instance:
 
 .. code-block:: bash
 

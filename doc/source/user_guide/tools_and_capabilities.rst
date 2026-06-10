@@ -71,7 +71,7 @@ these tools are hidden again.
    * - ``screenshot``
      - Capture the current 3D modeler view as an image.
 
-**Optional — enabled only with** ``--include-context``:
+**Optional: enabled only with** ``--include-context``:
 
 .. list-table::
    :header-rows: 1

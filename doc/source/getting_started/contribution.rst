@@ -91,7 +91,7 @@ When adding a new ``@app.tool(...)`` to ``src/ansys/aedt/mcp/tools.py``:
    installation check), do *not* add that tag and make sure
    ``tests/test_tools.py`` still reflects the expected pre-connection surface.
 
-3. **Add the tool to the appropriate toolset** in
+3. **Add the tool to the appropriate group of tools** in
    ``src/ansys/aedt/mcp/toolsets.py`` so that it appears in the
    ``toolsets://definition`` discovery resource. The
    ``test_toolsets.py::TestToolsetsResource::test_every_registered_tool_appears_in_some_toolset``
