@@ -25,7 +25,8 @@ import base64
 import json
 import os
 from pathlib import Path
-import subprocess
+import shutil
+import subprocess  # nosec B404
 import sys
 import tempfile
 from typing import Any, Literal
@@ -71,11 +72,19 @@ def _open_file_in_default_viewer(path: Path) -> str | None:
 
     try:
         if hasattr(os, "startfile"):
-            os.startfile(path)  # type: ignore[attr-defined]
+            os.startfile(path)  # type: ignore[attr-defined]  # nosec B606
         elif sys.platform == "darwin":
-            subprocess.Popen(["open", str(path)])
+            viewer = shutil.which("open")
+            if viewer is None:
+                return "Viewer launch failed: 'open' executable was not found."
+            # The executable path is resolved explicitly and arguments are passed as a list.
+            subprocess.Popen([viewer, str(path)])  # nosec
         else:
-            subprocess.Popen(["xdg-open", str(path)])
+            viewer = shutil.which("xdg-open")
+            if viewer is None:
+                return "Viewer launch failed: 'xdg-open' executable was not found."
+            # The executable path is resolved explicitly and arguments are passed as a list.
+            subprocess.Popen([viewer, str(path)])  # nosec
     except Exception as exc:
         return f"Viewer launch failed: {exc}"
 
@@ -127,7 +136,7 @@ def _resolve_pyaedt_log_file() -> str | None:
         if logger_filename and os.path.isfile(logger_filename):
             return str(Path(logger_filename).expanduser().resolve())
     except Exception:
-        pass
+        logger.debug("Failed to resolve PyAEDT log file from pyaedt_logger.", exc_info=True)
 
     try:
         from ansys.aedt.core import settings
@@ -146,7 +155,10 @@ def _resolve_pyaedt_log_file() -> str | None:
                 if log_candidates:
                     return str(log_candidates[0].resolve())
     except Exception:
-        pass
+        logger.debug(
+            "Failed to resolve PyAEDT log file from settings.logger_file_path.",
+            exc_info=True,
+        )
 
     return None
 
@@ -727,7 +739,8 @@ def run_python_code(ctx: Context, code: str) -> str:
             "aedt_port": getattr(desktop, "port", ctx.request_context.lifespan_context.aedt_port),
         }
 
-        exec(code, local_ns)
+        # This tool's explicit contract is to execute user-provided Python inside AEDT.
+        exec(code, local_ns)  # nosec B102
         result = local_ns.get("result", "Code executed successfully (no result variable set)")
         return str(result)
 
