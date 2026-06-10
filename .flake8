@@ -1,8 +1,0 @@
-[flake8]
-max-line-length = 100
-extend-ignore = W503
-exclude =
-    .git,
-    .venv,
-    build,
-    dist
