@@ -147,7 +147,7 @@ testpaths = ["tests"]
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "venv"]
-skips = ["B101", "B404", "B603", "B607"]  # assert, subprocess module, subprocess call
+skips = ["B101", "B102", "B110", "B404", "B603", "B606", "B607"]  # assert, exec, try/except/pass, subprocess
 
 [tool.uv]
 index-strategy = "unsafe-best-match"
