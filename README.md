@@ -126,7 +126,7 @@ ansys-aedt-mcp --dynamic-tool-discovery
 
 Every tool has a timeout guard so the server can fail a stalled request without taking down the whole process.
 
-## How the repo is organized
+## How the repository is organized
 
 The core package lives in `src\ansys\aedt\mcp`:
 

@@ -48,7 +48,7 @@ Scripting with ``run_python_code``
     tool call.
 
 **Reuse the Desktop port**
-    When opening a PyAEDT application class (``Hfss``, ``Maxwell3d``, and so
+    When opening a PyAEDT app class (``Hfss``, ``Maxwell3d``, and so
     on), always pass ``port=desktop.port`` to attach to the existing session
     rather than launching a new AEDT process:
 

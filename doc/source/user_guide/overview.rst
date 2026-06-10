@@ -33,7 +33,7 @@ Main modules
    * - Module
      - Responsibility
    * - ``server.py``
-     - Defines the app, CLI, startup logic, cleanup, transport selection, and the typed application context.
+     - Defines the app, CLI, startup logic, cleanup, transport selection, and the typed app context.
    * - ``tools.py``
      - Implements the AEDT-facing tool surface: connection, project management, scripting, analysis, inspection, and export.
    * - ``helpers.py``
