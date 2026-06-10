@@ -94,14 +94,30 @@ ansys-aedt-mcp = "ansys.aedt.mcp.__main__:launcher"
 [tool.flit.module]
 name = "ansys.aedt.mcp"
 
-[tool.black]
+[tool.ruff]
 line-length = 100
-target-version = ["py310", "py311", "py312", "py313"]
-
-[tool.isort]
-line_length = 100
-profile = "black"
-src_paths = ["src", "tests"]
+fix = true
+format.indent-style = "space"
+format.quote-style = "double"
+lint.select = [
+  "D",   # pydocstyle
+  "E",   # pycodestyle
+  "F",   # pyflakes
+  "I",   # isort
+  "N",   # pep8-naming
+]
+lint.ignore = [
+  "D100", # Missing docstring in public module
+  "D104", # Missing docstring in public package
+  "D401", # First line of docstring should be in imperative mood
+]
+lint.per-file-ignores."!src/**.py" = [ "D" ]
+lint.per-file-ignores."__init__.py" = [ "F401" ]
+lint.per-file-ignores."tests/**.py" = [ "D", "E501", "N806" ]
+lint.isort.combine-as-imports = true
+lint.isort.force-sort-within-sections = true
+lint.isort.known-first-party = [ "ansys.aedt.mcp" ]
+lint.pydocstyle.convention = "numpy"
 
 [tool.mypy]
 exclude = [
@@ -128,6 +144,10 @@ markers = [
   "unit: marks tests as unit tests (do not require running AEDT instance)",
 ]
 testpaths = ["tests"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "venv"]
+skips = ["B101", "B404", "B603", "B607"]  # assert, subprocess module, subprocess call
 
 [tool.uv]
 index-strategy = "unsafe-best-match"

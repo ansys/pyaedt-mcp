@@ -17,9 +17,9 @@
 """Lifespan and CLI entry for the PyAEDT MCP server with startup options."""
 
 import argparse
+from dataclasses import dataclass
 import importlib
 import sys
-from dataclasses import dataclass
 from typing import Any, Optional
 
 from ansys.common.mcp import PyAnsysBaseMCP, get_logger

@@ -24,16 +24,15 @@ Icepak, Circuit, Q3D, and more.
 import base64
 import json
 import os
+from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
 from typing import Any, Literal
 
 from ansys.aedt.core.internal.aedt_versions import aedt_versions
 from fastmcp.server import Context
 from fastmcp.server.server import get_logger
-from mcp.types import ImageContent, TextContent
 
 from ansys.aedt.mcp import app
 from ansys.aedt.mcp.helpers import (
@@ -42,6 +41,7 @@ from ansys.aedt.mcp.helpers import (
     get_aedt_info,
 )
 from ansys.aedt.mcp.server import session
+from mcp.types import ImageContent, TextContent
 
 logger = get_logger(__name__)
 
@@ -348,7 +348,7 @@ def check_aedt_installed(ctx: Context) -> str:
         port = int(os.environ.get("AEDT_PORT", "50051"))
         probe = _probe_grpc_endpoint(host, port)
         if probe["reachable"]:
-            return f"Running inside Docker – AEDT gRPC endpoint at " f"{host}:{port} is reachable."
+            return f"Running inside Docker – AEDT gRPC endpoint at {host}:{port} is reachable."
         return (
             f"Running inside Docker – AEDT gRPC endpoint at "
             f"{host}:{port} is NOT reachable (error: {probe['error']}). "
@@ -1227,7 +1227,7 @@ def export_results(
 
         elif export_type == "mesh":
             if not hasattr(app_instance, "export_mesh_stats"):
-                return "Mesh export is not available for " f"{type(app_instance).__name__} designs."
+                return f"Mesh export is not available for {type(app_instance).__name__} designs."
             result = app_instance.export_mesh_stats(**setup_kwargs)
             return f"Mesh stats exported.\nResult: {result}"
 

@@ -20,8 +20,8 @@ This module provides utility functions for working with AEDT Desktop
 instances and extracting information from them.
 """
 
-import socket
 from pathlib import Path
+import socket
 from typing import Any
 
 from ansys.common.mcp import get_logger

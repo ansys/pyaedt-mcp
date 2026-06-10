@@ -54,8 +54,8 @@ except ImportError:
 
 
 def save_matplotlib_plot(filename="plot.png", return_base64=False, dpi=150):
-    """
-    Save matplotlib plot to file and optionally return as base64.
+    """Save matplotlib plot to file and optionally return as base64.
+
     Uses the current matplotlib figure.
 
     Parameters

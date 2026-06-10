@@ -1,3 +1,19 @@
+# Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+#
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Unit tests for PyAEDT MCP tools.
 
 These tests mock the AEDT Desktop instance and verify tool behavior.
@@ -311,7 +327,7 @@ class TestGetPyAEDTLogs:
 
         log_file = tmp_path / "pyaedt_test.log"
         log_file.write_text(
-            "INFO startup\n" "ERROR solver failed\n" "INFO retry\n" "ERROR solver recovered\n",
+            "INFO startup\nERROR solver failed\nINFO retry\nERROR solver recovered\n",
             encoding="utf-8",
         )
 
@@ -773,7 +789,12 @@ class TestCheckAEDTInstalled:
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
             patch(
                 "ansys.aedt.mcp.tools._probe_grpc_endpoint",
-                return_value={"reachable": True, "host": "myhost", "port": 50052, "error": None},
+                return_value={
+                    "reachable": True,
+                    "host": "myhost",
+                    "port": 50052,
+                    "error": None,
+                },
             ),
             patch.dict("os.environ", {"AEDT_MACHINE": "myhost", "AEDT_PORT": "50052"}),
         ):
@@ -1036,9 +1057,7 @@ class TestLaunchAEDTExtended:
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
         ):
-            result = await launch_aedt(
-                mock_context_no_desktop, application="InvalidApp"
-            )  # type: ignore
+            result = await launch_aedt(mock_context_no_desktop, application="InvalidApp")  # type: ignore
 
         assert "Unsupported application type" in result
 
@@ -1184,9 +1203,9 @@ class TestRequiresAEDTVisibility:
         }
         for tool_name in expected_tagged:
             assert tool_name in tool_registry, f"Tool '{tool_name}' not found"
-            assert "requires_aedt" in (
-                tool_registry[tool_name].tags or set()
-            ), f"Tool '{tool_name}' missing 'requires_aedt' tag"
+            assert "requires_aedt" in (tool_registry[tool_name].tags or set()), (
+                f"Tool '{tool_name}' missing 'requires_aedt' tag"
+            )
 
     def test_no_tool_surface_drift(self):
         """Every tool must be in the always-available allowlist or carry
