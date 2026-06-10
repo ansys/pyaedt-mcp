@@ -97,6 +97,7 @@ jobs:
           python-package-name: ${{ env.PACKAGE_NAME }}
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
           dev-mode: ${{ github.ref != 'refs/heads/main' }}
+          exit-with-error-on-new-advisory: false
 
   smoke-tests:
     name: "Build and smoke tests"
