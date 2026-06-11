@@ -1,3 +1,19 @@
+# Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+#
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Tests for the ``toolsets://definition`` MCP resource."""
 
 import asyncio
@@ -5,9 +21,11 @@ import asyncio
 import pytest
 
 # Importing tools, contexts, and toolsets ensures everything is registered on `app`.
-from ansys.aedt.mcp import contexts  # noqa: F401
-from ansys.aedt.mcp import tools  # noqa: F401
-from ansys.aedt.mcp import toolsets as toolsets_module  # noqa: F401
+from ansys.aedt.mcp import (
+    contexts,  # noqa: F401
+    tools,  # noqa: F401
+    toolsets as toolsets_module,  # noqa: F401
+)
 from ansys.aedt.mcp.server import app
 from ansys.aedt.mcp.toolsets import _TOOLSET_CATALOGUE, _build_toolsets
 
@@ -30,15 +48,15 @@ class TestToolsetsResource:
     def test_items_have_required_keys(self):
         for entry in _build_toolsets():
             assert REQUIRED_KEYS <= entry.keys(), (
-                f"toolset {entry.get('name')} missing keys: " f"{REQUIRED_KEYS - entry.keys()}"
+                f"toolset {entry.get('name')} missing keys: {REQUIRED_KEYS - entry.keys()}"
             )
 
     def test_string_fields_are_non_empty(self):
         for entry in _build_toolsets():
             for key in ("name", "description", "skill"):
-                assert (
-                    isinstance(entry[key], str) and entry[key].strip()
-                ), f"toolset {entry['name']!r} field {key!r} is empty"
+                assert isinstance(entry[key], str) and entry[key].strip(), (
+                    f"toolset {entry['name']!r} field {key!r} is empty"
+                )
 
     def test_tools_field_is_list_of_strings(self):
         for entry in _build_toolsets():
@@ -56,10 +74,9 @@ class TestToolsetsResource:
             for tool in entry["tools"]:
                 if tool not in registered:
                     missing.append((entry["name"], tool))
-        assert (
-            not missing
-        ), "Toolset catalogue references unregistered tools:\n  - " + "\n  - ".join(
-            f"{ts}: {t}" for ts, t in missing
+        assert not missing, (
+            "Toolset catalogue references unregistered tools:\n  - "
+            + "\n  - ".join(f"{ts}: {t}" for ts, t in missing)
         )
 
     def test_every_registered_tool_appears_in_some_toolset(self):
@@ -93,9 +110,9 @@ class TestToolsetsResource:
 
         resources = asyncio.run(_list())
         uris = {str(r.uri) for r in resources}
-        assert (
-            "toolsets://definition" in uris
-        ), f"toolsets://definition not registered. Found: {sorted(uris)}"
+        assert "toolsets://definition" in uris, (
+            f"toolsets://definition not registered. Found: {sorted(uris)}"
+        )
 
     def test_catalogue_is_module_constant(self):
         # Stability anchor: ensure module exposes the catalogue dict.

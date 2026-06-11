@@ -10,7 +10,7 @@ classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -44,7 +44,7 @@ maintainers = [
 ]
 name = "ansys-aedt-mcp"
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<4"
 version = "0.1.0"
 
 dependencies = [
@@ -67,23 +67,21 @@ doc = [
   "ansys-sphinx-theme[changelog]==1.6.4",
   "numpydoc==1.10.0",
   "sphinx-autodoc-typehints==3.1.0",
+  "sphinx-design>=0.5.0",
   "sphinx-notfound-page==1.1.0",
   "sphinx==8.2.3",
-  "sphinxcontrib-video==0.4.2",
 ]
 
 dev = [
   "ansys-aedt-mcp[tests,doc]",
   "pre-commit>=4.0",
-  "black>=25.0",
-  "isort>=8.0",
+  "ruff>=0.11.0",
   "mypy>=1.8.0",
-  "flake8>=7.3.0",
   "bandit[toml]>=1.8.0",
 ]
 
 [project.urls]
-Documentation = "https://github.com/ansys/pyaedt-mcp#readme"
+Documentation = "https://aedt-mcp.docs.pyansys.com"
 Homepage = "https://github.com/ansys/pyaedt-mcp"
 Issues = "https://github.com/ansys/pyaedt-mcp/issues"
 Repository = "https://github.com/ansys/pyaedt-mcp"
@@ -94,14 +92,30 @@ ansys-aedt-mcp = "ansys.aedt.mcp.__main__:launcher"
 [tool.flit.module]
 name = "ansys.aedt.mcp"
 
-[tool.black]
+[tool.ruff]
 line-length = 100
-target-version = ["py310", "py311", "py312", "py313"]
-
-[tool.isort]
-line_length = 100
-profile = "black"
-src_paths = ["src", "tests"]
+fix = true
+format.indent-style = "space"
+format.quote-style = "double"
+lint.select = [
+  "D",   # pydocstyle
+  "E",   # pycodestyle
+  "F",   # pyflakes
+  "I",   # isort
+  "N",   # pep8-naming
+]
+lint.ignore = [
+  "D100", # Missing docstring in public module
+  "D104", # Missing docstring in public package
+  "D401", # First line of docstring should be in imperative mood
+]
+lint.per-file-ignores."!src/**.py" = [ "D" ]
+lint.per-file-ignores."__init__.py" = [ "F401" ]
+lint.per-file-ignores."tests/**.py" = [ "D", "E501", "N806" ]
+lint.isort.combine-as-imports = true
+lint.isort.force-sort-within-sections = true
+lint.isort.known-first-party = [ "ansys.aedt.mcp" ]
+lint.pydocstyle.convention = "numpy"
 
 [tool.mypy]
 exclude = [
@@ -128,6 +142,10 @@ markers = [
   "unit: marks tests as unit tests (do not require running AEDT instance)",
 ]
 testpaths = ["tests"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "venv"]
+skips = ["B101", "B102", "B110", "B404", "B603", "B606", "B607"]  # assert, exec, try/except/pass, subprocess
 
 [tool.uv]
 index-strategy = "unsafe-best-match"

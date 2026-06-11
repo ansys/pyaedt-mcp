@@ -1,3 +1,19 @@
+# Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+#
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """List of tools in PyAEDT-MCP.
 
 This module provides MCP tools for interacting with Ansys Electronics Desktop (AEDT)
@@ -8,16 +24,16 @@ Icepak, Circuit, Q3D, and more.
 import base64
 import json
 import os
-import subprocess
+from pathlib import Path
+import shutil
+import subprocess  # nosec B404
 import sys
 import tempfile
-from pathlib import Path
 from typing import Any, Literal
 
 from ansys.aedt.core.internal.aedt_versions import aedt_versions
 from fastmcp.server import Context
 from fastmcp.server.server import get_logger
-from mcp.types import ImageContent, TextContent
 
 from ansys.aedt.mcp import app
 from ansys.aedt.mcp.helpers import (
@@ -26,6 +42,7 @@ from ansys.aedt.mcp.helpers import (
     get_aedt_info,
 )
 from ansys.aedt.mcp.server import session
+from mcp.types import ImageContent, TextContent
 
 logger = get_logger(__name__)
 
@@ -55,11 +72,19 @@ def _open_file_in_default_viewer(path: Path) -> str | None:
 
     try:
         if hasattr(os, "startfile"):
-            os.startfile(path)  # type: ignore[attr-defined]
+            os.startfile(path)  # type: ignore[attr-defined]  # nosec B606
         elif sys.platform == "darwin":
-            subprocess.Popen(["open", str(path)])
+            viewer = shutil.which("open")
+            if viewer is None:
+                return "Viewer launch failed: 'open' executable was not found."
+            # The executable path is resolved explicitly and arguments are passed as a list.
+            subprocess.Popen([viewer, str(path)])  # nosec
         else:
-            subprocess.Popen(["xdg-open", str(path)])
+            viewer = shutil.which("xdg-open")
+            if viewer is None:
+                return "Viewer launch failed: 'xdg-open' executable was not found."
+            # The executable path is resolved explicitly and arguments are passed as a list.
+            subprocess.Popen([viewer, str(path)])  # nosec
     except Exception as exc:
         return f"Viewer launch failed: {exc}"
 
@@ -111,7 +136,7 @@ def _resolve_pyaedt_log_file() -> str | None:
         if logger_filename and os.path.isfile(logger_filename):
             return str(Path(logger_filename).expanduser().resolve())
     except Exception:
-        pass
+        logger.debug("Failed to resolve PyAEDT log file from pyaedt_logger.", exc_info=True)
 
     try:
         from ansys.aedt.core import settings
@@ -130,7 +155,10 @@ def _resolve_pyaedt_log_file() -> str | None:
                 if log_candidates:
                     return str(log_candidates[0].resolve())
     except Exception:
-        pass
+        logger.debug(
+            "Failed to resolve PyAEDT log file from settings.logger_file_path.",
+            exc_info=True,
+        )
 
     return None
 
@@ -332,7 +360,7 @@ def check_aedt_installed(ctx: Context) -> str:
         port = int(os.environ.get("AEDT_PORT", "50051"))
         probe = _probe_grpc_endpoint(host, port)
         if probe["reachable"]:
-            return f"Running inside Docker – AEDT gRPC endpoint at " f"{host}:{port} is reachable."
+            return f"Running inside Docker – AEDT gRPC endpoint at {host}:{port} is reachable."
         return (
             f"Running inside Docker – AEDT gRPC endpoint at "
             f"{host}:{port} is NOT reachable (error: {probe['error']}). "
@@ -711,7 +739,8 @@ def run_python_code(ctx: Context, code: str) -> str:
             "aedt_port": getattr(desktop, "port", ctx.request_context.lifespan_context.aedt_port),
         }
 
-        exec(code, local_ns)
+        # This tool's explicit contract is to execute user-provided Python inside AEDT.
+        exec(code, local_ns)  # nosec B102
         result = local_ns.get("result", "Code executed successfully (no result variable set)")
         return str(result)
 
@@ -1211,7 +1240,7 @@ def export_results(
 
         elif export_type == "mesh":
             if not hasattr(app_instance, "export_mesh_stats"):
-                return "Mesh export is not available for " f"{type(app_instance).__name__} designs."
+                return f"Mesh export is not available for {type(app_instance).__name__} designs."
             result = app_instance.export_mesh_stats(**setup_kwargs)
             return f"Mesh stats exported.\nResult: {result}"
 

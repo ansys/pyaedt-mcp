@@ -1,3 +1,19 @@
+# Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+#
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Unit tests for MCP CLI parsing and startup connection behavior."""
 
 import asyncio
@@ -128,7 +144,10 @@ def test_launcher_disables_only_context_tag_by_default(monkeypatch):
 
     monkeypatch.setattr(importlib, "import_module", tracking_import)
 
-    with patch.object(app, "disable") as mock_disable, patch.object(app, "enable") as mock_enable:
+    with (
+        patch.object(app, "disable") as mock_disable,
+        patch.object(app, "enable") as mock_enable,
+    ):
         with patch.object(asyncio, "run"):
             launcher([])
 
@@ -155,7 +174,10 @@ def test_launcher_enables_context_tag_when_requested(monkeypatch):
 
     monkeypatch.setattr(importlib, "import_module", tracking_import)
 
-    with patch.object(app, "disable") as mock_disable, patch.object(app, "enable") as mock_enable:
+    with (
+        patch.object(app, "disable") as mock_disable,
+        patch.object(app, "enable") as mock_enable,
+    ):
         with patch.object(asyncio, "run"):
             launcher(["--include-context"])
 
@@ -167,7 +189,9 @@ def test_launcher_enables_context_tag_when_requested(monkeypatch):
 
 
 @pytest.mark.unit
-def test_launcher_disables_requires_aedt_tag_when_dynamic_discovery_requested(monkeypatch):
+def test_launcher_disables_requires_aedt_tag_when_dynamic_discovery_requested(
+    monkeypatch,
+):
     """Opt-in dynamic discovery should hide AEDT-only tools until connected."""
     from ansys.aedt.mcp.server import app, launcher
 
@@ -180,7 +204,10 @@ def test_launcher_disables_requires_aedt_tag_when_dynamic_discovery_requested(mo
 
     monkeypatch.setattr(importlib, "import_module", tracking_import)
 
-    with patch.object(app, "disable") as mock_disable, patch.object(app, "enable") as mock_enable:
+    with (
+        patch.object(app, "disable") as mock_disable,
+        patch.object(app, "enable") as mock_enable,
+    ):
         with patch.object(asyncio, "run"):
             launcher(["--dynamic-tool-discovery"])
 
@@ -196,7 +223,9 @@ def test_product_startup_connects_when_connect_flag_is_true():
     """MCP startup should initialize AEDT Desktop when connect_on_startup is True."""
     from ansys.aedt.mcp.server import PyAEDTMCP
 
-    with (patch("ansys.aedt.core.Desktop") as mock_desktop,):
+    with (
+        patch("ansys.aedt.core.Desktop") as mock_desktop,
+    ):
         fake_desktop = MagicMock()
         mock_desktop.return_value = fake_desktop
 

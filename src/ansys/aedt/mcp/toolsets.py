@@ -1,5 +1,5 @@
 # Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: Apache-2.0
 
 """Toolset definitions for PyAnsysMCPService discovery.
 
@@ -48,7 +48,7 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
     },
     "project-management": {
         "description": (
-            "Tools for opening, saving, listing, and creating AEDT projects " "and designs."
+            "Tools for opening, saving, listing, and creating AEDT projects and designs."
         ),
         "skill": (
             "Use list_projects to enumerate open AEDT projects, list_designs "
@@ -114,7 +114,7 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
     },
     "results": {
         "description": (
-            "Tools for extracting and exporting solver results from a " "solved AEDT design."
+            "Tools for extracting and exporting solver results from a solved AEDT design."
         ),
         "skill": (
             "Use export_results after a successful analyze_design call to "

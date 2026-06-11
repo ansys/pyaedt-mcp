@@ -1,3 +1,19 @@
+# Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+#
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Unit tests for Docker-awareness features.
 
 Tests cover:
@@ -42,23 +58,23 @@ class TestIsDocker:
                     m.exists.return_value = False
                 return m
 
-            MockPath.side_effect = lambda p: (
-                type("P", (), {"exists": lambda self: p == "/.dockerenv"})()
-            )
+            MockPath.side_effect = lambda p: type(
+                "P", (), {"exists": lambda self: p == "/.dockerenv"}
+            )()
             assert _is_docker() is True
 
     def test_containerenv_marker(self):
         """Detect Podman/container via /run/.containerenv."""
         with patch("ansys.aedt.mcp.helpers.Path") as MockPath:
-            MockPath.side_effect = lambda p: (
-                type("P", (), {"exists": lambda self: p == "/run/.containerenv"})()
-            )
+            MockPath.side_effect = lambda p: type(
+                "P", (), {"exists": lambda self: p == "/run/.containerenv"}
+            )()
             assert _is_docker() is True
 
     def test_no_markers(self):
         """No marker files → not Docker."""
         with patch("ansys.aedt.mcp.helpers.Path") as MockPath:
-            MockPath.side_effect = lambda p: (type("P", (), {"exists": lambda self: False})())
+            MockPath.side_effect = lambda p: type("P", (), {"exists": lambda self: False})()
             assert _is_docker() is False
 
 
@@ -133,7 +149,12 @@ class TestCheckAEDTInstalledDocker:
             patch("ansys.aedt.mcp.tools._is_docker", return_value=True),
             patch(
                 "ansys.aedt.mcp.tools._probe_grpc_endpoint",
-                return_value={"reachable": True, "host": "aedt-host", "port": 50051, "error": None},
+                return_value={
+                    "reachable": True,
+                    "host": "aedt-host",
+                    "port": 50051,
+                    "error": None,
+                },
             ),
             patch.dict(os.environ, {"AEDT_MACHINE": "aedt-host", "AEDT_PORT": "50051"}),
         ):
