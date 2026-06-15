@@ -99,9 +99,7 @@ def test_resolve_design_app_uses_active_project_and_design(monkeypatch):
     class _Named:
         def __init__(self, name):
             self._name = name
-
-        def GetName(self):
-            return self._name
+            self.GetName = lambda: self._name
 
     class _Desktop:
         def active_project(self):
