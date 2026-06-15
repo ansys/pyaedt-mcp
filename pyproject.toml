@@ -103,11 +103,14 @@ lint.select = [
   "F",   # pyflakes
   "I",   # isort
   "N",   # pep8-naming
+  "PTH", # flake8-use-pathlib
+  "TD",  # flake8-todos
 ]
 lint.ignore = [
   "D100", # Missing docstring in public module
   "D104", # Missing docstring in public package
   "D401", # First line of docstring should be in imperative mood
+  "TD002", # Missing author in TODO comments
 ]
 lint.per-file-ignores."!src/**.py" = [ "D" ]
 lint.per-file-ignores."__init__.py" = [ "F401" ]
@@ -134,18 +137,19 @@ warn_return_any = true
 warn_unused_configs = true
 
 [tool.pytest.ini_options]
-addopts = "--cov=ansys.aedt.mcp --cov-report=term-missing --tb=short -q"
+addopts = "--cov=ansys.aedt.mcp --cov-report=term-missing --cov-report=html --cov-report=xml --tb=short -q"
 asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "auto"
 markers = [
   "integration: marks tests as integration tests (require running AEDT instance)",
   "unit: marks tests as unit tests (do not require running AEDT instance)",
+  "slow: Tests that take a long time to run",
 ]
 testpaths = ["tests"]
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "venv"]
-skips = ["B101", "B102", "B110", "B404", "B603", "B606", "B607"]  # assert, exec, try/except/pass, subprocess
+skips = ["B101"]  # Skip assert_used in tests
 
 [tool.uv]
 index-strategy = "unsafe-best-match"
