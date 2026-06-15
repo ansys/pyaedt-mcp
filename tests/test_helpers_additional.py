@@ -3,6 +3,7 @@
 
 """Additional unit tests for helper and startup modules."""
 
+from pathlib import Path
 import runpy
 import sys
 from types import ModuleType
@@ -11,6 +12,64 @@ from unittest.mock import MagicMock
 import pytest
 
 from ansys.aedt.mcp import helpers
+
+
+def test_open_file_in_default_viewer_paths(monkeypatch):
+    from ansys.aedt.mcp import tools
+
+    monkeypatch.setattr(tools, "_is_docker", lambda: True)
+    assert tools._open_file_in_default_viewer(Path("C:/tmp/file.txt")) == (
+        "Viewer launch skipped inside Docker."
+    )
+
+    monkeypatch.setattr(tools, "_is_docker", lambda: False)
+    monkeypatch.setattr(tools.os, "startfile", lambda path: None, raising=False)
+    assert tools._open_file_in_default_viewer(Path("C:/tmp/file.txt")) is None
+
+
+def test_configure_pyaedt_runtime_settings(monkeypatch):
+    from ansys.aedt.mcp import tools
+
+    fake_settings = MagicMock()
+    fake_module = ModuleType("ansys.aedt.core")
+    fake_module.settings = fake_settings
+
+    monkeypatch.setitem(sys.modules, "ansys.aedt.core", fake_module)
+    tools._configure_pyaedt_runtime_settings(enable_grpc=True)
+
+    assert fake_settings.use_grpc_api is True
+    assert fake_settings.release_on_exception is False
+
+
+def test_resolve_pyaedt_log_file_from_logger_handler(monkeypatch, tmp_path):
+    from ansys.aedt.mcp import tools
+
+    log_file = tmp_path / "pyaedt.log"
+    log_file.write_text("hello", encoding="utf-8")
+
+    handler = MagicMock()
+    handler.baseFilename = str(log_file)
+    raw_logger = MagicMock()
+    raw_logger.handlers = [handler]
+    fake_logger = MagicMock()
+    fake_logger.logger = raw_logger
+
+    fake_logger_module = ModuleType("ansys.aedt.core.aedt_logger")
+    fake_logger_module.pyaedt_logger = fake_logger
+
+    monkeypatch.setitem(sys.modules, "ansys.aedt.core.aedt_logger", fake_logger_module)
+
+    result = tools._resolve_pyaedt_log_file()
+
+    assert result == str(log_file.resolve())
+
+
+def test_get_aedt_app_class_known_and_unknown():
+    from ansys.aedt.mcp import tools
+
+    assert tools._get_aedt_app_class("Hfss") is not None
+    assert tools._get_aedt_app_class("Mechanical") is not None
+    assert tools._get_aedt_app_class("Unknown") is None
 
 
 def test_probe_grpc_endpoint_unreachable(monkeypatch):
@@ -149,6 +208,75 @@ def test_startup_code_save_plot_paths(monkeypatch):
     plotter = MagicMock()
     monkeypatch.setattr(startup_code, "PYVISTA_AVAILABLE", False)
     assert startup_code.save_pyvista_plot(plotter) == "PyVista is not available"
+
+
+def test_startup_code_matplotlib_file_output(monkeypatch, tmp_path):
+    from ansys.aedt.mcp.aedt_helper import startup_code
+
+    output_path = tmp_path / "plot.png"
+    fake_plt = MagicMock()
+    fake_plt.savefig.return_value = None
+    fake_plt.close.return_value = None
+
+    monkeypatch.setattr(startup_code, "MATPLOTLIB_AVAILABLE", True)
+    monkeypatch.setattr(startup_code, "plt", fake_plt)
+
+    result = startup_code.save_matplotlib_plot(
+        filename=str(output_path), return_base64=False, dpi=175
+    )
+
+    assert result == f"Plot saved to {output_path}"
+    fake_plt.savefig.assert_called_once_with(str(output_path), dpi=175, bbox_inches="tight")
+    fake_plt.close.assert_called_once()
+
+
+def test_startup_code_matplotlib_base64_output(monkeypatch):
+    from ansys.aedt.mcp.aedt_helper import startup_code
+
+    fake_buffer = MagicMock()
+    fake_buffer.read.return_value = b"plot-bytes"
+    fake_plt = MagicMock()
+    fake_plt.savefig.return_value = None
+    fake_plt.close.return_value = None
+
+    monkeypatch.setattr(startup_code, "MATPLOTLIB_AVAILABLE", True)
+    monkeypatch.setattr(startup_code, "plt", fake_plt)
+    monkeypatch.setattr(startup_code, "BytesIO", lambda: fake_buffer)
+    monkeypatch.setattr(startup_code.base64, "b64encode", lambda data: b"encoded")
+
+    result = startup_code.save_matplotlib_plot(return_base64=True, dpi=90)
+
+    assert result == "data:image/png;base64,encoded"
+    fake_plt.savefig.assert_called_once_with(fake_buffer, format="PNG", dpi=90, bbox_inches="tight")
+    fake_plt.close.assert_called_once()
+
+
+def test_startup_code_pyvista_file_output(monkeypatch):
+    from ansys.aedt.mcp.aedt_helper import startup_code
+
+    fake_plotter = MagicMock()
+    fake_plotter.screenshot.return_value = None
+    fake_plotter.close.return_value = None
+
+    monkeypatch.setattr(startup_code, "PYVISTA_AVAILABLE", True)
+    monkeypatch.setattr(startup_code, "PIL_AVAILABLE", False)
+
+    result = startup_code.save_pyvista_plot(
+        fake_plotter, filename="C:/tmp/plot.png", return_base64=True
+    )
+
+    assert result == "Plot saved to C:/tmp/plot.png"
+    fake_plotter.screenshot.assert_called_once_with("C:/tmp/plot.png", transparent_background=False)
+    fake_plotter.close.assert_called_once()
+
+
+def test_startup_code_get_aedt_version_paths(monkeypatch):
+    import ansys.aedt.core as aedt_module
+
+    from ansys.aedt.mcp.aedt_helper import startup_code
+
+    monkeypatch.setattr(aedt_module, "__version__", "1.2.3")
+    assert startup_code.get_aedt_version() == "1.2.3"
 
 
 def test_module_entrypoint_invokes_launcher(monkeypatch):
