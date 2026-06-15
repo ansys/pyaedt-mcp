@@ -1,0 +1,31 @@
+// For format details, see https://aka.ms/devcontainer.json.
+{
+  "name": "PyAEDT-MCP-DevContainer",
+  "dockerComposeFile": [
+    "docker-compose.yml"
+  ],
+  "service": "pyaedtdev",
+  "workspaceFolder": "/home/pyaedt/pyaedt-mcp",
+  "postCreateCommand": "/bin/bash ./.devcontainer/start.sh",
+  "remoteUser": "root",
+  "updateRemoteUserUID": true,
+  "customizations": {
+    "vscode": {
+      "openFiles": [
+        ".devcontainer/welcome.rst"
+      ],
+      "extensions": [
+        "ms-python.python"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/home/pyaedt/pyaedt-mcp/.venv_pyaedt/bin/python",
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "python.testing.pytestArgs": [
+          "tests"
+        ],
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestEnabled": true
+      }
+    }
+  }
+}

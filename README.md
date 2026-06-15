@@ -1,7 +1,7 @@
 # PyAEDT MCP Server
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache%202.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 `ansys-aedt-mcp` is an MCP server for Ansys Electronics Desktop (AEDT). It gives an AI client a small set of reliable AEDT tools, plus a persistent PyAEDT-backed Python session for the steps that do not fit a dedicated tool.
 
@@ -172,7 +172,7 @@ If a tool is intentionally available before connection, leave that tag off and m
 
 ## License
 
-MIT License. See [LICENSE](LICENSE).
+Apache 2.0 License. See [LICENSE](LICENSE).
 
 ## Related projects
 

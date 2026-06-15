@@ -360,7 +360,7 @@ class TestOpenProject:
         """Test open project with non-existent file."""
         from ansys.aedt.mcp.tools import open_project
 
-        with patch("ansys.aedt.mcp.tools.os.path.exists", return_value=False):
+        with patch("ansys.aedt.mcp.tools.Path.exists", return_value=False):
             result = open_project(mock_context, project_path="nonexistent.aedt")
             assert "not found" in result
 
@@ -368,7 +368,7 @@ class TestOpenProject:
         """Test successful project open."""
         from ansys.aedt.mcp.tools import open_project
 
-        with patch("ansys.aedt.mcp.tools.os.path.exists", return_value=True):
+        with patch("ansys.aedt.mcp.tools.Path.exists", return_value=True):
             result = open_project(mock_context, project_path="test.aedt")
             assert "Successfully opened" in result
 
@@ -794,7 +794,7 @@ class TestExportConfig:
             patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app),
             patch("tempfile.mkstemp", return_value=(0, str(config_path))),
             patch("os.close"),
-            patch("os.remove"),
+            patch("ansys.aedt.mcp.tools.Path.unlink"),
         ):
             result = export_config(mock_context)
 
@@ -1007,7 +1007,7 @@ class TestRunPythonScript:
         """Test run script with non-existent file."""
         from ansys.aedt.mcp.tools import run_python_script
 
-        with patch("ansys.aedt.mcp.tools.os.path.exists", return_value=False):
+        with patch("ansys.aedt.mcp.tools.Path.exists", return_value=False):
             result = run_python_script(mock_context, script_path="/missing/script.py")
 
         assert "Script file not found" in result
@@ -1018,7 +1018,7 @@ class TestRunPythonScript:
 
         mock_context.request_context.lifespan_context.desktop.odesktop.RunScript.return_value = "OK"
 
-        with patch("ansys.aedt.mcp.tools.os.path.exists", return_value=True):
+        with patch("ansys.aedt.mcp.tools.Path.exists", return_value=True):
             result = run_python_script(mock_context, script_path="test.py")
 
         assert "Script executed successfully" in result
@@ -1032,7 +1032,7 @@ class TestRunPythonScript:
             RuntimeError("Script crashed")
         )
 
-        with patch("ansys.aedt.mcp.tools.os.path.exists", return_value=True):
+        with patch("ansys.aedt.mcp.tools.Path.exists", return_value=True):
             result = run_python_script(mock_context, script_path="test.py")
 
         assert "Error executing script" in result

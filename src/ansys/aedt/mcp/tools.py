@@ -129,11 +129,11 @@ def _resolve_pyaedt_log_file() -> str | None:
         if raw_logger is not None:
             for handler in getattr(raw_logger, "handlers", []):
                 handler_path = getattr(handler, "baseFilename", None)
-                if handler_path and os.path.isfile(handler_path):
+                if handler_path and Path(handler_path).is_file():
                     return str(Path(handler_path).expanduser().resolve())
 
         logger_filename = getattr(pyaedt_logger, "filename", None)
-        if logger_filename and os.path.isfile(logger_filename):
+        if logger_filename and Path(logger_filename).is_file():
             return str(Path(logger_filename).expanduser().resolve())
     except Exception:
         logger.debug("Failed to resolve PyAEDT log file from pyaedt_logger.", exc_info=True)
@@ -300,7 +300,7 @@ def get_pyaedt_logs(
                 "Run a PyAEDT operation first to initialize the logger."
             )
 
-        with open(log_file, "r", encoding="utf-8", errors="replace") as file_handle:
+        with Path(log_file).open("r", encoding="utf-8", errors="replace") as file_handle:
             all_lines = file_handle.readlines()
 
         filtered_lines = all_lines
@@ -685,7 +685,7 @@ def run_python_script(ctx: Context, script_path: str) -> str:
         )
 
     try:
-        if not os.path.exists(script_path):
+        if not Path(script_path).exists():
             return f"Script file not found: {script_path}"
 
         logger.info(f"Executing script: {script_path}")
@@ -886,7 +886,7 @@ def open_project(ctx: Context, project_path: str, design_name: str | None = None
         )
 
     try:
-        if not os.path.exists(project_path):
+        if not Path(project_path).exists():
             return f"Project file not found: {project_path}"
 
         logger.info(f"Opening project: {project_path}")
@@ -1339,7 +1339,7 @@ def screenshot(
         if not image_path.exists():
             raise RuntimeError(f"Screenshot file not created: {output_path}")
 
-        with open(image_path, "rb") as f:
+        with image_path.open("rb") as f:
             image_data = f.read()
         base64_data = base64.b64encode(image_data).decode("utf-8")
         mime_type = "image/jpeg"
@@ -1426,7 +1426,7 @@ def export_config(
         else:
             fd, config_target = tempfile.mkstemp(suffix=".json")
             os.close(fd)
-            os.remove(config_target)
+            Path(config_target).unlink()
             temp_config_file = config_target
 
         config_file = app_instance.configurations.export_config(
@@ -1435,7 +1435,7 @@ def export_config(
         if not config_file:
             raise RuntimeError("Failed to export configuration.")
 
-        with open(config_file, "r", encoding="utf-8") as file_handle:
+        with Path(config_file).open("r", encoding="utf-8") as file_handle:
             config_content = json.load(file_handle)
 
         data: dict[str, Any] = {
@@ -1453,8 +1453,8 @@ def export_config(
         logger.error(error_msg)
         return error_msg
     finally:
-        if temp_config_file and os.path.exists(temp_config_file):
-            os.remove(temp_config_file)
+        if temp_config_file and Path(temp_config_file).exists():
+            Path(temp_config_file).unlink()
 
 
 @app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
