@@ -21,6 +21,7 @@ These tests mock the AEDT Desktop instance and verify tool behavior.
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -392,6 +393,30 @@ class TestSaveProject:
         result = save_project(mock_context)
         assert "saved successfully" in result or "No project" in result
 
+    def test_save_project_save_as(self, mock_context):
+        """Test save-as branch for explicit output path."""
+        from ansys.aedt.mcp.tools import save_project
+
+        result = save_project(mock_context, save_as="C:/tmp/new_project.aedt")
+
+        mock_context.request_context.lifespan_context.desktop.save_project.assert_called_with(
+            project_file="C:/tmp/new_project.aedt"
+        )
+        assert "Project saved to" in result
+
+    def test_save_project_exception(self, mock_context):
+        """Test save project exception handling."""
+        from ansys.aedt.mcp.tools import save_project
+
+        mock_context.request_context.lifespan_context.desktop.save_project.side_effect = (
+            RuntimeError("save failed")
+        )
+
+        result = save_project(mock_context)
+
+        assert "Error saving project" in result
+        assert "save failed" in result
+
 
 @pytest.mark.unit
 class TestClearAEDT:
@@ -410,6 +435,19 @@ class TestClearAEDT:
 
         result = clear_aedt(mock_context)
         assert "cleared" in result or "AEDT" in result
+
+    def test_clear_error(self, mock_context):
+        """Test clear operation exception handling."""
+        from ansys.aedt.mcp.tools import clear_aedt
+
+        mock_context.request_context.lifespan_context.desktop.clear_messages.side_effect = (
+            RuntimeError("clear failed")
+        )
+
+        result = clear_aedt(mock_context)
+
+        assert "Error clearing AEDT" in result
+        assert "clear failed" in result
 
 
 @pytest.mark.unit
@@ -444,6 +482,42 @@ class TestCreateDesign:
 
         result = create_design(mock_context, "InvalidApp", "TestDesign")  # type: ignore
         assert "Unsupported" in result or "Error" in result
+
+    def test_create_design_with_optional_kwargs(self, mock_context):
+        """Test create_design forwards optional project and solution arguments."""
+        from ansys.aedt.mcp.tools import create_design
+
+        with patch("ansys.aedt.core.Hfss") as mock_hfss:
+            mock_instance = MagicMock()
+            mock_instance.design_name = "OptDesign"
+            mock_instance.project_name = "OptProject"
+            mock_instance.solution_type = "DrivenModal"
+            mock_hfss.return_value = mock_instance
+
+            result = create_design(
+                mock_context,
+                "Hfss",
+                design_name="OptDesign",
+                project_name="OptProject",
+                solution_type="DrivenModal",
+            )
+
+        mock_hfss.assert_called_once_with(
+            design="OptDesign",
+            project="OptProject",
+            solution_type="DrivenModal",
+        )
+        assert "Successfully created Hfss design" in result
+
+    def test_create_design_exception(self, mock_context):
+        """Test create_design exception handling."""
+        from ansys.aedt.mcp.tools import create_design
+
+        with patch("ansys.aedt.core.Hfss", side_effect=RuntimeError("create failed")):
+            result = create_design(mock_context, "Hfss", "BrokenDesign")
+
+        assert "Error creating design" in result
+        assert "create failed" in result
 
 
 @pytest.mark.unit
@@ -638,6 +712,41 @@ class TestAnalyzeDesign:
 
         mock_context.request_context.lifespan_context.desktop.analyze_all.assert_not_called()
         assert "setup_name cannot be used" in result
+
+    def test_analyze_design_analyze_all_failure(self, mock_context):
+        """Test desktop analyze_all failure response."""
+        from ansys.aedt.mcp.tools import analyze_design
+
+        mock_context.request_context.lifespan_context.desktop.analyze_all.return_value = False
+
+        result = analyze_design(mock_context, analyze_all_designs=True)
+
+        assert "Analysis failed during desktop-wide analyze_all invocation" in result
+
+    def test_analyze_design_app_failure(self, mock_context):
+        """Test design-level analyze false result message."""
+        from ansys.aedt.mcp.tools import analyze_design
+
+        mock_app = MagicMock()
+        mock_app.project_name = "Project1"
+        mock_app.design_name = "Design1"
+        mock_app.analyze.return_value = False
+
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
+            result = analyze_design(mock_context, setup_name="Setup1")
+
+        assert "Analysis failed." in result
+        assert "Setup: Setup1" in result
+
+    def test_analyze_design_exception(self, mock_context):
+        """Test analyze_design exception handling."""
+        from ansys.aedt.mcp.tools import analyze_design
+
+        with patch("ansys.aedt.core.get_pyaedt_app", side_effect=RuntimeError("analyze boom")):
+            result = analyze_design(mock_context)
+
+        assert "Error during analysis" in result
+        assert "analyze boom" in result
 
 
 @pytest.mark.unit
@@ -954,6 +1063,205 @@ class TestExportResults:
 
         result = export_results(mock_context, output_path="/tmp/out.csv", export_type="convergence")
         assert isinstance(result, str)
+
+
+@pytest.mark.unit
+class TestExportResultsExtended:
+    """Additional branch tests for export_results tool."""
+
+    @pytest.mark.parametrize(
+        ("export_type", "method_name", "success_text"),
+        [
+            ("touchstone", "export_touchstone", "Touchstone exported"),
+            ("profile", "export_profile", "Profile exported"),
+            ("convergence", "export_convergence", "Convergence data exported"),
+            ("mesh", "export_mesh_stats", "Mesh stats exported"),
+        ],
+    )
+    def test_export_result_type_success(
+        self,
+        mock_context,
+        export_type,
+        method_name,
+        success_text,
+    ):
+        """Test successful export branches for all supported export types."""
+        from ansys.aedt.mcp.tools import export_results
+
+        mock_app = MagicMock()
+        getattr(mock_app, method_name).return_value = "OK"
+
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
+            result = export_results(
+                mock_context,
+                output_path="/tmp/out.file",
+                export_type=export_type,
+                setup_name="Setup1",
+            )
+
+        assert success_text in result
+
+    @pytest.mark.parametrize(
+        ("export_type", "missing_method"),
+        [
+            ("touchstone", "export_touchstone"),
+            ("profile", "export_profile"),
+            ("convergence", "export_convergence"),
+            ("mesh", "export_mesh_stats"),
+        ],
+    )
+    def test_export_result_type_unavailable(self, mock_context, export_type, missing_method):
+        """Test unsupported export methods on resolved app objects."""
+        from ansys.aedt.mcp.tools import export_results
+
+        app_without_method = SimpleNamespace()
+        # Ensure only the targeted method is absent.
+        for method in [
+            "export_touchstone",
+            "export_profile",
+            "export_convergence",
+            "export_mesh_stats",
+        ]:
+            if method != missing_method:
+                setattr(app_without_method, method, MagicMock(return_value="OK"))
+
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=app_without_method):
+            result = export_results(
+                mock_context, output_path="/tmp/out.file", export_type=export_type
+            )
+
+        assert "not available" in result
+
+    def test_export_unknown_type(self, mock_context):
+        """Test unknown export type validation message."""
+        from ansys.aedt.mcp.tools import export_results
+
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=MagicMock()):
+            result = export_results(
+                mock_context, output_path="/tmp/out.file", export_type="unknown"
+            )
+
+        assert "Unknown export type" in result
+        assert "Supported: touchstone, profile, convergence, mesh" in result
+
+    def test_export_get_pyaedt_app_exception(self, mock_context):
+        """Test app resolution failure path in export_results."""
+        from ansys.aedt.mcp.tools import export_results
+
+        with patch("ansys.aedt.core.get_pyaedt_app", side_effect=RuntimeError("no design")):
+            result = export_results(mock_context, output_path="/tmp/out.file")
+
+        assert "requires an active application" in result
+
+    def test_export_method_raises_exception(self, mock_context):
+        """Test outer exception handling when export method raises."""
+        from ansys.aedt.mcp.tools import export_results
+
+        mock_app = MagicMock()
+        mock_app.export_touchstone.side_effect = RuntimeError("export boom")
+
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
+            result = export_results(
+                mock_context, output_path="/tmp/out.file", export_type="touchstone"
+            )
+
+        assert "Error exporting results" in result
+        assert "export boom" in result
+
+
+@pytest.mark.unit
+class TestToolErrorBranches:
+    """Additional branch/error tests for top-level tools."""
+
+    def test_check_aedt_status_exception(self, mock_context):
+        """Test status check when backend info retrieval fails."""
+        from ansys.aedt.mcp.tools import check_aedt_status
+
+        with patch("ansys.aedt.mcp.tools.get_aedt_info", side_effect=RuntimeError("status boom")):
+            result = check_aedt_status(mock_context)
+
+        assert "Error checking AEDT status" in result
+        assert "status boom" in result
+
+    def test_get_pyaedt_logs_max_chars_validation(self, mock_context_no_desktop):
+        """Test validation for max_chars parameter."""
+        from ansys.aedt.mcp.tools import get_pyaedt_logs
+
+        result = get_pyaedt_logs(mock_context_no_desktop, max_chars=0)
+        assert "max_chars must be greater than 0" in result
+
+    def test_get_pyaedt_logs_truncation(self, mock_context_no_desktop, tmp_path):
+        """Test large log payload truncation path."""
+        from ansys.aedt.mcp.tools import get_pyaedt_logs
+
+        log_file = tmp_path / "pyaedt_long.log"
+        log_file.write_text("line1\nline2\nline3\nline4\n", encoding="utf-8")
+
+        with patch("ansys.aedt.mcp.tools._resolve_pyaedt_log_file", return_value=str(log_file)):
+            result = get_pyaedt_logs(
+                mock_context_no_desktop,
+                tail_lines=100,
+                max_chars=8,
+            )
+
+        data = json.loads(result)
+        assert data["truncated"] is True
+
+    @pytest.mark.asyncio
+    async def test_launch_application_without_desktop_handle(self, mock_context_no_desktop):
+        """Test application launch failure when desktop handle cannot be resolved."""
+        from ansys.aedt.mcp.tools import launch_aedt
+
+        mock_versions = MagicMock()
+        mock_versions.current_version = "2026.1"
+        mock_versions.latest_version = "2026.1"
+
+        app_instance = MagicMock()
+        app_instance.desktop_class = None
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.mcp.tools.aedt_versions", mock_versions),
+            patch("ansys.aedt.core.Hfss", return_value=app_instance),
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
+        ):
+            result = await launch_aedt(mock_context_no_desktop, application="Hfss")
+
+        assert "Failed to launch AEDT" in result
+        assert "Unable to resolve desktop handle" in result
+
+    @pytest.mark.asyncio
+    async def test_connect_tip_with_project_name(self, mock_context_no_desktop):
+        """Test connect tip text when project_name is provided without design_name."""
+        from ansys.aedt.mcp.tools import connect_to_aedt
+
+        fake_desktop = MagicMock()
+        fake_desktop.aedt_version_id = "2026.1"
+        fake_desktop.is_grpc_api = True
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.core.Desktop", return_value=fake_desktop),
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
+        ):
+            result = await connect_to_aedt(mock_context_no_desktop, project_name="P1")
+
+        assert "Tip: provide design_name" in result
+        assert "and project_name" not in result
+
+    @pytest.mark.asyncio
+    async def test_disconnect_exception_still_clears_desktop(self, mock_context):
+        """Test disconnect exception branch clears context desktop."""
+        from ansys.aedt.mcp.tools import disconnect_from_aedt
+
+        mock_context.request_context.lifespan_context.desktop.release_desktop.side_effect = (
+            RuntimeError("disconnect boom")
+        )
+
+        result = await disconnect_from_aedt(mock_context)
+
+        assert "Error during AEDT disconnect" in result
+        assert mock_context.request_context.lifespan_context.desktop is None
 
 
 @pytest.mark.unit

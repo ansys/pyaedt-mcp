@@ -3,6 +3,7 @@
 
 """Additional unit tests for helper and startup modules."""
 
+import builtins
 from pathlib import Path
 import runpy
 import sys
@@ -25,6 +26,35 @@ def test_open_file_in_default_viewer_paths(monkeypatch):
     monkeypatch.setattr(tools, "_is_docker", lambda: False)
     monkeypatch.setattr(tools.os, "startfile", lambda path: None, raising=False)
     assert tools._open_file_in_default_viewer(Path("C:/tmp/file.txt")) is None
+
+
+def test_open_file_in_default_viewer_platform_paths(monkeypatch):
+    from ansys.aedt.mcp import tools
+
+    monkeypatch.setattr(tools, "_is_docker", lambda: False)
+    monkeypatch.delattr(tools.os, "startfile", raising=False)
+
+    monkeypatch.setattr(tools.sys, "platform", "darwin")
+    monkeypatch.setattr(tools.shutil, "which", lambda name: None)
+    msg = tools._open_file_in_default_viewer(Path("/tmp/file.txt"))
+    assert "open" in msg
+
+    monkeypatch.setattr(tools.sys, "platform", "linux")
+    monkeypatch.setattr(tools.shutil, "which", lambda name: None)
+    msg = tools._open_file_in_default_viewer(Path("/tmp/file.txt"))
+    assert "xdg-open" in msg
+
+
+def test_open_file_in_default_viewer_exception(monkeypatch):
+    from ansys.aedt.mcp import tools
+
+    monkeypatch.setattr(tools, "_is_docker", lambda: False)
+    monkeypatch.setattr(
+        tools.os, "startfile", lambda path: (_ for _ in ()).throw(OSError("boom")), raising=False
+    )
+
+    msg = tools._open_file_in_default_viewer(Path("C:/tmp/file.txt"))
+    assert "Viewer launch failed" in msg
 
 
 def test_configure_pyaedt_runtime_settings(monkeypatch):
@@ -62,6 +92,49 @@ def test_resolve_pyaedt_log_file_from_logger_handler(monkeypatch, tmp_path):
     result = tools._resolve_pyaedt_log_file()
 
     assert result == str(log_file.resolve())
+
+
+def test_resolve_pyaedt_log_file_from_logger_filename(monkeypatch, tmp_path):
+    from ansys.aedt.mcp import tools
+
+    log_file = tmp_path / "from-filename.log"
+    log_file.write_text("ok", encoding="utf-8")
+
+    fake_logger = MagicMock()
+    fake_logger.logger = None
+    fake_logger.filename = str(log_file)
+    fake_logger_module = ModuleType("ansys.aedt.core.aedt_logger")
+    fake_logger_module.pyaedt_logger = fake_logger
+    monkeypatch.setitem(sys.modules, "ansys.aedt.core.aedt_logger", fake_logger_module)
+
+    result = tools._resolve_pyaedt_log_file()
+
+    assert result == str(log_file.resolve())
+
+
+def test_resolve_pyaedt_log_file_from_settings_dir(monkeypatch, tmp_path):
+    from ansys.aedt.mcp import tools
+
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    older = logs_dir / "pyaedt_old.log"
+    newer = logs_dir / "pyaedt_new.log"
+    older.write_text("old", encoding="utf-8")
+    newer.write_text("new", encoding="utf-8")
+
+    fake_logger_module = ModuleType("ansys.aedt.core.aedt_logger")
+    # Force logger branch to fall through.
+    fake_logger_module.pyaedt_logger = object()
+    monkeypatch.setitem(sys.modules, "ansys.aedt.core.aedt_logger", fake_logger_module)
+
+    fake_settings = ModuleType("ansys.aedt.core")
+    fake_settings.settings = MagicMock()
+    fake_settings.settings.logger_file_path = str(logs_dir)
+    monkeypatch.setitem(sys.modules, "ansys.aedt.core", fake_settings)
+
+    result = tools._resolve_pyaedt_log_file()
+
+    assert result.endswith("pyaedt_new.log") or result.endswith("pyaedt_old.log")
 
 
 def test_get_aedt_app_class_known_and_unknown():
@@ -277,6 +350,31 @@ def test_startup_code_get_aedt_version_paths(monkeypatch):
 
     monkeypatch.setattr(aedt_module, "__version__", "1.2.3")
     assert startup_code.get_aedt_version() == "1.2.3"
+
+
+def test_startup_code_get_aedt_version_import_error(monkeypatch):
+    from ansys.aedt.mcp.aedt_helper import startup_code
+
+    original_import = builtins.__import__
+
+    def _import_raises(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "ansys.aedt.core":
+            raise ImportError("missing")
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", _import_raises)
+
+    assert startup_code.get_aedt_version() == "PyAEDT not available"
+
+
+def test_startup_code_list_aedt_applications():
+    from ansys.aedt.mcp.aedt_helper import startup_code
+
+    apps = startup_code.list_aedt_applications()
+
+    assert isinstance(apps, list)
+    assert len(apps) >= 10
+    assert any(item.startswith("Hfss") for item in apps)
 
 
 def test_module_entrypoint_invokes_launcher(monkeypatch):
