@@ -178,4 +178,5 @@ Apache 2.0 License. See [LICENSE](LICENSE).
 
 - [PyAEDT](https://github.com/ansys/pyaedt)
 - [PyAEDT Documentation](https://aedt.docs.pyansys.com/)
+- [FastMCP Documentation](https://github.com/jlowin/fastmcp)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
