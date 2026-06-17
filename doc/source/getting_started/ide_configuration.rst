@@ -90,6 +90,23 @@ If you have cloned the repository and installed it in a virtual environment:
 
 Use ``bin/python`` instead of ``Scripts/python`` on Linux or macOS.
 
+Use uv as an alternative
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you prefer, you can use ``uv`` as your Python package and project manager:
+
+.. code-block:: json
+
+   {
+     "servers": {
+       "pyaedt-mcp": {
+         "type": "stdio",
+         "command": "uv",
+         "args": ["run", "python", "-m", "ansys.aedt.mcp"]
+       }
+     }
+   }
+
 Configure HTTP transport
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -111,6 +128,24 @@ Start the server before connecting:
 .. code-block:: bash
 
    ansys-aedt-mcp --transport http --http-host 127.0.0.1 --http-port 8080
+
+Use Docker endpoint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you start the MCP server with Docker Compose, use the default HTTP endpoint:
+
+.. code-block:: json
+
+   {
+     "servers": {
+       "pyaedt-mcp": {
+         "type": "http",
+         "url": "http://localhost:8080"
+       }
+     }
+   }
+
+For more details, see :doc:`../user_guide/docker`.
 
 Enable MCP in Visual Studio Code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -139,7 +174,10 @@ Edit ``~/Library/Application Support/Claude/claude_desktop_config.json``
          "args": [
            "--from", "git+https://github.com/ansys/pyaedt-mcp.git",
            "ansys-aedt-mcp"
-         ]
+         ],
+        "description": "MCP server for Ansys AEDT through PyAEDT",
+        "version": "0.0.1",
+        "language": "python"
        }
      }
    }
@@ -287,4 +325,3 @@ Next steps
 
 - To understand which tools are available, see :doc:`../user_guide/tools_and_capabilities`.
 - For recommended usage patterns, see :doc:`../user_guide/best_practices`.
-- For containerized deployment, see :doc:`../user_guide/docker`.

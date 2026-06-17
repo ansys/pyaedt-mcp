@@ -65,6 +65,9 @@ html_theme_options = {
         "json_url": f"https://{cname}/versions.json",
         "version_match": switcher_version,
     },
+    "ansys_sphinx_theme_autoapi": {
+        "project": project,
+    },
 }
 
 html_context = {
@@ -77,6 +80,7 @@ html_context = {
 
 # Sphinx extensions
 extensions = [
+    "ansys_sphinx_theme.extension.autoapi",
     "numpydoc",
     "sphinx_design",
     "sphinx.ext.autodoc",
@@ -125,6 +129,7 @@ exclude_patterns = [
 suppress_warnings = [
     "toc.not_included",
     "toc.not_readable",
+    "autoapi.python_import_resolution",
     "design.fa-build",
 ]
 

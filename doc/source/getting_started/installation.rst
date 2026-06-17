@@ -37,19 +37,22 @@ environment.
 Install from source
 -------------------
 
-Use an editable install when working on the server itself.
+Use this option when you have cloned the repository and want a local
+installation.
 
 .. code-block:: bash
 
    git clone https://github.com/ansys/pyaedt-mcp
    cd pyaedt-mcp
-   pip install -e ".[dev]"
+   pip install .
+
+If you plan to contribute (editable install, development dependencies, tests,
+and linters), follow the development setup in :doc:`contribution`.
 
 Start AEDT in gRPC mode
 -----------------------
 
-If you want to attach to an existing AEDT session, start AEDT with a gRPC port
-first.
+If you want to attach to an existing AEDT session, start AEDT in GRPC mode. You can do it from the command line or from the AEDT GUI. By default PyAEDT supports grpc in AEDT 2022 R2 and later.
 
 .. code-block:: bash
 
@@ -72,6 +75,8 @@ Common options:
    ansys-aedt-mcp --transport http --http-host 127.0.0.1 --http-port 8080
    ansys-aedt-mcp --include-context
    ansys-aedt-mcp --dynamic-tool-discovery
+
+After the server starts, you can connect to it with any MCP-compatible client, such as Claude Code, Copilot CLI, Codex, Cursor etc. See :doc:`ide_configuration` for more details.
 
 Important CLI options
 ---------------------
@@ -104,3 +109,12 @@ Once the client is connected to the MCP server, the normal flow is:
 3. Use ``launch_aedt`` or ``connect_to_aedt``.
 4. Open a project or create a design.
 5. Use dedicated tools or ``run_python_code`` for the rest of the workflow.
+
+.. note::
+
+  If an operation is not supported by the tool surface, the AI Agent will
+  generate a Python snippet and call ``run_python_code`` to execute it in the
+  persistent PyAEDT session.
+
+For recommended usage patterns, see :doc:`../user_guide/best_practices`. To
+review the available tool surface, see :doc:`../user_guide/tools_and_capabilities`.

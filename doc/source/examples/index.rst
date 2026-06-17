@@ -3,30 +3,19 @@
 Examples
 ========
 
-These examples show the intended flow more than exact solver setup details.
+In this section, you will find typical end-to-end workflows for common AEDT tasks, as well as a checklist for adding new tools to the server or demonstrating existing tools in short video demos.
 
-Connect to an existing AEDT session
------------------------------------
+.. toctree::
+   :maxdepth: 2
 
-1. Start AEDT with ``-grpcsrv 50051``.
-2. Start the MCP server.
-3. Call ``check_aedt_status`` to confirm whether a connection already exists.
-4. Call ``connect_to_aedt``.
-5. Call ``list_projects`` or ``open_project`` and continue from there.
+   ../user_guide/workflows
+   adding_new_tool
+   video_demos
 
-Create and solve a new design
------------------------------
 
-1. Call ``launch_aedt`` or ``connect_to_aedt``.
-2. Call ``create_design`` for the target solver.
-3. Use ``run_python_code`` for geometry, materials, boundaries, and setup logic.
-4. Call ``analyze_design``.
-5. Call ``export_results`` or ``screenshot``.
+Related example references
+--------------------------
 
-Debug a failing workflow
-------------------------
-
-1. Call ``check_aedt_status`` to confirm connection state.
-2. Call ``get_pyaedt_logs`` to inspect recent PyAEDT output.
-3. Re-run the failing step with a smaller ``run_python_code`` snippet.
-4. Export a screenshot or model summary if the failure looks geometry-related.
+- :doc:`../user_guide/workflows` for solver-specific end-to-end sequences.
+- :doc:`adding_new_tool` for a detailed tool-authoring checklist and flags.
+- :doc:`video_demos` for short demo script ideas and recording guidance.
