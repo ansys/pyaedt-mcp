@@ -3,7 +3,7 @@
 Best practices
 ==============
 
-This section describes recommended usage patterns for PyAEDT-MCP. Following these practices will help you avoid common pitfalls, improve performance, and make your workflows more robust.
+This section describes recommended usage patterns for PyAEDT-MCP. Following these practices helps you avoid common pitfalls, improve performance, and make your workflows more robust.
 
 Session management
 ------------------
@@ -90,7 +90,7 @@ Visualization
 
     .. note::
        Screenshots need the project to be saved beforehand. If the project is unsaved,
-       the screenshot tool will return an error.
+       the screenshot tool returns an error.
 
 **Use** ``run_python_code`` **for custom plots**
     For plots beyond what AEDT produces natively, use PyAEDT's report API or

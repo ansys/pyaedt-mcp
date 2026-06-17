@@ -53,8 +53,8 @@ Use ``REQUIRES_AEDT_TAG`` when the tool cannot run before connection:
    def my_new_tool(ctx: Context) -> str:
        return "ok"
 
-Example: pre-connection tool
-----------------------------
+Example: Pre-connection tool
+---------------------------
 
 Do not use ``REQUIRES_AEDT_TAG`` for tools that work before connecting:
 

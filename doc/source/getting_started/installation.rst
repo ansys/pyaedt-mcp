@@ -49,10 +49,10 @@ installation.
 If you plan to contribute (editable install, development dependencies, tests,
 and linters), follow the development setup in :doc:`contribution`.
 
-Start AEDT in gRPC mode
+Start AEDT in GRPC mode
 -----------------------
 
-If you want to attach to an existing AEDT session, start AEDT in GRPC mode. You can do it from the command line or from the AEDT GUI. By default PyAEDT supports grpc in AEDT 2022 R2 and later.
+If you want to attach to an existing AEDT session, start AEDT in GRPC mode. You can do it from the command line or from the AEDT GUI. By default PyAEDT supports GRPC in AEDT 2022 R2 and later.
 
 .. code-block:: bash
 
@@ -112,7 +112,7 @@ Once the client is connected to the MCP server, the normal flow is:
 
 .. note::
 
-  If an operation is not supported by the tool surface, the AI Agent will
+  If an operation is not supported by the tool surface, the AI Agent can
   generate a Python snippet and call ``run_python_code`` to execute it in the
   persistent PyAEDT session.
 
