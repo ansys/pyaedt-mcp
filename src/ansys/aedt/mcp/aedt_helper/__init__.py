@@ -1,4 +1,4 @@
-# Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
+# Copyright (C) 2025 - 2026 Synopsys, Inc. and ANSYS, Inc. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 #
@@ -13,5 +13,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# AEDT helper module for PyAEDT MCP server
