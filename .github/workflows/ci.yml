@@ -144,6 +144,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           pytest-markers: '-m "not integration"'
+          group-dependencies-name: test
 
   build-docs:
     name: "Build documentation"
@@ -158,6 +159,7 @@ jobs:
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
           dependencies: 'zip libgl1 libglx-mesa0 xvfb'
           sphinxopts: '-W --keep-going'
+          group-dependencies-name: doc
 
   package:
     name: "Package library"
