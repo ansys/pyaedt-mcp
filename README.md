@@ -177,6 +177,6 @@ Apache 2.0 License. See [LICENSE](LICENSE).
 ## Related projects
 
 - [PyAEDT](https://github.com/ansys/pyaedt)
-- [PyMAPDL MCP](https://github.com/ansys/pymapdl-mcp)
-- [PyMechanical MCP](https://github.com/ansys/pymechanical-mcp)
+- [PyAEDT Documentation](https://aedt.docs.pyansys.com/)
+- [FastMCP Documentation](https://github.com/jlowin/fastmcp)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
