@@ -46,8 +46,8 @@ When the MCP starts, it can optionally automatically connect to a running AEDT i
 
         Ask questions or report issues on the GitHub Discussions page.
 
-Documentation sections
-----------------------
+Setup and advanced tips
+-----------------------
 
 .. grid:: 2 2 2 2
     :gutter: 1 2 3 3
