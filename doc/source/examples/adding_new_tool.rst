@@ -54,7 +54,7 @@ Use ``REQUIRES_AEDT_TAG`` when the tool cannot run before connection:
        return "ok"
 
 Example: Pre-connection tool
----------------------------
+----------------------------
 
 Do not use ``REQUIRES_AEDT_TAG`` for tools that work before connecting:
 
