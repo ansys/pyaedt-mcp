@@ -123,13 +123,11 @@ Running inline PyAEDT code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Use ``run_python_code`` for geometry creation, parameter updates, boundary
-assignment, and any step that does not have a dedicated tool:
+assignment, and any step that does not have a dedicated tool.
 
-*"Run this code: hfss = Hfss(port=desktop.port); box = hfss.modeler.create_box([0,0,0], [10,10,2], name='Sub', material='FR4_epoxy')"*
+All this code will be executed in the **persistent Python session** of the current AEDT Desktop instance. Imports and variables defined in one call are available in all subsequent calls.
 
-``run_python_code`` and ``run_python_script`` share a **persistent Python
-session**, so imports and variables defined in one call are available in all
-subsequent calls.
+``run_python_script`` is also available for executing a complete Python file in the same persistent session. Depending on the size of the script, or the agent guidance, it can use ``run_python_code`` instead of ``run_python_script`` to execute the script in smaller chunks.
 
 Running an analysis
 ~~~~~~~~~~~~~~~~~~~
@@ -194,51 +192,6 @@ server indefinitely.
      - 600 s
      - ``run_python_script``, ``run_python_code``, ``analyze_design``,
        ``export_results``
-
-Workflow examples
------------------
-
-HFSS patch antenna
-~~~~~~~~~~~~~~~~~~
-
-#. ``check_aedt_installed``
-#. ``connect_to_aedt`` or ``launch_aedt``
-#. ``create_design`` with ``app_type="Hfss"``
-#. ``run_python_code`` — create substrate, patch, ground plane, airbox, ports
-#. ``run_python_code`` — create analysis setup and frequency sweep
-#. ``analyze_design``
-#. ``run_python_code`` — create S-parameter report
-#. ``export_results`` — export ``.s1p`` Touchstone file
-
-Maxwell motor analysis
-~~~~~~~~~~~~~~~~~~~~~~
-
-#. ``connect_to_aedt`` or ``launch_aedt``
-#. ``create_design`` with ``app_type="Maxwell3d"``
-#. ``run_python_code`` — build motor geometry and assign materials
-#. ``run_python_code`` — assign windings, excitations, and motion setup
-#. ``analyze_design``
-#. ``run_python_code`` — create torque/speed report
-
-Icepak thermal analysis
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-#. ``connect_to_aedt`` or ``launch_aedt``
-#. ``create_design`` with ``app_type="Icepak"``
-#. ``run_python_code`` — create PCB, components, and heat sources
-#. ``run_python_code`` — assign boundary conditions
-#. ``analyze_design``
-#. ``run_python_code`` — create temperature-contour plot
-#. ``export_results``
-
-Parametric study
-~~~~~~~~~~~~~~~~
-
-#. Launch AEDT and create design.
-#. Use ``run_python_code`` to define and register design variables.
-#. Create a parametric setup in PyAEDT and add parameter combinations.
-#. ``analyze_design`` — solver iterates over all combinations.
-#. ``run_python_code`` — extract and aggregate results.
 
 Best practices
 --------------

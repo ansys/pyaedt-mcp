@@ -12,5 +12,6 @@ and how to use the server effectively.
 
    overview
    tools_and_capabilities
+   workflows
    best_practices
    docker

@@ -44,7 +44,7 @@ If none of the templates fits, open a `blank issue
 Development setup
 =================
 
-Clone and install:
+Clone and install in editable mode with development dependencies:
 
 .. code-block:: bash
 
@@ -59,6 +59,9 @@ Run the tests:
 
    pytest -q
 
+.. note::
+   Pull requests are accepted only when code coverage is greater than 80%.
+
 Run the linters:
 
 .. code-block:: bash
@@ -71,30 +74,24 @@ Build the documentation:
 
    python -m sphinx -W -b html doc/source doc/_build/html
 
-Adding a new tool
------------------
+API reference generation
+========================
 
-When adding a new ``@app.tool(...)`` to ``src/ansys/aedt/mcp/tools.py``:
+PyAEDT-MCP API docs are generated automatically during Sphinx builds.
 
-1. **If the tool requires an active AEDT connection**, tag it with
-   ``REQUIRES_AEDT_TAG``:
+- AutoAPI extension: ``ansys_sphinx_theme.extension.autoapi`` (configured in
+  ``doc/source/conf.py``)
+- Source package: ``src/ansys/aedt/mcp``
+- Entry page: :doc:`../api/index`
 
-   .. code-block:: python
+When you add or rename modules, classes, or functions under
+``src/ansys/aedt/mcp``, rebuild the docs to refresh generated API pages:
 
-      from ansys.aedt.mcp.tools import REQUIRES_AEDT_TAG
+.. code-block:: bash
 
-      @app.tool(tags={REQUIRES_AEDT_TAG})
-      def my_new_tool(ctx: Context, ...) -> str:
-          ...
+   python -m sphinx -W -b html doc/source doc/_build/html
 
-2. **If the tool is usable before any AEDT session** (for example, an
-   installation check), do *not* add that tag and make sure
-   ``tests/test_tools.py`` still reflects the expected pre-connection surface.
+To improve API output quality, write clear NumPy-style docstrings for public
+objects and keep module docstrings up to date.
 
-3. **Add the tool to the appropriate group of tools** in
-   ``src/ansys/aedt/mcp/toolsets.py`` so that it appears in the
-   ``toolsets://definition`` discovery resource. The
-   ``test_toolsets.py::TestToolsetsResource::test_every_registered_tool_appears_in_some_toolset``
-   test fails if it is missing.
-
-4. **Document the tool** in :doc:`../user_guide/tools_and_capabilities`.
+For tool-authoring guidance, see :doc:`../examples/adding_new_tool`.
