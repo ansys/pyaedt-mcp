@@ -3,9 +3,8 @@ build-backend = "flit_core.buildapi"
 requires = ["flit_core >=3.2,<4"]
 
 [project]
-authors = [
-  {name = "ANSYS, Inc.", email = "pyansys.core@ansys.com"},
-]
+authors = [{name = "Synopsys, Inc. and ANSYS, Inc.", email = "pyansys-core@synopsys.com"}]
+maintainers = [{ name = "Synopsys, Inc. and ANSYS, Inc.", email = "pyansys-core@synopsys.com" }]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
@@ -39,9 +38,6 @@ keywords = [
   "thermal-analysis",
 ]
 license = {file = "LICENSE"}
-maintainers = [
-  {name = "ANSYS, Inc.", email = "pyansys.core@ansys.com"},
-]
 name = "ansys-aedt-mcp"
 readme = "README.md"
 requires-python = ">=3.10,<4"

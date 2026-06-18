@@ -13,6 +13,7 @@
 [Uu]nescaped
 ansys
 Ansys
+[Ss]ynopsys
 Anthropic's
 Claude Code
 Claude Desktop
