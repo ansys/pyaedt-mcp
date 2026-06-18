@@ -3,7 +3,17 @@
 API reference
 =============
 
-The API reference is intentionally empty for now.
+The API reference is generated automatically from the source code in
+``src/ansys/aedt/mcp`` using the ``ansys_sphinx_theme.extension.autoapi``
+Sphinx extension.
 
-Use the README and the user guide for the current overview of the CLI,
-registered tools, and repository structure.
+This page links to the generated package documentation:
+
+.. toctree::
+
+   :maxdepth: 2
+
+   ansys/aedt/mcp/index
+
+The generated pages include module-level references for server wiring,
+contexts, helpers, prompts, and the registered tool surface.

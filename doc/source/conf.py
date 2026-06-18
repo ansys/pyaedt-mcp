@@ -61,9 +61,12 @@ html_theme_options = {
             "icon": "fa fa-comment fa-fw",
         },
     ],
-    "switcher": {
-        "json_url": f"https://{cname}/versions.json",
-        "version_match": switcher_version,
+    #    "switcher": {
+    #        "json_url": f"https://{cname}/versions.json",
+    #        "version_match": switcher_version,
+    #    },
+    "ansys_sphinx_theme_autoapi": {
+        "project": project,
     },
 }
 
@@ -77,6 +80,7 @@ html_context = {
 
 # Sphinx extensions
 extensions = [
+    "ansys_sphinx_theme.extension.autoapi",
     "numpydoc",
     "sphinx_design",
     "sphinx.ext.autodoc",
@@ -108,6 +112,7 @@ numpydoc_validation_checks = {
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
+html_static_path = ["_static"]
 
 # The suffix(es) of source filenames.
 source_suffix = ".rst"
@@ -125,6 +130,7 @@ exclude_patterns = [
 suppress_warnings = [
     "toc.not_included",
     "toc.not_readable",
+    "autoapi.python_import_resolution",
     "design.fa-build",
 ]
 

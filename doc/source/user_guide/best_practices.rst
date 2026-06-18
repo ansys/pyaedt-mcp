@@ -3,6 +3,8 @@
 Best practices
 ==============
 
+This section describes recommended usage patterns for PyAEDT-MCP. Following these practices helps you avoid common pitfalls, improve performance, and make your workflows more robust.
+
 Session management
 ------------------
 
@@ -19,8 +21,11 @@ Session management
 
 **Clean shutdown**
     Disconnect properly when done. Abrupt termination can leave AEDT processes
-    running and files in an inconsistent state. Use ``disconnect_from_aedt``
-    for a graceful release or ``clear_aedt`` to also close all open projects.
+    running and files in an inconsistent state. The active AEDT session stays
+    tied to the MCP server until you explicitly release it. If you do not
+    release it first, AEDT might not close normally from the UI. Use
+    ``disconnect_from_aedt`` for a graceful release or ``clear_aedt`` to also
+    close all open projects.
 
 **Error handling**
     Check the text returned by every tool for error messages before
@@ -36,25 +41,11 @@ Scripting with ``run_python_code``
     ``run_python_code`` calls rather than one large script; this gives the AI
     assistant a chance to inspect intermediate state.
 
-**Always include the safety preamble**
-    Before any PyAEDT code that interacts with a live AEDT instance, include:
-
-    .. code-block:: python
-
-       from ansys.aedt.core import settings
-       settings.release_on_exception = False
-
-    This prevents AEDT from shutting down if an exception occurs during the
-    tool call.
-
-**Reuse the Desktop port**
-    When opening a PyAEDT app class (``Hfss``, ``Maxwell3d``, and so
-    on), always pass ``port=desktop.port`` to attach to the existing session
-    rather than launching a new AEDT process:
-
-    .. code-block:: python
-
-       hfss = Hfss(project="MyProject", design="Antenna", port=desktop.port)
+     .. note::
+         By default, PyAEDT-MCP applies ``settings.release_on_exception = False``
+         in the execution session. This keeps the AEDT session alive when
+         generated code fails, which allows the AI agent to iterate and retry
+         fixes instead of losing the whole session.
 
 **Prefer** ``run_python_code`` **over** ``run_python_script``
     Use ``run_python_code`` for short inline tasks. Reserve
@@ -65,6 +56,11 @@ Scripting with ``run_python_code``
     When ``--include-context`` is active, call ``get_guidelines_for`` with the
     relevant topic before writing PyAEDT code. The returned guidelines contain
     correct API patterns, avoiding common mistakes.
+
+.. warning::
+   AI-generated code can still close or destabilize a project unexpectedly in
+   some cases. Save your project frequently and keep a backup copy before
+   running larger generated code blocks.
 
 Data handling
 -------------
@@ -78,10 +74,11 @@ Data handling
     Store extracted data in Python variables within the persistent session so
     subsequent analysis steps can reuse it without re-querying AEDT.
 
-**Validate results**
-    After extraction, verify that values are physically plausible (for
-    example, positive power, non-zero S-parameters, realistic temperatures)
-    before building reports or exporting.
+    .. note::
+       A recommended workflow is to extract the data you need, then disconnect
+       from AEDT when possible. This reduces risk, frees Desktop resources,
+       and lets you continue post-processing in Python without keeping AEDT
+       open longer than necessary.
 
 Visualization
 -------------
@@ -90,6 +87,10 @@ Visualization
     Call ``screenshot`` after geometry creation, after meshing, and after
     analysis to give the AI assistant a visual checkpoint. This helps detect
     geometry errors before solving.
+
+    .. note::
+       Screenshots need the project to be saved beforehand. If the project is unsaved,
+       the screenshot tool returns an error.
 
 **Use** ``run_python_code`` **for custom plots**
     For plots beyond what AEDT produces natively, use PyAEDT's report API or
@@ -114,11 +115,6 @@ Workflow design
     in a ``run_python_code`` call before passing them to the solver. Early
     validation avoids long solve runs that fail for trivial reasons.
 
-**Progress feedback**
-    Include ``check_aedt_status`` and ``get_pyaedt_logs`` calls at key points
-    in long-running workflows. This surfaces solver progress and errors in near
-    real-time.
-
 **Design for recovery**
     Structure workflows so that individual steps can be re-run without
     starting over. Use ``save_project`` after expensive geometry or mesh steps
@@ -131,10 +127,6 @@ Performance
     Relaunching AEDT adds tens of seconds of overhead. Reuse the existing
     session across as many operations as possible.
 
-**Adaptive meshing is preferred**
-    Rely on AEDT's adaptive mesh refinement rather than manually specifying
-    mesh operations unless a specific convergence criterion requires it.
-
 **Parallel independent analyses**
     When running multiple independent designs (for example, a geometry sweep),
     consider using AEDT's built-in parametric solver rather than running
@@ -144,32 +136,3 @@ Performance
     Extract result data into Python arrays or DataFrames and perform analysis
     there rather than issuing repeated AEDT queries. The persistent session
     retains the data between calls.
-
-Common workflow patterns
-------------------------
-
-Parametric sweep
-~~~~~~~~~~~~~~~~
-
-#. Define the parameter space in PyAEDT ``ParameterSet``.
-#. Register all combinations with the parametric setup.
-#. Call ``analyze_design`` once; the solver iterates internally.
-#. Use ``run_python_code`` to extract and aggregate results after the solve.
-
-Convergence study
-~~~~~~~~~~~~~~~~~
-
-#. Solve with the default coarse mesh.
-#. Inspect convergence data via ``export_results`` (type ``convergence``).
-#. Refine the mesh selectively with mesh operations.
-#. Re-run ``analyze_design``.
-#. Repeat until the result delta meets the acceptance criterion.
-
-Debugging a failed solve
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-#. Call ``check_aedt_status`` to confirm the session is still alive.
-#. Call ``get_pyaedt_logs`` with a ``contains`` filter for ``error`` or
-   ``warning``.
-#. Take a ``screenshot`` to visually inspect the model state.
-#. Reproduce the failing step with a minimal ``run_python_code`` snippet.

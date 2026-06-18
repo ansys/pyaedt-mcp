@@ -3,30 +3,26 @@
 Examples
 ========
 
-These examples show the intended flow more than exact solver setup details.
+In this section, you can find typical end-to-end workflows for common AEDT tasks, as well as a checklist for adding new tools to the server or demonstrating existing tools in short video demos.
 
-Connect to an existing AEDT session
------------------------------------
+.. grid:: 2 2 2 2
+   :gutter: 1 2 3 3
+   :padding: 1 2 3 3
 
-1. Start AEDT with ``-grpcsrv 50051``.
-2. Start the MCP server.
-3. Call ``check_aedt_status`` to confirm whether a connection already exists.
-4. Call ``connect_to_aedt``.
-5. Call ``list_projects`` or ``open_project`` and continue from there.
+   .. grid-item-card:: :fa:`diagram-project` Workflow examples
+      :link: ../user_guide/workflows
+      :link-type: doc
 
-Create and solve a new design
------------------------------
+      Follow practical end-to-end AEDT workflows using the MCP toolset.
 
-1. Call ``launch_aedt`` or ``connect_to_aedt``.
-2. Call ``create_design`` for the target solver.
-3. Use ``run_python_code`` for geometry, materials, boundaries, and setup logic.
-4. Call ``analyze_design``.
-5. Call ``export_results`` or ``screenshot``.
+   .. grid-item-card:: :fa:`wrench` Adding a new tool
+      :link: adding_new_tool
+      :link-type: doc
 
-Debug a failing workflow
-------------------------
+      Use a practical checklist to add, validate, and expose new tools.
 
-1. Call ``check_aedt_status`` to confirm connection state.
-2. Call ``get_pyaedt_logs`` to inspect recent PyAEDT output.
-3. Re-run the failing step with a smaller ``run_python_code`` snippet.
-4. Export a screenshot or model summary if the failure looks geometry-related.
+   .. grid-item-card:: :fa:`video` Video demos
+      :link: video_demos
+      :link-type: doc
+
+      Watch short demos that show common workflows and capabilities.
