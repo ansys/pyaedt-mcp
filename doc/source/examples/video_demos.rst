@@ -3,15 +3,21 @@
 Video demos
 ===========
 
-MCP antenna demo video.
+Watch a video demonstrating the PyAEDT MCP antenna workflow.
 
-.. raw:: html
+Main features
+-------------
 
-   <video controls preload="metadata" style="width: 100%; max-width: 960px; border-radius: 8px;">
-     <source src="../_static/videos/mcp_antenna.mp4" type="video/mp4">
-     Your browser does not support embedded videos.
-   </video>
+The following video demonstrates the PyAEDT MCP antenna workflow in action.
 
-.. raw:: html
+.. only:: html
 
-   <p><a href="../_static/videos/mcp_antenna.mp4">Download the video</a></p>
+    .. raw:: html
+
+         <figure style="text-align:center;">
+            <video controls muted loop autoplay style="width:80%;">
+               <source src="../_static/videos/mcp_antenna.mp4" type="video/mp4">
+               Your browser does not support the video tag.
+            </video>
+            <figcaption>Video of the PyAEDT MCP antenna workflow</figcaption>
+         </figure>
