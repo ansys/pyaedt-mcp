@@ -15,7 +15,7 @@ env:
   MAIN_PYTHON_VERSION: "3.13"
   PACKAGE_NAME: "ansys-aedt-mcp"
   DOCUMENTATION_CNAME: "aedt-mcp.docs.pyansys.com"
-  
+
 jobs:
 
   update-changelog:
@@ -58,7 +58,7 @@ jobs:
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
           dev-mode: ${{ github.ref != 'refs/heads/main' }}
           exit-with-error-on-new-advisory: false
-          
+
   code-style:
     name: "Code style checks"
     runs-on: ubuntu-latest
