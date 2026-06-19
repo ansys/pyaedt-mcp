@@ -150,9 +150,7 @@ linkcheck_ignore = [
 # If we are on a release, we have to ignore the "release" URLs, since it is not
 # available until the release is published.
 if switcher_version != "dev":
-    linkcheck_ignore.append(
-        f"https://github.com/ansys/pyaedt-mcp/releases/tag/v{__version__}"
-    )
+    linkcheck_ignore.append(f"https://github.com/ansys/pyaedt-mcp/releases/tag/v{__version__}")
 
 linkcheck_allowed_redirect = [
     r"https://tox.wiki/",
