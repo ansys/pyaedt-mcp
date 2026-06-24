@@ -1,7 +1,14 @@
 .. _ref_index:
 
-.. image:: _static/images/logo_minimal.png
-    :alt: PyAEDT-MCP minimal logo
+.. image:: _static/images/logo_minimal_dark.png
+    :alt: PyAEDT-MCP logo
+    :class: only-dark
+    :align: center
+    :width: 700
+
+.. image:: _static/images/logo_minimal_light.png
+    :alt: PyAEDT-MCP logo
+    :class: only-light
     :align: center
     :width: 700
 
