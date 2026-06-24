@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="doc/source/_static/images/logo.png" alt="PyAEDT MCP" width="420">
+  <img src="doc/source/_static/images/logo.png" alt="PyAEDT MCP" width="800">
 </p>
 
 # PyAEDT MCP Server
