@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="doc/source/_static/images/logo.png" alt="PyAEDT MCP" width="420">
+</p>
+
 # PyAEDT MCP Server
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
