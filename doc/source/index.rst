@@ -1,8 +1,9 @@
 .. _ref_index:
 
-==========
-PyAEDT-MCP
-==========
+.. image:: _static/images/logo_minimal.png
+    :alt: PyAEDT-MCP minimal logo
+    :align: center
+    :width: 700
 
 .. toctree::
    :hidden:
