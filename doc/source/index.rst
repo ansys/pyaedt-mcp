@@ -22,7 +22,7 @@
    examples/index
    changelog
 
-PyAEDT-MCP is an MCP (Model Context Protocol) server for Ansys Electronics Desktop (AEDT), built using `FastMCP <https://github.com/PrefectHQ/fastmcp>`_. It provides a focused set of tools and a persistent `PyAEDT <https://github.com/ansys/pyaedt>`_-backed Python session.
+PyAEDT-MCP is an MCP (Model Context Protocol) server for Ansys Electronics Desktop (AEDT), built using `FastMCP <https://github.com/PrefectHQ/fastmcp>`_. It provides a focused set of tools and a persistent `PyAEDT <https://github.com/ansys/pyaedt>`__-backed Python session.
 When the MCP starts, it can optionally automatically connect to a running AEDT instance.
 
 .. grid:: 2 2 2 2
