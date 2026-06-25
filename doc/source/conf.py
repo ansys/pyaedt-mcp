@@ -1,4 +1,4 @@
-# Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
+# Copyright (C) 2025 - 2026 Synopsys, Inc. and ANSYS, Inc. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 #
@@ -26,8 +26,8 @@ from ansys.aedt.mcp import __version__
 
 # Project information
 project = "pyaedt-mcp"
-copyright = f"(c) {datetime.now().year} ANSYS, Inc. All rights reserved"
-author = "ANSYS, Inc."
+copyright = f"(c) {datetime.now().year} Synopsys, Inc. and ANSYS, Inc. All rights reserved"
+author = "Synopsys, Inc. and ANSYS, Inc."
 release = version = __version__
 cname = os.getenv("DOCUMENTATION_CNAME", "aedt-mcp.docs.pyansys.com")
 switcher_version = get_version_match(__version__)

@@ -1,5 +1,5 @@
 <!--
-Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
+Copyright (C) 2025 - 2026 Synopsys, Inc. and ANSYS, Inc. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 
@@ -29,7 +29,7 @@ limitations under the License.
 > [!CAUTION]
 > Do not use GitHub issues to report any security vulnerabilities.
 
-If you detect a vulnerability, contact the [PyAnsys Core team](mailto:pyansys.core@ansys.com),
+If you detect a vulnerability, contact the [PyAnsys Core team](mailto:pyansys-core@synopsys.com),
 mentioning the repository and the details of your finding. The team will address it as soon as possible.
 
 Provide the PyAnsys Core team with this information:
