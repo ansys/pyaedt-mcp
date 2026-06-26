@@ -3,22 +3,15 @@ build-backend = "flit_core.buildapi"
 requires = ["flit_core >=3.2,<4"]
 
 [project]
-authors = [{name = "Synopsys, Inc. and ANSYS, Inc.", email = "pyansys-core@synopsys.com"}]
-classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Intended Audience :: Developers",
-  "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: Apache Software License",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Topic :: Scientific/Engineering",
-  "Topic :: Scientific/Engineering :: Electronic Design Automation (Electromagnetics)",
-  "Topic :: Software Development :: Libraries :: Python Modules",
-]
+name = "ansys-aedt-mcp"
+version = "0.1.dev0"
 description = "Model Context Protocol (MCP) server for Ansys Electronics Desktop (AEDT) through PyAEDT"
+readme = "README.md"
+requires-python = ">=3.10,<4"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{name = "Synopsys, Inc. and ANSYS, Inc.", email = "pyansys-core@synopsys.com"}]
+maintainers = [{name = "Synopsys, Inc. and ANSYS, Inc.", email = "pyansys-core@synopsys.com"}]
 keywords = [
   "ansys",
   "aedt",
@@ -36,45 +29,42 @@ keywords = [
   "rf-simulation",
   "thermal-analysis",
 ]
-license = {file = "LICENSE"}
-maintainers = [{name = "Synopsys, Inc. and ANSYS, Inc.", email = "pyansys-core@synopsys.com"}]
-name = "ansys-aedt-mcp"
-readme = "README.md"
-requires-python = ">=3.10,<4"
-version = "0.1.0"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Electronic Design Automation (Electromagnetics)",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
 
 dependencies = [
   "pyaedt[all]>=0.10.0",
-  "fastmcp>=3.2.0,<4.0",
   "ansys-common-mcp>=0.3.0",
   "matplotlib>=3.5.0",
-  "tabulate>=0.9.0",
 ]
 
-[dependency-groups]
-dev = [
-  "pre-commit>=4.0",
-  "ruff>=0.11.0",
-  "mypy>=1.8.0",
-  "bandit[toml]>=1.8.0",
-  { include-group = "doc" },
-  { include-group = "test" }
+[project.optional-dependencies]
+tests = [
+  "ansys-common-mcp==0.3.2",
+  "matplotlib==3.11.0",
+  "pyaedt==1.1.0",
+  "pytest==9.1.1",
+  "pytest-asyncio==1.4.0",
+  "pytest-cov==7.1.0",
+  "pytest-mock==3.15.1",
 ]
-
-test = [
-  "pytest>=9.0.2",
-  "pytest-asyncio>=1.3.0",
-  "pytest-cov>=7.0.0",
-  "pytest-mock>=3.15.1",
-]
-
 doc = [
   "ansys-sphinx-theme[autoapi,changelog]==1.8.2",
   "numpydoc==1.10.0",
   "sphinx-autodoc-typehints==3.1.0",
-  "sphinx-design>=0.5.0",
+  "sphinx-design==0.7.0",
   "sphinx-notfound-page==1.1.0",
-  "sphinx==8.2.3",
   "sphinxcontrib-video==0.4.2",
 ]
 
@@ -95,12 +85,6 @@ fix = true
 format.indent-style = "space"
 format.quote-style = "double"
 line-length = 100
-lint.ignore = [
-  "D100", # Missing docstring in public module
-  "D104", # Missing docstring in public package
-  "D401", # First line of docstring should be in imperative mood
-  "TD002", # Missing author in TODO comments
-]
 lint.isort.combine-as-imports = true
 lint.isort.force-sort-within-sections = true
 lint.isort.known-first-party = ["ansys.aedt.mcp"]
@@ -119,22 +103,21 @@ lint.select = [
 ]
 
 [tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+namespace_packages = true
+explicit_package_bases = true
+ignore_missing_imports = true
+warn_unused_configs = true
 exclude = [
   "^\\.venv/",
   "^venv/",
   "^build/",
   "^dist/",
 ]
-explicit_package_bases = true
-ignore_missing_imports = true
-mypy_path = "src"
-namespace_packages = true
-python_version = "3.10"
-strict = false
-warn_return_any = true
-warn_unused_configs = true
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 addopts = "--cov=ansys.aedt.mcp --cov-report=term-missing --cov-report=html --cov-report=xml --tb=short -q"
 asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "auto"
@@ -143,11 +126,6 @@ markers = [
   "unit: marks tests as unit tests (do not require running AEDT instance)",
   "slow: Tests that take a long time to run",
 ]
-testpaths = ["tests"]
-
-[tool.bandit]
-exclude_dirs = ["tests", ".venv", "venv"]
-skips = ["B101"] # Skip assert_used in tests
 
 [tool.uv]
 index-strategy = "unsafe-best-match"
