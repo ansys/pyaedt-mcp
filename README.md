@@ -4,7 +4,10 @@
 
 # PyAEDT MCP Server
 
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.14%2B-blue.svg)](https://www.python.org/)
 [![License: Apache%202.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 `ansys-aedt-mcp` is an MCP server for Ansys Electronics Desktop (AEDT). It gives an AI client a small set of reliable AEDT tools, plus a persistent PyAEDT-backed Python session for the steps that do not fit a dedicated tool.
@@ -45,7 +48,7 @@ pre-commit install
 
 ## Requirements
 
-- Python 3.10 or later
+- Python 3.11 or later
 - AEDT 2022 R2 or later for gRPC workflows
 - A local AEDT installation, or a reachable remote AEDT gRPC endpoint
 
