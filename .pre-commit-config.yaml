@@ -18,7 +18,7 @@ repos:
     hooks:
     - id: add-license-headers
       args:
-      - --start_year=2025
+      - --start_year=2026
       - --custom_license=Apache-2.0
 
   # General file checks
@@ -44,8 +44,6 @@ repos:
       - id: mypy
         args: [--config-file=pyproject.toml]
         exclude: ^(tests/|\.venv/|venv/)
-        additional_dependencies:
-          - types-tabulate
 
   # Security checks with bandit
   - repo: https://github.com/PyCQA/bandit
