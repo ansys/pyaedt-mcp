@@ -58,6 +58,29 @@ def _probe_grpc_endpoint(host: str, port: int, timeout: float = 2.0) -> dict[str
         return {"reachable": False, "host": host, "port": port, "error": str(e)}
 
 
+def discover_available_aedt_sessions() -> list[dict[str, Any]]:
+    """Discover AEDT sessions currently running on the local system.
+
+    Returns
+    -------
+    list[dict[str, Any]]
+        Session metadata similar to the PyAEDT CLI ``session list`` output.
+        Each entry includes whether the session is connectable from the MCP,
+        which currently requires gRPC mode with a known port.
+    """
+    from ansys.aedt.core.cli.aedt import _discover_aedt_sessions
+
+    sessions = _discover_aedt_sessions()
+    normalized_sessions = []
+    for session_info in sessions:
+        normalized = dict(session_info)
+        normalized["connectable"] = (
+            normalized.get("mode") == "grpc" and normalized.get("port") is not None
+        )
+        normalized_sessions.append(normalized)
+    return normalized_sessions
+
+
 def get_aedt_info(desktop: Any) -> dict[str, Any]:
     """Get comprehensive information from an AEDT Desktop instance.
 

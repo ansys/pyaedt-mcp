@@ -39,6 +39,7 @@ from ansys.aedt.mcp import app
 from ansys.aedt.mcp.helpers import (
     _is_docker,
     _probe_grpc_endpoint,
+    discover_available_aedt_sessions,
     get_aedt_info,
 )
 from ansys.aedt.mcp.server import session
@@ -56,6 +57,48 @@ REQUIRES_AEDT_TAG = "requires_aedt"
 _TIMEOUT_QUICK = 30  # status checks, listing, info queries
 _TIMEOUT_MEDIUM = 120  # connect, open/save, create design, screenshot
 _TIMEOUT_LONG = 600  # launch, script execution, analysis, exports
+
+
+def _build_disconnected_status_message(connectable_sessions: list[dict[str, Any]]) -> str:
+    """Build a user-facing status message when the MCP is not attached to AEDT."""
+    base_message = (
+        "No AEDT Desktop connection available in this MCP session. "
+        "Use connect_to_aedt or launch_aedt tool to establish a connection."
+    )
+    if not connectable_sessions:
+        return base_message
+    if len(connectable_sessions) == 1:
+        session_info = connectable_sessions[0]
+        return (
+            f"{base_message} Found one running gRPC AEDT session on port {session_info['port']} "
+            "that can be attached with connect_to_aedt."
+        )
+    session_list = ", ".join(str(session_info["port"]) for session_info in connectable_sessions)
+    return (
+        f"{base_message} Multiple running gRPC AEDT sessions are available on "
+        f"ports {session_list}. "
+        "Ask the user which session to attach before calling connect_to_aedt."
+    )
+
+
+def _summarize_available_sessions(sessions: list[dict[str, Any]]) -> str:
+    """Format discovered sessions for a selection prompt."""
+    lines = []
+    for session_info in sessions:
+        non_graphical = session_info["non_graphical"]
+        if non_graphical is None:
+            ui_mode = "Unknown"
+        else:
+            ui_mode = "Non-graphical" if non_graphical else "Graphical"
+        lines.append(
+            "- "
+            f"PID {session_info['pid']}, "
+            f"port {session_info['port']}, "
+            f"version {session_info['version']}, "
+            f"UI {ui_mode}, "
+            f"edition {'Student' if session_info.get('student_version', False) else 'Standard'}"
+        )
+    return "\n".join(lines)
 
 
 def _open_file_in_default_viewer(path: Path) -> str | None:
@@ -236,15 +279,27 @@ def check_aedt_status(ctx: Context) -> str:
         Returns an error message if AEDT is not available.
     """
     desktop = ctx.request_context.lifespan_context.desktop
+    available_sessions = discover_available_aedt_sessions()
+    connectable_sessions = [
+        session_info for session_info in available_sessions if session_info.get("connectable")
+    ]
 
     if desktop is None:
-        return (
-            "No AEDT Desktop connection available. "
-            "Use connect_to_aedt or launch_aedt tool to establish a connection."
-        )
+        payload = {
+            "connected": False,
+            "message": _build_disconnected_status_message(connectable_sessions),
+            "available_sessions": available_sessions,
+            "connectable_sessions": connectable_sessions,
+            "session_count": len(available_sessions),
+            "connectable_session_count": len(connectable_sessions),
+        }
+        return json.dumps(payload, indent=2)
 
     try:
         info = get_aedt_info(desktop)
+        info["connected"] = True
+        info["available_sessions"] = available_sessions
+        info["connectable_sessions"] = connectable_sessions
         return json.dumps(info, indent=2)
 
     except Exception as e:
@@ -550,6 +605,21 @@ async def connect_to_aedt(
         if port == 50051:
             port = int(os.environ.get("AEDT_PORT", "50051"))
         logger.info(f"Docker detected – using AEDT endpoint {machine}:{port}")
+    elif machine == "localhost" and port == 50051:
+        discovered_sessions = [
+            session_info
+            for session_info in discover_available_aedt_sessions()
+            if session_info.get("connectable")
+        ]
+        if len(discovered_sessions) == 1:
+            port = int(discovered_sessions[0]["port"])
+            logger.info("Auto-selected local AEDT gRPC session on port %s", port)
+        elif len(discovered_sessions) > 1:
+            return (
+                "Multiple running AEDT gRPC sessions are available. "
+                "Ask the user which one to attach, then call connect_to_aedt with that port.\n"
+                + _summarize_available_sessions(discovered_sessions)
+            )
 
     try:
         # Check if there's already a connection

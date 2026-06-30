@@ -44,10 +44,13 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
         "skill": (
             "Call check_aedt_installed once at startup to confirm the AEDT "
             "binary is on disk. Call check_aedt_status before every workflow "
-            "to see whether this MCP already has a live Desktop connection. "
+            "to see whether this MCP already has a live Desktop connection "
+            "and to discover local AEDT sessions that can be attached. "
             "Use connect_to_aedt to attach to a running Desktop "
             "(machine + gRPC port); otherwise use launch_aedt to start a "
-            "new instance. Call disconnect_from_aedt for a graceful detach "
+            "new instance. If multiple connectable sessions are reported, ask "
+            "the user which one to use before calling connect_to_aedt. Call "
+            "disconnect_from_aedt for a graceful detach "
             "and clear_aedt to fully release the Desktop process."
         ),
         "tools": [

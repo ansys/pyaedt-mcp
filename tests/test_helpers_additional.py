@@ -170,6 +170,36 @@ def test_probe_grpc_endpoint_unreachable(monkeypatch):
     assert "connection failed" in result["error"]
 
 
+def test_discover_available_aedt_sessions_uses_pyaedt_cli(monkeypatch):
+    cli_module = ModuleType("ansys.aedt.core.cli.aedt")
+    cli_module._discover_aedt_sessions = lambda: [
+        {
+            "pid": 101,
+            "port": 50051,
+            "mode": "grpc",
+            "version": "2026.1",
+            "non_graphical": True,
+            "student_version": False,
+        },
+        {
+            "pid": 202,
+            "port": None,
+            "mode": "com",
+            "version": "2025.2",
+            "non_graphical": False,
+            "student_version": False,
+        },
+    ]
+
+    monkeypatch.setitem(sys.modules, "ansys.aedt.core.cli.aedt", cli_module)
+
+    result = helpers.discover_available_aedt_sessions()
+
+    assert result[0]["pid"] == 101
+    assert result[0]["connectable"] is True
+    assert result[1]["connectable"] is False
+
+
 def test_get_aedt_info_error_paths():
     class _Desktop:
         @property
