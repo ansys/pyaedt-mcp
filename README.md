@@ -41,7 +41,7 @@ pip install git+https://github.com/ansys/pyaedt-mcp.git
 ```bash
 git clone https://github.com/ansys/pyaedt-mcp.git
 cd pyaedt-mcp
-pip install -e ".[dev]"
+pip install -e .[dev]
 pre-commit install
 ```
 

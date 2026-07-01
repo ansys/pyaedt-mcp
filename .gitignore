@@ -89,7 +89,7 @@ venv.bak/
 
 # Sphinx documentation
 doc/_build/
-doc/source/api/
+doc/source/api/*
 
 # mypy
 .mypy_cache/
