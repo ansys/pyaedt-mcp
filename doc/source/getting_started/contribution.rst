@@ -50,7 +50,7 @@ Clone and install in editable mode with development dependencies:
 
    git clone https://github.com/ansys/pyaedt-mcp.git
    cd pyaedt-mcp
-   pip install -e .[dev]
+   pip install -e .
    pre-commit install
 
 Run the tests:
