@@ -685,6 +685,14 @@ async def connect_to_aedt(
 
         desktop = Desktop(**kwargs)
 
+        open_projects: list[str] = []
+        try:
+            project_list = getattr(desktop, "project_list", None)
+            if project_list is not None:
+                open_projects = list(project_list)
+        except TypeError:
+            open_projects = []
+
         connected_app = None
         if design_name is not None:
             connected_app = get_pyaedt_app(
@@ -709,6 +717,14 @@ async def connect_to_aedt(
                 f"Project: {connected_app.project_name}\n"
                 f"Design: {connected_app.design_name}\n"
                 f"Application: {connected_app.design_type}\n"
+            )
+        elif not open_projects:
+            message += (
+                "No open projects are available in this AEDT session. "
+                "If the user asked for a specific solver such as Hfss, Maxwell3d, "
+                "Maxwell2d, Icepak, Circuit, Q3d, Q2d, TwinBuilder, Mechanical, "
+                "Emit, RMXprt, or Hfss3dLayout, call create_design with the matching "
+                "app_type to open that workflow in this session.\n"
             )
         else:
             message += (

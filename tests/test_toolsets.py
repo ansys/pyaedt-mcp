@@ -125,6 +125,8 @@ class TestToolsetsResource:
         assert "First call check_aedt_status before every workflow" in lifecycle_skill
         assert "include the option to open a new desktop instead" in lifecycle_skill
         assert "launch_aedt(confirm_new_session=True)" in lifecycle_skill
+        assert "connected session has no open projects" in lifecycle_skill
+        assert "call create_design with the matching app_type" in lifecycle_skill
 
 
 if __name__ == "__main__":

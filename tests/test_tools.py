@@ -1659,6 +1659,7 @@ class TestConnectToAEDTExtended:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.mcp.tools.discover_available_aedt_sessions", return_value=[]),
             patch("ansys.aedt.core.Desktop", return_value=fake_desktop),
             patch("ansys.aedt.core.get_pyaedt_app", return_value=fake_app),
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
@@ -1672,6 +1673,28 @@ class TestConnectToAEDTExtended:
         assert "Successfully connected" in result
         assert "Design: Design1" in result
         assert "Project: Project1" in result
+
+    @pytest.mark.asyncio
+    async def test_connect_reports_empty_session_guidance(self, mock_context_no_desktop):
+        """Test connecting to a session with no open projects suggests create_design."""
+        from ansys.aedt.mcp.tools import connect_to_aedt
+
+        fake_desktop = MagicMock()
+        fake_desktop.aedt_version_id = "2026.1"
+        fake_desktop.is_grpc_api = True
+        fake_desktop.project_list = []
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.mcp.tools.discover_available_aedt_sessions", return_value=[]),
+            patch("ansys.aedt.core.Desktop", return_value=fake_desktop),
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
+        ):
+            result = await connect_to_aedt(mock_context_no_desktop, port=50051)
+
+        assert "No open projects are available in this AEDT session" in result
+        assert "call create_design" in result
+        assert "Hfss" in result
 
 
 @pytest.mark.unit

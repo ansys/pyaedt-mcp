@@ -78,7 +78,11 @@ you can plan workflows before connecting.
    asks for a new desktop or a new AEDT session, skip the question and call
    `launch_aedt(confirm_new_session=True)`.
 3. After the session exists, `check_aedt_status` will report full project
-   and design info. Prefer direct MCP tools for supported AEDT operations.
+   and design info. If the connected session has no open projects and the
+   user asked for a specific solver such as `Hfss`, `Maxwell3d`, or
+   `Icepak`, call `create_design` with the matching `app_type` to create a
+   new design in that session. Prefer direct MCP tools for supported AEDT
+   operations.
 4. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
    directly and prefer `run_python_code` over `run_python_script` unless the
    user already has a script file.
@@ -138,7 +142,11 @@ call depends on whether an AEDT session is connected.
    asks for a new desktop or a new AEDT session, skip the question and call
    `launch_aedt(confirm_new_session=True)`.
 3. After the session exists, `check_aedt_status` will report full project
-   and design info. Prefer direct MCP tools for supported AEDT operations.
+   and design info. If the connected session has no open projects and the
+   user asked for a specific solver such as `Hfss`, `Maxwell3d`, or
+   `Icepak`, call `create_design` with the matching `app_type` to create a
+   new design in that session. Prefer direct MCP tools for supported AEDT
+   operations.
 4. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
    directly and prefer `run_python_code` over `run_python_script` unless the
    user already has a script file.

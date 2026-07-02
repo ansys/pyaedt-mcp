@@ -54,7 +54,10 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
             "port). Only use launch_aedt(confirm_new_session=True) after the "
             "user explicitly confirms a new instance is needed. If the user "
             "directly asks for a new desktop or new AEDT session, skip the "
-            "question and call launch_aedt(confirm_new_session=True). Call "
+            "question and call launch_aedt(confirm_new_session=True). If the "
+            "connected session has no open projects and the user asked for a "
+            "specific solver such as Hfss or Maxwell3d, call create_design "
+            "with the matching app_type. Call "
             "disconnect_from_aedt for a graceful detach "
             "and clear_aedt to fully release the Desktop process."
         ),
