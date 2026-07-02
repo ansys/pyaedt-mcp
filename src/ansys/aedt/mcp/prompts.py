@@ -67,12 +67,16 @@ you can plan workflows before connecting.
 ## Rules
 
 1. Before any AEDT call, run `check_aedt_installed` first.
-2. Call `check_aedt_status` to see whether this MCP is already connected
+2. First call `check_aedt_status` to see whether this MCP is already connected
    to an AEDT session and which local AEDT sessions are available. If the
-   user wants to attach to an already-running AEDT instance, use
-   `connect_to_aedt`; otherwise call `launch_aedt` to start a new session.
-   When multiple connectable sessions are reported, ask the user which one
-   to attach before calling `connect_to_aedt`.
+   tool reports multiple connectable sessions, ask the user which session to
+   connect to and include the option to open a new desktop instead. If the
+   tool reports one connectable session, ask whether to connect to it or open
+   a new desktop. Prefer `connect_to_aedt` whenever a connectable session
+   exists. Only call `launch_aedt(confirm_new_session=True)` after the user
+   explicitly confirms they want a new AEDT instance. If the user directly
+   asks for a new desktop or a new AEDT session, skip the question and call
+   `launch_aedt(confirm_new_session=True)`.
 3. After the session exists, `check_aedt_status` will report full project
    and design info. Prefer direct MCP tools for supported AEDT operations.
 4. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
@@ -123,12 +127,16 @@ call depends on whether an AEDT session is connected.
 ## Rules
 
 1. Before any AEDT call, run `check_aedt_installed` first.
-2. Call `check_aedt_status` to see whether this MCP is already connected
+2. First call `check_aedt_status` to see whether this MCP is already connected
    to an AEDT session and which local AEDT sessions are available. If the
-   user wants to attach to an already-running AEDT instance, use
-   `connect_to_aedt`; otherwise call `launch_aedt` to start a new session.
-   When multiple connectable sessions are reported, ask the user which one
-   to attach before calling `connect_to_aedt`.
+   tool reports multiple connectable sessions, ask the user which session to
+   connect to and include the option to open a new desktop instead. If the
+   tool reports one connectable session, ask whether to connect to it or open
+   a new desktop. Prefer `connect_to_aedt` whenever a connectable session
+   exists. Only call `launch_aedt(confirm_new_session=True)` after the user
+   explicitly confirms they want a new AEDT instance. If the user directly
+   asks for a new desktop or a new AEDT session, skip the question and call
+   `launch_aedt(confirm_new_session=True)`.
 3. After the session exists, `check_aedt_status` will report full project
    and design info. Prefer direct MCP tools for supported AEDT operations.
 4. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code

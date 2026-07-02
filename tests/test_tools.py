@@ -143,6 +143,7 @@ class TestCheckAEDTStatus:
         assert data["session_count"] == 2
         assert data["connectable_session_count"] == 1
         assert data["connectable_sessions"][0]["port"] == 50061
+        assert "launch_aedt(confirm_new_session=True)" in data["message"]
 
     def test_with_connection(self, mock_context):
         """Test status check with active connection."""
@@ -194,6 +195,7 @@ class TestLaunchAEDT:
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
             patch("ansys.aedt.mcp.tools.aedt_versions", mock_versions),
+            patch("ansys.aedt.mcp.tools.discover_available_aedt_sessions", return_value=[]),
             patch("ansys.aedt.core.Desktop") as mock_desktop,
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings") as mock_cfg,
         ):
@@ -210,6 +212,86 @@ class TestLaunchAEDT:
             assert call_kwargs["version"] == "2026.1"
             mock_cfg.assert_called_once_with()
             assert "Successfully launched AEDT Desktop" in result
+
+    @pytest.mark.asyncio
+    async def test_launch_asks_to_connect_when_session_exists(self, mock_context_no_desktop):
+        """Test launch_aedt refuses to create a new instance when one is attachable."""
+        from ansys.aedt.mcp.tools import launch_aedt
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch(
+                "ansys.aedt.mcp.tools.discover_available_aedt_sessions",
+                return_value=[
+                    {
+                        "pid": 111,
+                        "port": 50062,
+                        "mode": "grpc",
+                        "version": "2026.1",
+                        "non_graphical": True,
+                        "student_version": False,
+                        "connectable": True,
+                    }
+                ],
+            ),
+            patch("ansys.aedt.core.Desktop") as mock_desktop,
+        ):
+            result = await launch_aedt(mock_context_no_desktop)
+
+        mock_desktop.assert_not_called()
+        assert "Ask the user whether to connect" in result
+        assert "50062" in result
+        assert "launch_aedt(confirm_new_session=True)" in result
+
+    @pytest.mark.asyncio
+    async def test_launch_can_be_confirmed_when_sessions_exist(self, mock_context_no_desktop):
+        """Test launch_aedt can still create a new instance after explicit confirmation."""
+        from ansys.aedt.mcp.tools import launch_aedt
+
+        mock_versions = MagicMock()
+        mock_versions.current_version = "2026.1"
+        mock_versions.latest_version = "2026.1"
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.mcp.tools.aedt_versions", mock_versions),
+            patch(
+                "ansys.aedt.mcp.tools.discover_available_aedt_sessions",
+                return_value=[
+                    {
+                        "pid": 111,
+                        "port": 50061,
+                        "mode": "grpc",
+                        "version": "2026.1",
+                        "non_graphical": True,
+                        "student_version": False,
+                        "connectable": True,
+                    },
+                    {
+                        "pid": 222,
+                        "port": 50062,
+                        "mode": "grpc",
+                        "version": "2025.2",
+                        "non_graphical": False,
+                        "student_version": True,
+                        "connectable": True,
+                    },
+                ],
+            ),
+            patch("ansys.aedt.core.Desktop") as mock_desktop,
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings") as mock_cfg,
+        ):
+            fake_desktop = MagicMock()
+            fake_desktop.aedt_version_id = "2026.1"
+            fake_desktop.aedt_install_dir = "C:\\Program Files\\ANSYS Inc\\v261\\AnsysEM"
+            fake_desktop.is_grpc_api = True
+            mock_desktop.return_value = fake_desktop
+
+            result = await launch_aedt(mock_context_no_desktop, confirm_new_session=True)
+
+        mock_cfg.assert_called_once_with()
+        assert mock_desktop.call_args[1]["new_desktop"] is True
+        assert "Successfully launched AEDT Desktop" in result
 
 
 @pytest.mark.unit
@@ -318,6 +400,52 @@ class TestConnectToAEDT:
         assert "Multiple running AEDT gRPC sessions are available" in result
         assert "50061" in result
         assert "50062" in result
+        assert "launch_aedt(confirm_new_session=True)" in result
+
+    @pytest.mark.asyncio
+    async def test_connect_explicit_port_bypasses_multiple_session_prompt(
+        self, mock_context_no_desktop
+    ):
+        """Test connect_to_aedt honors an explicit port even when several sessions exist."""
+        from ansys.aedt.mcp.tools import connect_to_aedt
+
+        fake_desktop = MagicMock()
+        fake_desktop.aedt_version_id = "2026.1"
+        fake_desktop.is_grpc_api = True
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch(
+                "ansys.aedt.mcp.tools.discover_available_aedt_sessions",
+                return_value=[
+                    {
+                        "pid": 111,
+                        "port": 50051,
+                        "mode": "grpc",
+                        "version": "2027.1",
+                        "non_graphical": False,
+                        "student_version": False,
+                        "connectable": True,
+                    },
+                    {
+                        "pid": 222,
+                        "port": 50052,
+                        "mode": "grpc",
+                        "version": "2026.1",
+                        "non_graphical": False,
+                        "student_version": False,
+                        "connectable": True,
+                    },
+                ],
+            ),
+            patch("ansys.aedt.core.Desktop", return_value=fake_desktop) as mock_desktop,
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings") as mock_cfg,
+        ):
+            result = await connect_to_aedt(mock_context_no_desktop, port=50051)
+
+        mock_cfg.assert_called_once_with(enable_grpc=True)
+        assert mock_desktop.call_args[1]["port"] == 50051
+        assert "Successfully connected to AEDT" in result
 
 
 @pytest.mark.unit

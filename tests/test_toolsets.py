@@ -119,6 +119,13 @@ class TestToolsetsResource:
         assert isinstance(_TOOLSET_CATALOGUE, dict)
         assert _TOOLSET_CATALOGUE  # non-empty
 
+    def test_lifecycle_skill_prefers_existing_sessions(self):
+        lifecycle_skill = _TOOLSET_CATALOGUE["lifecycle"]["skill"]
+
+        assert "First call check_aedt_status before every workflow" in lifecycle_skill
+        assert "include the option to open a new desktop instead" in lifecycle_skill
+        assert "launch_aedt(confirm_new_session=True)" in lifecycle_skill
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

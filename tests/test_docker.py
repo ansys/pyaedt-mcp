@@ -233,6 +233,7 @@ class TestLaunchAEDTDocker:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.mcp.tools.discover_available_aedt_sessions", return_value=[]),
             patch("ansys.aedt.core.Desktop") as MockDesktop,
         ):
             mock_desk = MagicMock()
@@ -307,6 +308,7 @@ class TestConnectToAEDTDocker:
 
         with (
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.mcp.tools.discover_available_aedt_sessions", return_value=[]),
             patch("ansys.aedt.core.Desktop") as MockDesktop,
             patch("ansys.aedt.core.generic.settings.settings"),
         ):

@@ -39,3 +39,7 @@ def test_build_system_prompt_dynamic_discovery_language():
 
     assert "uses connection-aware tool visibility" in prompt
     assert "Unlocked automatically once `launch_aedt` or `connect_to_aedt` succeeds" in prompt
+    assert "First call `check_aedt_status`" in prompt
+    assert "include the option to open a new desktop instead" in prompt
+    assert "launch_aedt(confirm_new_session=True)" in prompt
+    assert "skip the question and call" in prompt
