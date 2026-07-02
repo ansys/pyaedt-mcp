@@ -61,10 +61,11 @@ html_theme_options = {
             "icon": "fa fa-comment fa-fw",
         },
     ],
-    #    "switcher": {
-    #        "json_url": f"https://{cname}/versions.json",
-    #        "version_match": switcher_version,
-    #    },
+    "switcher": {
+        "json_url": f"https://{cname}/versions.json",
+        "version_match": switcher_version,
+    },
+    "check_switcher": False,
     "ansys_sphinx_theme_autoapi": {
         "project": project,
     },
@@ -125,6 +126,20 @@ source_suffix = ".rst"
 # The master toctree document.
 master_doc = "index"
 
+
+def prepare_jinja_env(jinja_env) -> None:
+    """Customize the jinja env.
+
+    Notes
+    -----
+    See https://jinja.palletsprojects.com/en/3.0.x/api/#jinja2.Environment
+
+    """
+    jinja_env.globals["project_name"] = project
+
+
+autoapi_prepare_jinja_env = prepare_jinja_env
+
 language = "en"
 
 exclude_patterns = [
@@ -151,11 +166,6 @@ linkcheck_ignore = [
     "https://modelcontextprotocol.io/*",
     "https://www.sphinx-doc.org/*",
 ]
-
-# If we are on a release, we have to ignore the "release" URLs, since it is not
-# available until the release is published.
-if switcher_version != "dev":
-    linkcheck_ignore.append(f"https://github.com/ansys/pyaedt-mcp/releases/tag/v{__version__}")
 
 linkcheck_allowed_redirect = [
     r"https://tox.wiki/",
