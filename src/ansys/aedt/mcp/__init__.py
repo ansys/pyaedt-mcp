@@ -40,6 +40,7 @@ Example:
 
         $ ansys-aedt-mcp --connect --machine localhost --port 50051
 """
+
 import importlib.metadata as importlib_metadata
 
 from ansys.aedt.mcp.server import app, launcher

@@ -31,7 +31,7 @@ run the first AEDT workflow.
 
 
 .. toctree::
-   :hidden: 
+   :hidden:
 
    installation
    ide_configuration
