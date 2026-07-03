@@ -10,6 +10,7 @@ if "%SPHINXBUILD%" == "" (
 set SOURCEDIR=source
 set BUILDDIR=_build
 set SPHINXOPTS=-j auto --keep-going
+set AUTOAPIDIR=source\api
 
 if "%1" == "" goto help
 if "%1" == "clean" goto clean
@@ -31,6 +32,7 @@ goto end
 
 :clean
 rmdir /s /q %BUILDDIR% > NUL 2>&1
+rmdir /s /q %AUTOAPIDIR% > NUL 2>&1
 goto end
 
 :help

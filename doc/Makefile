@@ -6,6 +6,7 @@ SPHINXBUILD   ?= sphinx-build
 PAPER         ?=
 SOURCEDIR     ?= source
 BUILDDIR      ?= _build
+AUTOAPIDIR 	  ?= $(SOURCEDIR)/api
 
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
@@ -21,6 +22,7 @@ help:
 
 clean:
 	rm -rf $(BUILDDIR)/*
+	rm -rf $(AUTOAPIDIR)/*
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
