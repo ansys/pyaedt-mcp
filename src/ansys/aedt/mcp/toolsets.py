@@ -43,11 +43,22 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
         ),
         "skill": (
             "Call check_aedt_installed once at startup to confirm the AEDT "
-            "binary is on disk. Call check_aedt_status before every workflow "
-            "to see whether this MCP already has a live Desktop connection. "
-            "Use connect_to_aedt to attach to a running Desktop "
-            "(machine + gRPC port); otherwise use launch_aedt to start a "
-            "new instance. Call disconnect_from_aedt for a graceful detach "
+            "binary is on disk. First call check_aedt_status before every "
+            "workflow to see whether this MCP already has a live Desktop "
+            "connection and to discover local AEDT sessions that can be "
+            "attached. If multiple connectable sessions are reported, ask the "
+            "user which session to connect to and include the option to open "
+            "a new desktop instead. If one connectable session is reported, "
+            "ask whether to connect to it or open a new desktop. Prefer "
+            "connect_to_aedt to attach to a running Desktop (machine + gRPC "
+            "port). Only use launch_aedt(confirm_new_session=True) after the "
+            "user explicitly confirms a new instance is needed. If the user "
+            "directly asks for a new desktop or new AEDT session, skip the "
+            "question and call launch_aedt(confirm_new_session=True). If the "
+            "connected session has no open projects and the user asked for a "
+            "specific solver such as Hfss or Maxwell3d, call create_design "
+            "with the matching app_type. Call "
+            "disconnect_from_aedt for a graceful detach "
             "and clear_aedt to fully release the Desktop process."
         ),
         "tools": [

@@ -39,6 +39,7 @@ from ansys.aedt.mcp import app
 from ansys.aedt.mcp.helpers import (
     _is_docker,
     _probe_grpc_endpoint,
+    discover_available_aedt_sessions,
     get_aedt_info,
 )
 from ansys.aedt.mcp.server import session
@@ -56,6 +57,70 @@ REQUIRES_AEDT_TAG = "requires_aedt"
 _TIMEOUT_QUICK = 30  # status checks, listing, info queries
 _TIMEOUT_MEDIUM = 120  # connect, open/save, create design, screenshot
 _TIMEOUT_LONG = 600  # launch, script execution, analysis, exports
+
+
+def _build_disconnected_status_message(connectable_sessions: list[dict[str, Any]]) -> str:
+    """Build a user-facing status message when the MCP is not attached to AEDT."""
+    base_message = (
+        "No AEDT Desktop connection available in this MCP session. "
+        "Use connect_to_aedt or launch_aedt tool to establish a connection."
+    )
+    if not connectable_sessions:
+        return base_message
+    if len(connectable_sessions) == 1:
+        session_info = connectable_sessions[0]
+        return (
+            f"{base_message} Found one running gRPC AEDT session on port {session_info['port']} "
+            "that can be attached with connect_to_aedt, or launch a new desktop with "
+            "launch_aedt(confirm_new_session=True)."
+        )
+    session_list = ", ".join(str(session_info["port"]) for session_info in connectable_sessions)
+    return (
+        f"{base_message} Multiple running gRPC AEDT sessions are available on "
+        f"ports {session_list}. "
+        "Ask the user which session to attach, or whether to open a new desktop, "
+        "before calling connect_to_aedt or launch_aedt(confirm_new_session=True)."
+    )
+
+
+def _build_launch_blocked_message(connectable_sessions: list[dict[str, Any]]) -> str | None:
+    """Build a user-facing message when launching should defer to an existing session."""
+    if not connectable_sessions:
+        return None
+    if len(connectable_sessions) == 1:
+        session_info = connectable_sessions[0]
+        return (
+            "A running AEDT gRPC session is already available. "
+            f"Ask the user whether to connect to PID {session_info['pid']} on port "
+            f"{session_info['port']} or to open a new desktop. If the user wants a new AEDT "
+            "instance, call launch_aedt(confirm_new_session=True)."
+        )
+    return (
+        "Multiple running AEDT gRPC sessions are already available. "
+        "Ask the user which session to attach, or whether to open a new desktop. "
+        "If the user wants a new AEDT instance, call launch_aedt(confirm_new_session=True).\n"
+        + _summarize_available_sessions(connectable_sessions)
+    )
+
+
+def _summarize_available_sessions(sessions: list[dict[str, Any]]) -> str:
+    """Format discovered sessions for a selection prompt."""
+    lines = []
+    for session_info in sessions:
+        non_graphical = session_info["non_graphical"]
+        if non_graphical is None:
+            ui_mode = "Unknown"
+        else:
+            ui_mode = "Non-graphical" if non_graphical else "Graphical"
+        lines.append(
+            "- "
+            f"PID {session_info['pid']}, "
+            f"port {session_info['port']}, "
+            f"version {session_info['version']}, "
+            f"UI {ui_mode}, "
+            f"edition {'Student' if session_info.get('student_version', False) else 'Standard'}"
+        )
+    return "\n".join(lines)
 
 
 def _open_file_in_default_viewer(path: Path) -> str | None:
@@ -236,15 +301,27 @@ def check_aedt_status(ctx: Context) -> str:
         Returns an error message if AEDT is not available.
     """
     desktop = ctx.request_context.lifespan_context.desktop
+    available_sessions = discover_available_aedt_sessions()
+    connectable_sessions = [
+        session_info for session_info in available_sessions if session_info.get("connectable")
+    ]
 
     if desktop is None:
-        return (
-            "No AEDT Desktop connection available. "
-            "Use connect_to_aedt or launch_aedt tool to establish a connection."
-        )
+        payload = {
+            "connected": False,
+            "message": _build_disconnected_status_message(connectable_sessions),
+            "available_sessions": available_sessions,
+            "connectable_sessions": connectable_sessions,
+            "session_count": len(available_sessions),
+            "connectable_session_count": len(connectable_sessions),
+        }
+        return json.dumps(payload, indent=2)
 
     try:
         info = get_aedt_info(desktop)
+        info["connected"] = True
+        info["available_sessions"] = available_sessions
+        info["connectable_sessions"] = connectable_sessions
         return json.dumps(info, indent=2)
 
     except Exception as e:
@@ -394,7 +471,7 @@ async def launch_aedt(
     ctx: Context,
     version: str | None = None,
     non_graphical: bool = False,
-    new_desktop: bool = True,
+    confirm_new_session: bool = False,
     application: AEDTAppType | None = None,
 ) -> str:
     """Launch a new AEDT Desktop instance.
@@ -414,9 +491,10 @@ async def launch_aedt(
     non_graphical : bool, optional
         Whether to launch AEDT in non-graphical mode. Default is False
         (launch with the AEDT GUI visible).
-    new_desktop : bool, optional
-        Whether to launch a new AEDT instance even if one is already running.
-        Default is True.
+    confirm_new_session : bool, optional
+        Explicit confirmation that a new AEDT instance should be launched even
+        when one or more connectable AEDT sessions are already available.
+        Default is False.
     application : AEDTAppType, optional
         AEDT application to launch directly, such as ``Hfss`` or ``Maxwell3d``.
         If omitted, AEDT launches in desktop mode.
@@ -445,13 +523,23 @@ async def launch_aedt(
                 "Please disconnect first using disconnect_from_aedt tool."
             )
 
+        if not confirm_new_session:
+            discovered_sessions = [
+                session_info
+                for session_info in discover_available_aedt_sessions()
+                if session_info.get("connectable")
+            ]
+            launch_blocked_message = _build_launch_blocked_message(discovered_sessions)
+            if launch_blocked_message is not None:
+                return launch_blocked_message
+
         from ansys.aedt.core import Desktop
 
         _configure_pyaedt_runtime_settings()
 
         kwargs: dict[str, Any] = {
             "non_graphical": non_graphical,
-            "new_desktop": new_desktop,
+            "new_desktop": True,
         }
 
         if application is None:
@@ -503,7 +591,7 @@ async def launch_aedt(
 @app.tool(tags={"aedt_tools", "locked_connection"}, timeout=_TIMEOUT_MEDIUM)
 async def connect_to_aedt(
     ctx: Context,
-    port: int = 50051,
+    port: int | None = None,
     machine: str = "localhost",
     version: str | None = None,
     non_graphical: bool = True,
@@ -521,7 +609,8 @@ async def connect_to_aedt(
     ctx : Context
         The MCP context containing server session and application context.
     port : int, optional
-        The gRPC port where AEDT is listening. Default is 50051.
+        The gRPC port where AEDT is listening. If omitted, the tool can
+        auto-select a discovered local gRPC session or fall back to 50051.
     machine : str, optional
         The machine hostname or IP where AEDT is running. Default is "localhost".
     version : str, optional
@@ -539,7 +628,14 @@ async def connect_to_aedt(
     str
         Connection status message with AEDT version information.
     """
-    logger.info(f"Connecting to AEDT instance at {machine}:{port}...")
+    logger.info("Connecting to AEDT instance at %s:%s...", machine, port or 50051)
+
+    # Check if there's already a connection
+    if ctx.request_context.lifespan_context.desktop is not None:
+        return (
+            "Already connected to an AEDT Desktop instance. "
+            "Please disconnect first using disconnect_from_aedt tool."
+        )
 
     # Docker env-var override: when defaults are used and we are inside a
     # container, prefer AEDT_MACHINE / AEDT_PORT from the environment so
@@ -547,18 +643,31 @@ async def connect_to_aedt(
     if _is_docker():
         if machine == "localhost":
             machine = os.environ.get("AEDT_MACHINE", "host.docker.internal")
-        if port == 50051:
+        if port is None:
             port = int(os.environ.get("AEDT_PORT", "50051"))
         logger.info(f"Docker detected – using AEDT endpoint {machine}:{port}")
-
-    try:
-        # Check if there's already a connection
-        if ctx.request_context.lifespan_context.desktop is not None:
+    elif machine == "localhost" and port is None:
+        discovered_sessions = [
+            session_info
+            for session_info in discover_available_aedt_sessions()
+            if session_info.get("connectable")
+        ]
+        if len(discovered_sessions) == 1:
+            port = int(discovered_sessions[0]["port"])
+            logger.info("Auto-selected local AEDT gRPC session on port %s", port)
+        elif len(discovered_sessions) > 1:
             return (
-                "Already connected to an AEDT Desktop instance. "
-                "Please disconnect first using disconnect_from_aedt tool."
+                "Multiple running AEDT gRPC sessions are available. "
+                "Ask the user which one to attach, or whether to open a new desktop. "
+                "If the user explicitly asks for a new desktop, call "
+                "launch_aedt(confirm_new_session=True).\n"
+                + _summarize_available_sessions(discovered_sessions)
             )
 
+    if port is None:
+        port = 50051
+
+    try:
         from ansys.aedt.core import Desktop, get_pyaedt_app
 
         _configure_pyaedt_runtime_settings(enable_grpc=True)
@@ -575,6 +684,14 @@ async def connect_to_aedt(
             kwargs["version"] = version
 
         desktop = Desktop(**kwargs)
+
+        open_projects: list[str] = []
+        try:
+            project_list = getattr(desktop, "project_list", None)
+            if project_list is not None:
+                open_projects = list(project_list)
+        except TypeError:
+            open_projects = []
 
         connected_app = None
         if design_name is not None:
@@ -601,6 +718,20 @@ async def connect_to_aedt(
                 f"Design: {connected_app.design_name}\n"
                 f"Application: {connected_app.design_type}\n"
             )
+        elif not open_projects:
+            message += (
+                "No open projects are available in this AEDT session. "
+                "If the user asked for a specific solver such as Hfss, Maxwell3d, "
+                "Maxwell2d, Icepak, Circuit, Q3d, Q2d, TwinBuilder, Mechanical, "
+                "Emit, RMXprt, or Hfss3dLayout, call create_design with the matching "
+                "app_type to open that workflow in this session.\n"
+            )
+            if design_name is None:
+                message += (
+                    "Tip: provide design_name"
+                    + (" and project_name" if project_name is None else "")
+                    + " if you want to connect directly to a specific AEDT design.\n"
+                )
         else:
             message += (
                 "Tip: provide design_name"
