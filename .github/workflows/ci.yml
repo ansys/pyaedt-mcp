@@ -17,6 +17,7 @@ permissions: {}
 env:
   ON_CI: "true"
   MAIN_PYTHON_VERSION: "3.11"
+  TESTS_PYTHON_VERSION: "3.10"
   PACKAGE_NAME: "ansys-aedt-mcp"
   DOCUMENTATION_CNAME: "aedt-mcp.docs.pyansys.com"
 
@@ -136,7 +137,57 @@ jobs:
         uses: ansys/actions/tests-pytest@a5b0351dc277d68c2dc1beca2d2674c7dfa4fc55 #v10.3.3
         with:
           python-version: ${{ matrix.python-version }}
-          pytest-markers: '-m "not integration"'
+          pytest-markers: '-m "not integration and not system"'
+          group-dependencies-name: test
+
+  system-tests-tools-linux:
+    name: "System tests (tools, linux)"
+    runs-on: [self-hosted, Linux, pyaedt]
+    needs: [test]
+    permissions:
+      contents: read # Needed to checkout the code
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    env:
+      ANS_NODEPCHECK: "1"
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: "Set up Python"
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.TESTS_PYTHON_VERSION }}
+
+      - name: "Set up uv"
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: false
+          prune-cache: true
+
+      - name: "Create virtual environment"
+        run: uv venv .venv
+
+      - name: "Install package and test dependencies"
+        run: |
+          source .venv/bin/activate
+          uv sync --frozen --group test
+
+      - name: "Remove Ansys processes (if any)"
+        shell: bash
+        run: |
+          for pid in $(ps -eo pid,comm,args | grep -iE "ansys.inc|ansysem" | grep -v grep | awk '{print $1}'); do
+            echo "Killing PID $pid"
+            kill -9 "$pid"
+          done
+
+      - name: "Run live tool system tests"
+        env:
+          PYTHONMALLOC: malloc
+        run: |
+          source .venv/bin/activate
+          pytest tests/test_live_tools.py -m "system and general"
 
   build-docs:
     name: "Build documentation"

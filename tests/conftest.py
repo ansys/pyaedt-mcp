@@ -17,6 +17,7 @@
 """Test configuration for PyAEDT MCP tests."""
 
 from pathlib import Path
+import shutil
 import sys
 from unittest.mock import AsyncMock, MagicMock
 
@@ -25,6 +26,29 @@ import pytest
 # Add src to path for imports
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
+
+
+@pytest.fixture(scope="module")
+def file_tmp_root(tmp_path_factory, request):
+    """Create a module-scoped temporary root for generated test artifacts."""
+    module_path = Path(request.fspath)
+    name = module_path.stem
+    root = tmp_path_factory.mktemp(f"{name}-")
+    yield root
+    try:
+        shutil.rmtree(root, ignore_errors=True)
+    except Exception:
+        pass
+
+
+@pytest.fixture
+def test_tmp_dir(file_tmp_root, request):
+    """Create a per-test temporary directory for generated artifacts."""
+    temp_dir = file_tmp_root / request.node.name.split("[", 1)[0]
+    if temp_dir.exists():
+        shutil.rmtree(temp_dir, ignore_errors=True)
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    return temp_dir
 
 
 @pytest.fixture

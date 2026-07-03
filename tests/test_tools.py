@@ -647,7 +647,7 @@ class TestSaveProject:
         result = save_project(mock_context, save_as="C:/tmp/new_project.aedt")
 
         mock_context.request_context.lifespan_context.desktop.save_project.assert_called_with(
-            project_file="C:/tmp/new_project.aedt"
+            project_path="C:/tmp/new_project.aedt"
         )
         assert "Project saved to" in result
 
@@ -1345,6 +1345,10 @@ class TestExportResultsExtended:
                 export_type=export_type,
                 setup_name="Setup1",
             )
+
+        getattr(mock_app, method_name).assert_called_once_with(
+            output_file="/tmp/out.file", setup="Setup1"
+        )
 
         assert success_text in result
 

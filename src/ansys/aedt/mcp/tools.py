@@ -1063,7 +1063,7 @@ def save_project(ctx: Context, project_name: str | None = None, save_as: str | N
         logger.info(f"Saving project: {project_name or 'active project'}")
 
         if save_as:
-            desktop.save_project(project_file=save_as)
+            desktop.save_project(project_path=save_as)
             return f"Project saved to: {save_as}"
         else:
             desktop.save_project(project_name=project_name)
@@ -1357,8 +1357,8 @@ def export_results(
         elif export_type == "profile":
             if not hasattr(app_instance, "export_profile"):
                 return f"Profile export is not available for {type(app_instance).__name__} designs."
-            result = app_instance.export_profile(**setup_kwargs)
-            return f"Profile exported successfully.\nResult: {result}"
+            result = app_instance.export_profile(output_file=output_path, **setup_kwargs)
+            return f"Profile exported to: {output_path}\nResult: {result}"
 
         elif export_type == "convergence":
             if not hasattr(app_instance, "export_convergence"):
@@ -1366,14 +1366,14 @@ def export_results(
                     "Convergence export is not available for "
                     f"{type(app_instance).__name__} designs."
                 )
-            result = app_instance.export_convergence(**setup_kwargs)
-            return f"Convergence data exported.\nResult: {result}"
+            result = app_instance.export_convergence(output_file=output_path, **setup_kwargs)
+            return f"Convergence data exported to: {output_path}\nResult: {result}"
 
         elif export_type == "mesh":
             if not hasattr(app_instance, "export_mesh_stats"):
                 return f"Mesh export is not available for {type(app_instance).__name__} designs."
-            result = app_instance.export_mesh_stats(**setup_kwargs)
-            return f"Mesh stats exported.\nResult: {result}"
+            result = app_instance.export_mesh_stats(output_file=output_path, **setup_kwargs)
+            return f"Mesh stats exported to: {output_path}\nResult: {result}"
 
         else:
             return (
