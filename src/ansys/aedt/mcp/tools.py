@@ -726,6 +726,12 @@ async def connect_to_aedt(
                 "Emit, RMXprt, or Hfss3dLayout, call create_design with the matching "
                 "app_type to open that workflow in this session.\n"
             )
+            if design_name is None:
+                message += (
+                    "Tip: provide design_name"
+                    + (" and project_name" if project_name is None else "")
+                    + " if you want to connect directly to a specific AEDT design.\n"
+                )
         else:
             message += (
                 "Tip: provide design_name"
