@@ -137,12 +137,13 @@ jobs:
         uses: ansys/actions/tests-pytest@a5b0351dc277d68c2dc1beca2d2674c7dfa4fc55 #v10.3.3
         with:
           python-version: ${{ matrix.python-version }}
+          pytest-extra-args: 'tests --ignore=tests/integration'
           pytest-markers: '-m "not integration and not system"'
           optional-dependencies-name: tests
 
   system-tests-tools-linux:
     name: "System tests (tools, linux)"
-    runs-on: [self-hosted, Linux, pyaedt]
+    runs-on: [self-hosted, Linux, pyaedt-toolkit]
     needs: [test]
     permissions:
       contents: read # Needed to checkout the code
@@ -163,15 +164,12 @@ jobs:
       - name: "Set up uv"
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
+          activate-environment: true
           enable-cache: false
           prune-cache: true
 
-      - name: "Create virtual environment"
-        run: uv venv .venv
-
       - name: "Install package and test dependencies"
         run: |
-          source .venv/bin/activate
           uv sync --frozen --extra tests
 
       - name: "Remove Ansys processes (if any)"
@@ -186,8 +184,7 @@ jobs:
         env:
           PYTHONMALLOC: malloc
         run: |
-          source .venv/bin/activate
-          pytest tests/test_live_tools.py -m "system and general"
+          pytest tests/integration -m "system and general"
 
   build-docs:
     name: "Build documentation"
@@ -231,7 +228,7 @@ jobs:
         uses: ansys/actions/doc-deploy-dev@a5b0351dc277d68c2dc1beca2d2674c7dfa4fc55 #v10.3.3
         with:
           cname: ${{ env.DOCUMENTATION_CNAME }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PYANSYS_CI_BOT_TOKEN  }}
           bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}
           bot-email: ${{ secrets.PYANSYS_CI_BOT_EMAIL }}
 
