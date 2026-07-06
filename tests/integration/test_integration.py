@@ -23,12 +23,10 @@ desktop instances only. No AEDT connection is mocked in this module.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-from ansys.aedt.core.internal.aedt_versions import aedt_versions
 import pytest
 
 from ansys.aedt.mcp.server import PyAEDTAppContext
@@ -55,13 +53,6 @@ from ansys.aedt.mcp.tools import (
 )
 
 pytestmark = [pytest.mark.integration, pytest.mark.system, pytest.mark.general]
-
-
-def _configured_version() -> str | None:
-    requested_version = os.environ.get("PYAEDT_TEST_VERSION")
-    if requested_version:
-        return requested_version
-    return aedt_versions.current_version or aedt_versions.latest_version
 
 
 def _configure_live_settings() -> None:
@@ -105,9 +96,6 @@ def _start_desktop():
         "non_graphical": True,
         "new_desktop": True,
     }
-    version = _configured_version()
-    if version is not None:
-        kwargs["version"] = version
 
     desktop = Desktop(**kwargs)
     if getattr(desktop, "port", None) is None:
