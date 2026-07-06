@@ -15,9 +15,9 @@ concurrency:
 permissions: {}
 
 env:
-  ON_CI: "true"
+  ON_CI: True
   MAIN_PYTHON_VERSION: "3.11"
-  TESTS_PYTHON_VERSION: "3.11"
+  TESTS_PYTHON_VERSION: "3.10"
   PACKAGE_NAME: "ansys-aedt-mcp"
   DOCUMENTATION_CNAME: "aedt-mcp.docs.pyansys.com"
 
