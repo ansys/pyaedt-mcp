@@ -186,7 +186,7 @@ jobs:
         env:
           PYTHONMALLOC: malloc
         run: |
-          pytest ${{ env.PYTEST_ARGUMENTS }} tests/integration -m "Integration tests"
+          pytest ${{ env.PYTEST_ARGUMENTS }} tests/integration -m "integration and system"
 
   build-docs:
     name: "Build documentation"
