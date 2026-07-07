@@ -185,8 +185,9 @@ jobs:
       - name: "Run live tool system tests"
         env:
           PYTHONMALLOC: malloc
+          PYTEST_EXTRA_ARGS: ${{ env.PYTEST_ARGUMENTS }}
         run: |
-          pytest ${{ env.PYTEST_ARGUMENTS }} tests/integration -m "integration and system"
+          pytest ${PYTEST_EXTRA_ARGS} tests/integration -m "integration and system"
 
   build-docs:
     name: "Build documentation"
