@@ -169,6 +169,7 @@ jobs:
           activate-environment: true
           enable-cache: false
           prune-cache: true
+          python-version: ${{ env.TESTS_PYTHON_VERSION }}
 
       - name: "Install package and test dependencies"
         run: |
