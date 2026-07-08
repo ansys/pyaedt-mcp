@@ -22,12 +22,51 @@ import shutil
 import pytest
 
 
+def _configure_live_settings() -> None:
+    try:
+        from ansys.aedt.core import settings
+    except Exception:
+        from ansys.aedt.core.generic.settings import settings
+
+    settings.use_grpc_api = True
+    settings.release_on_exception = False
+
+
+def _start_desktop_session():
+    from ansys.aedt.core import Desktop
+
+    _configure_live_settings()
+
+    desktop = Desktop(non_graphical=True, new_desktop=True)
+    if getattr(desktop, "port", None) is None:
+        try:
+            desktop.release_desktop(close_projects=False)
+        except Exception:
+            pass
+        pytest.skip("Launched AEDT session did not expose a gRPC port.")
+
+    return desktop
+
+
 @pytest.fixture(scope="session")
 def integration_tmp_root(tmp_path_factory):
     """Create and clean up the root directory for integration test artifacts."""
     root = tmp_path_factory.mktemp("integration-")
     yield root
     shutil.rmtree(root, ignore_errors=True)
+
+
+@pytest.fixture(scope="session")
+def desktop_session():
+    """Launch one real AEDT Desktop for the integration test session."""
+    desktop = _start_desktop_session()
+    try:
+        yield desktop
+    finally:
+        try:
+            desktop.release_desktop(close_projects=False)
+        except Exception:
+            pass
 
 
 @pytest.fixture

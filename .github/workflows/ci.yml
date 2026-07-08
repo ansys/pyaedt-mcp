@@ -182,7 +182,7 @@ jobs:
             kill -9 "$pid"
           done
 
-      - name: "Run live tool system tests"
+      - name: "Run integration tests"
         env:
           PYTHONMALLOC: malloc
           PYTEST_EXTRA_ARGS: ${{ env.PYTEST_ARGUMENTS }}

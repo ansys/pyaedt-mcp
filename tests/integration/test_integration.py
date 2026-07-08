@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -55,16 +56,6 @@ from ansys.aedt.mcp.tools import (
 pytestmark = [pytest.mark.integration, pytest.mark.system, pytest.mark.general]
 
 
-def _configure_live_settings() -> None:
-    try:
-        from ansys.aedt.core import settings
-    except Exception:
-        from ansys.aedt.core.generic.settings import settings
-
-    settings.use_grpc_api = True
-    settings.release_on_exception = False
-
-
 def _build_tool_context() -> SimpleNamespace:
     app_context = PyAEDTAppContext()
     return SimpleNamespace(
@@ -72,6 +63,20 @@ def _build_tool_context() -> SimpleNamespace:
         enable_components=AsyncMock(),
         disable_components=AsyncMock(),
     )
+
+
+def _safe_test_token(node_name: str) -> str:
+    return re.sub(r"[^0-9A-Za-z]+", "_", node_name).strip("_") or "integration"
+
+
+def _attach_desktop(ctx: SimpleNamespace, desktop) -> None:
+    ctx.request_context.lifespan_context.desktop = desktop
+    ctx.request_context.lifespan_context.aedt_port = desktop.port
+
+
+def _detach_desktop(ctx: SimpleNamespace) -> None:
+    ctx.request_context.lifespan_context.desktop = None
+    ctx.request_context.lifespan_context.aedt_port = None
 
 
 def _release_desktop(ctx: SimpleNamespace) -> None:
@@ -84,28 +89,7 @@ def _release_desktop(ctx: SimpleNamespace) -> None:
     except Exception:
         pass
     finally:
-        ctx.request_context.lifespan_context.desktop = None
-
-
-def _start_desktop():
-    from ansys.aedt.core import Desktop
-
-    _configure_live_settings()
-
-    kwargs = {
-        "non_graphical": True,
-        "new_desktop": True,
-    }
-
-    desktop = Desktop(**kwargs)
-    if getattr(desktop, "port", None) is None:
-        try:
-            desktop.release_desktop(close_projects=False)
-        except Exception:
-            pass
-        pytest.skip("Launched AEDT session did not expose a gRPC port.")
-
-    return desktop
+        _detach_desktop(ctx)
 
 
 def _create_hfss_project(ctx: SimpleNamespace, project_path: Path, design_name: str = "LiveHfss"):
@@ -215,46 +199,37 @@ def empty_ctx():
 
 
 @pytest.fixture
-def connected_ctx():
+def connected_ctx(desktop_session):
     ctx = _build_tool_context()
-    desktop = _start_desktop()
-    ctx.request_context.lifespan_context.desktop = desktop
-    ctx.request_context.lifespan_context.aedt_port = desktop.port
+    _attach_desktop(ctx, desktop_session)
     try:
         yield ctx
     finally:
-        _release_desktop(ctx)
+        _detach_desktop(ctx)
 
 
 @pytest.fixture
-def live_project_env(test_tmp_dir):
+def live_project_env(test_tmp_dir, desktop_session, request):
     ctx = _build_tool_context()
-    desktop = _start_desktop()
-    ctx.request_context.lifespan_context.desktop = desktop
-    ctx.request_context.lifespan_context.aedt_port = desktop.port
+    _attach_desktop(ctx, desktop_session)
 
-    project_path = test_tmp_dir / "live_tool_surface.aedt"
+    token = _safe_test_token(request.node.name.split("[", 1)[0])
+    project_path = test_tmp_dir / f"{token}.aedt"
+    design_name = f"Hfss_{token}"
     saved_project_path = project_path
 
     try:
-        env = _create_hfss_project(ctx, project_path)
+        env = _create_hfss_project(ctx, project_path, design_name=design_name)
         env["ctx"] = ctx
         env["saved_project_path"] = saved_project_path
         yield env
     finally:
-        _release_desktop(ctx)
+        _detach_desktop(ctx)
 
 
 @pytest.fixture
-def running_aedt_session():
-    desktop = _start_desktop()
-    try:
-        yield desktop
-    finally:
-        try:
-            desktop.release_desktop(close_projects=False)
-        except Exception:
-            pass
+def running_aedt_session(desktop_session):
+    return desktop_session
 
 
 def test_check_aedt_installed_real_instance(empty_ctx):
@@ -318,11 +293,9 @@ def test_list_projects(live_project_env):
     assert data["count"] >= 1
 
 
-def test_create_design(live_project_env):
+def test_create_design(live_project_env, desktop_session):
     isolated_ctx = _build_tool_context()
-    desktop = _start_desktop()
-    isolated_ctx.request_context.lifespan_context.desktop = desktop
-    isolated_ctx.request_context.lifespan_context.aedt_port = desktop.port
+    _attach_desktop(isolated_ctx, desktop_session)
     try:
         env = _create_hfss_project(
             isolated_ctx,
@@ -336,7 +309,7 @@ def test_create_design(live_project_env):
         )
         assert "Successfully created Hfss design" in result
     finally:
-        _release_desktop(isolated_ctx)
+        _detach_desktop(isolated_ctx)
 
 
 def test_list_designs(live_project_env):
@@ -369,11 +342,9 @@ def test_run_python_script(live_project_env, test_tmp_dir):
     assert script_marker.exists()
 
 
-def test_save_project(live_project_env, test_tmp_dir):
+def test_save_project(live_project_env, test_tmp_dir, desktop_session):
     isolated_ctx = _build_tool_context()
-    desktop = _start_desktop()
-    isolated_ctx.request_context.lifespan_context.desktop = desktop
-    isolated_ctx.request_context.lifespan_context.aedt_port = desktop.port
+    _attach_desktop(isolated_ctx, desktop_session)
     try:
         _create_hfss_project(
             isolated_ctx, test_tmp_dir / "save_project_source.aedt", design_name="SaveHfss"
@@ -383,7 +354,7 @@ def test_save_project(live_project_env, test_tmp_dir):
         assert result == f"Project saved to: {save_path}"
         assert save_path.exists()
     finally:
-        _release_desktop(isolated_ctx)
+        _detach_desktop(isolated_ctx)
 
 
 def test_open_project(connected_ctx, live_project_env):
@@ -479,7 +450,7 @@ async def test_connect_to_existing_live_session(running_aedt_session):
         assert status["connected"] is True
         assert status["connection"]["port"] == running_aedt_session.port
     finally:
-        _release_desktop(ctx)
+        _detach_desktop(ctx)
 
 
 @pytest.mark.asyncio
