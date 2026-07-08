@@ -92,14 +92,45 @@ def _release_desktop(ctx: SimpleNamespace) -> None:
         _detach_desktop(ctx)
 
 
+def _create_project_and_design(ctx: SimpleNamespace, project_path: Path, design_name: str):
+    desktop = ctx.request_context.lifespan_context.desktop
+    if desktop is None:
+        raise RuntimeError("AEDT desktop session is not attached to the test context.")
+
+    known_projects = set(desktop.project_list)
+    project = desktop.odesktop.NewProject()
+    if project is None:
+        created_projects = [name for name in desktop.project_list if name not in known_projects]
+        if not created_projects:
+            raise RuntimeError("Failed to create a new AEDT project on the shared desktop.")
+        project = desktop.active_project(created_projects[0])
+
+    project.Rename(str(project_path), True)
+    project_name = project_path.stem
+
+    design = project.InsertDesign("HFSS", design_name, "HFSS Terminal Network", "")
+    if design is None:
+        design = project.SetActiveDesign(design_name)
+    if design is None:
+        available_designs = desktop.design_list(project_name)
+        raise RuntimeError(
+            "Failed to create or activate the requested HFSS design. "
+            f"Available designs: {available_designs}"
+        )
+
+    return project_name
+
+
 def _create_hfss_project(ctx: SimpleNamespace, project_path: Path, design_name: str = "LiveHfss"):
     from ansys.aedt.core import Hfss
 
+    project_name = _create_project_and_design(ctx, project_path, design_name)
     hfss = Hfss(
-        project=str(project_path),
+        project=project_name,
         design=design_name,
         solution_type="Terminal",
         new_desktop=False,
+        machine="localhost",
         port=ctx.request_context.lifespan_context.aedt_port,
     )
 
