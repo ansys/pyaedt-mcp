@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Real-AEDT integration tests for the PyAEDT MCP tool surface.
+"""AEDT integration tests for the PyAEDT MCP tool surface.
 
-These tests require AEDT to be installed and are intended to run against real
+These tests require AEDT to be installed and are intended to run against
 desktop instances only. No AEDT connection is mocked in this module.
 """
 
@@ -77,19 +77,6 @@ def _attach_desktop(ctx: SimpleNamespace, desktop) -> None:
 def _detach_desktop(ctx: SimpleNamespace) -> None:
     ctx.request_context.lifespan_context.desktop = None
     ctx.request_context.lifespan_context.aedt_port = None
-
-
-def _release_desktop(ctx: SimpleNamespace) -> None:
-    desktop = ctx.request_context.lifespan_context.desktop
-    if desktop is None:
-        return
-
-    try:
-        desktop.release_desktop(close_projects=False)
-    except Exception:
-        pass
-    finally:
-        _detach_desktop(ctx)
 
 
 def _create_project_and_design(ctx: SimpleNamespace, project_path: Path, design_name: str):
@@ -263,7 +250,7 @@ def running_aedt_session(desktop_session):
     return desktop_session
 
 
-def test_check_aedt_installed_real_instance(empty_ctx):
+def test_check_aedt_installed_instance(empty_ctx):
     result = check_aedt_installed(empty_ctx)
     assert "AEDT is installed" in result or "is reachable" in result
 
@@ -276,14 +263,11 @@ def test_check_aedt_status_disconnected(empty_ctx):
 
 
 @pytest.mark.asyncio
-async def test_launch_aedt_real_instance(empty_ctx):
-    try:
-        result = await launch_aedt(empty_ctx, non_graphical=True, confirm_new_session=True)
-        assert "Successfully launched AEDT Desktop" in result
-        status = json.loads(check_aedt_status(empty_ctx))
-        assert status["connected"] is True
-    finally:
-        _release_desktop(empty_ctx)
+async def test_launch_aedt_instance(empty_ctx):
+    result = await launch_aedt(empty_ctx, non_graphical=True, confirm_new_session=True)
+    assert "Successfully launched AEDT Desktop" in result
+    status = json.loads(check_aedt_status(empty_ctx))
+    assert status["connected"] is True
 
 
 def test_check_aedt_status_connected(live_project_env):
