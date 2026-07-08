@@ -262,9 +262,8 @@ def test_check_aedt_status_disconnected(empty_ctx):
     assert "connectable_sessions" in data
 
 
-@pytest.mark.asyncio
-async def test_launch_aedt_instance(empty_ctx):
-    result = await launch_aedt(empty_ctx, non_graphical=True, confirm_new_session=True)
+def test_launch_aedt_instance(empty_ctx):
+    result = launch_aedt(empty_ctx, non_graphical=True, confirm_new_session=True)
     assert "Successfully launched AEDT Desktop" in result
     status = json.loads(check_aedt_status(empty_ctx))
     assert status["connected"] is True
