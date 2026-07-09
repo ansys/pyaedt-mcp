@@ -55,6 +55,15 @@ from ansys.aedt.mcp.tools import (
 pytestmark = [pytest.mark.integration, pytest.mark.system, pytest.mark.general]
 
 
+_LIVE_ANALYZE_KWARGS = {
+    "num_cores": 1,
+    "num_tasks": 1,
+    "use_auto_settings": False,
+}
+
+_LIVE_ANALYZE_TIMEOUT_SECONDS = 900
+
+
 def _configure_live_settings() -> None:
     try:
         from ansys.aedt.core import settings
@@ -397,16 +406,19 @@ def test_open_project(connected_ctx, live_project_env):
     assert live_project_env["saved_project_path"].stem in data["open_projects"]
 
 
+@pytest.mark.timeout(_LIVE_ANALYZE_TIMEOUT_SECONDS)
 def test_analyze_design(live_project_env):
     result = analyze_design(
         live_project_env["ctx"],
         project_name=live_project_env["project_name"],
         design_name=live_project_env["design_name"],
         setup_name=live_project_env["setup_name"],
+        **_LIVE_ANALYZE_KWARGS,
     )
     assert "Analysis completed successfully" in result
 
 
+@pytest.mark.timeout(_LIVE_ANALYZE_TIMEOUT_SECONDS)
 def test_export_results(live_project_env, test_tmp_dir):
     touchstone_path = test_tmp_dir / "live_tools.s2p"
     analyze_design(
@@ -414,6 +426,7 @@ def test_export_results(live_project_env, test_tmp_dir):
         project_name=live_project_env["project_name"],
         design_name=live_project_env["design_name"],
         setup_name=live_project_env["setup_name"],
+        **_LIVE_ANALYZE_KWARGS,
     )
     result = export_results(
         live_project_env["ctx"],
