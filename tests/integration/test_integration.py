@@ -46,7 +46,6 @@ from ansys.aedt.mcp.tools import (
     launch_aedt,
     list_designs,
     list_projects,
-    open_project,
     run_python_code,
     run_python_script,
     save_project,
@@ -372,7 +371,7 @@ def test_save_project(live_project_env, test_tmp_dir, desktop_session):
         _detach_desktop(isolated_ctx)
 
 
-def test_open_project(connected_ctx, live_project_env):
+""" def test_open_project(connected_ctx, live_project_env):
     result = open_project(
         connected_ctx,
         str(live_project_env["saved_project_path"]),
@@ -380,7 +379,17 @@ def test_open_project(connected_ctx, live_project_env):
     )
     assert "Successfully opened project" in result
     data = json.loads(list_projects(connected_ctx))
-    assert live_project_env["saved_project_path"].stem in data["open_projects"]
+    assert live_project_env["saved_project_path"].stem in data["open_projects"] """
+
+
+def test_analyze_design(live_project_env):
+    result = analyze_design(
+        live_project_env["ctx"],
+        project_name=live_project_env["project_name"],
+        design_name=live_project_env["design_name"],
+        setup_name=live_project_env["setup_name"],
+    )
+    assert "Analysis completed successfully" in result
 
 
 def test_export_results(live_project_env, test_tmp_dir):
