@@ -383,16 +383,6 @@ def test_open_project(connected_ctx, live_project_env):
     assert live_project_env["saved_project_path"].stem in data["open_projects"]
 
 
-def test_analyze_design(live_project_env):
-    result = analyze_design(
-        live_project_env["ctx"],
-        project_name=live_project_env["project_name"],
-        design_name=live_project_env["design_name"],
-        setup_name=live_project_env["setup_name"],
-    )
-    assert "Analysis completed successfully" in result
-
-
 def test_export_results(live_project_env, test_tmp_dir):
     touchstone_path = test_tmp_dir / "live_tools.s2p"
     analyze_design(
