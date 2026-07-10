@@ -141,7 +141,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           pytest-extra-args: '${{ env.PYTEST_ARGUMENTS }} tests --ignore=tests/integration'
           pytest-markers: '-m "not integration and not system"'
-          optional-dependencies-name: tests
+          group-dependencies-name: test
 
   system-tests-tools-linux:
     name: "System tests (tools, linux)"
@@ -174,7 +174,7 @@ jobs:
 
       - name: "Install package and test dependencies"
         run: |
-          uv sync --extra tests
+          uv sync --group tests
 
       - name: "Remove Ansys processes (if any)"
         shell: bash
