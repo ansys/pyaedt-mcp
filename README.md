@@ -39,12 +39,27 @@ uvx --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp
 pip install git+https://github.com/ansys/pyaedt-mcp.git
 ```
 
+Using `uv`:
+
+```bash
+uv pip install git+https://github.com/ansys/pyaedt-mcp.git
+```
+
 ### Install for development
 
 ```bash
 git clone https://github.com/ansys/pyaedt-mcp.git
 cd pyaedt-mcp
 pip install -e .
+pre-commit install
+```
+
+Using `uv`:
+
+```bash
+git clone https://github.com/ansys/pyaedt-mcp.git
+cd pyaedt-mcp
+uv pip install -e .
 pre-commit install
 ```
 
@@ -61,6 +76,10 @@ pre-commit install
 ```bash
 "C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe" -grpcsrv 50051
 ```
+
+Or just launch AEDT normally, it will automatically start a gRPC server.
+
+> PyAEDT MCP server can also launch AEDT for you if it is not already running.
 
 ### 2. Start the MCP server
 
@@ -121,19 +140,9 @@ ansys-aedt-mcp --dynamic-tool-discovery
 }
 ```
 
-## Tool surface
+## Tool reference
 
-| Area | Main tools |
-| --- | --- |
-| Lifecycle | `check_aedt_installed`, `check_aedt_status`, `launch_aedt`, `connect_to_aedt`, `disconnect_from_aedt`, `clear_aedt` |
-| Project management | `list_projects`, `list_designs`, `open_project`, `save_project`, `create_design` |
-| Simulation | `analyze_design`, `export_config` |
-| Scripting | `run_python_code`, `run_python_script` |
-| Inspection | `get_model_info`, `screenshot`, `get_pyaedt_logs` |
-| Results | `export_results` |
-| Optional guidance | `get_guidelines_for` when the server starts with `--include-context` |
-
-Every tool has a timeout guard so the server can fail a stalled request without taking down the whole process.
+For more information on the available tools, see the [Tools and capabilities](https://aedt-mcp.docs.pyansys.com/version/dev/user_guide/tools_and_capabilities.html) section of the documentation.
 
 ## How the repository is organized
 
@@ -159,25 +168,13 @@ Other top-level folders:
 
 ## Development workflow
 
-Run the main checks from the repository root:
-
-```bash
-pytest -q
-python -m sphinx -W -b html doc\source doc\_build\html
-pre-commit run --all-files
-```
-
-Integration tests expect a real AEDT session:
-
-```bash
-pytest tests\test_integration.py -m integration
-```
+To contribute to the project, check out the [contributing guide](https://aedt-mcp.docs.pyansys.com/version/dev/getting_started/contribution.html).
 
 ## Adding a new tool
 
 Most tools require a live AEDT connection. Tag those tools with `REQUIRES_AEDT_TAG` in `src\ansys\aedt\mcp\tools.py` so they can be hidden until the session exists when dynamic discovery is enabled.
 
-If a tool is intentionally available before connection, leave that tag off and make sure the visibility tests in `tests\test_tools.py` still describe the expected surface.
+For more information on adding a new tool, see the [Adding a new tool](https://aedt-mcp.docs.pyansys.com/version/dev/examples/adding_new_tool.html) section of the documentation.
 
 ## License
 
