@@ -55,7 +55,7 @@ from ansys.aedt.mcp.tools import (
 pytestmark = [pytest.mark.integration, pytest.mark.system, pytest.mark.general]
 
 
-_LIVE_ANALYZE_KWARGS = {
+ANALYZE_KWARGS = {
     "num_cores": 1,
     "num_tasks": 1,
     "use_auto_settings": False,
@@ -413,7 +413,7 @@ def test_analyze_design(live_project_env):
         project_name=live_project_env["project_name"],
         design_name=live_project_env["design_name"],
         setup_name=live_project_env["setup_name"],
-        **_LIVE_ANALYZE_KWARGS,
+        **ANALYZE_KWARGS,
     )
     assert "Analysis completed successfully" in result
 
@@ -426,7 +426,7 @@ def test_export_results(live_project_env, test_tmp_dir):
         project_name=live_project_env["project_name"],
         design_name=live_project_env["design_name"],
         setup_name=live_project_env["setup_name"],
-        **_LIVE_ANALYZE_KWARGS,
+        **ANALYZE_KWARGS,
     )
     result = export_results(
         live_project_env["ctx"],
