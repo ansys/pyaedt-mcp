@@ -61,10 +61,11 @@ html_theme_options = {
             "icon": "fa fa-comment fa-fw",
         },
     ],
-    #    "switcher": {
-    #        "json_url": f"https://{cname}/versions.json",
-    #        "version_match": switcher_version,
-    #    },
+    "switcher": {
+        "json_url": f"https://{cname}/versions.json",
+        "version_match": switcher_version,
+    },
+    "check_switcher": False,
     "ansys_sphinx_theme_autoapi": {
         "project": project,
     },
@@ -101,13 +102,18 @@ autosectionlabel_prefix_document = True
 
 numpydoc_validate = True
 numpydoc_validation_checks = {
-    "GL08",  # The object does not have a docstring
+    "GL06",  # Found unknown section
+    "GL07",  # Sections are in the wrong order.
+    # "GL08",  # The object does not have a docstring
     "GL09",  # Deprecation warning should precede extended summary
-    "GL10",  # reST directives must be followed by two colons
+    "GL10",  # reST directives {directives} must be followed by two colons
     "SS01",  # No summary found
     "SS02",  # Summary does not start with a capital letter
+    # "SS03", # Summary does not end with a period
     "SS04",  # Summary contains heading whitespaces
-    "RT02",  # The first line of the Returns section should contain only the type
+    # "SS05", # Summary must start with infinitive verb, not third person
+    "RT02",  # The first line of the Returns section should contain only the
+    # type, unless multiple values are being returned"
 }
 
 # Add any paths that contain templates here, relative to this directory.
@@ -119,6 +125,20 @@ source_suffix = ".rst"
 
 # The master toctree document.
 master_doc = "index"
+
+
+def prepare_jinja_env(jinja_env) -> None:
+    """Customize the jinja env.
+
+    Notes
+    -----
+    See https://jinja.palletsprojects.com/en/3.0.x/api/#jinja2.Environment
+
+    """
+    jinja_env.globals["project_name"] = project
+
+
+autoapi_prepare_jinja_env = prepare_jinja_env
 
 language = "en"
 
@@ -146,11 +166,6 @@ linkcheck_ignore = [
     "https://modelcontextprotocol.io/*",
     "https://www.sphinx-doc.org/*",
 ]
-
-# If we are on a release, we have to ignore the "release" URLs, since it is not
-# available until the release is published.
-if switcher_version != "dev":
-    linkcheck_ignore.append(f"https://github.com/ansys/pyaedt-mcp/releases/tag/v{__version__}")
 
 linkcheck_allowed_redirect = [
     r"https://tox.wiki/",

@@ -11,7 +11,7 @@ Installation
 Requirements
 ------------
 
-- Python 3.10 or later
+- Python 3.11 or later
 - AEDT 2022 R2 or later for gRPC workflows
 - A local AEDT installation or a reachable remote AEDT endpoint
 

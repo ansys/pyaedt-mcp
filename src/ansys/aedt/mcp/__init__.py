@@ -41,8 +41,11 @@ Example:
         $ ansys-aedt-mcp --connect --machine localhost --port 50051
 """
 
-__version__ = "0.1.0"
+import importlib.metadata as importlib_metadata
 
 from ansys.aedt.mcp.server import app, launcher
+
+__version__ = importlib_metadata.version(__name__.replace(".", "-"))
+"""PyAEDT MCP version."""
 
 __all__ = ["app", "launcher", "__version__"]

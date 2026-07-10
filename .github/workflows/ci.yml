@@ -15,12 +15,29 @@ concurrency:
 permissions: {}
 
 env:
-  ON_CI: "true"
-  MAIN_PYTHON_VERSION: "3.13"
+  ANSYSLMD_LICENSE_FILE: ${{ format('1055@{0}', secrets.LICENSE_SERVER) }}
+  ON_CI: True
+  PYTEST_ARGUMENTS: -vvv --color=yes -ra --durations=25 --maxfail=10
+  MAIN_PYTHON_VERSION: "3.11"
+  TESTS_PYTHON_VERSION: "3.12"
   PACKAGE_NAME: "ansys-aedt-mcp"
   DOCUMENTATION_CNAME: "aedt-mcp.docs.pyansys.com"
 
 jobs:
+
+  update-changelog:
+    name: "Update CHANGELOG (on release)"
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to read and write repository contents
+      pull-requests: write # Needed to create pull requests
+    steps:
+      - uses: ansys/actions/doc-deploy-changelog@a5b0351dc277d68c2dc1beca2d2674c7dfa4fc55 #v10.3.3
+        with:
+          token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
+          bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}
+          bot-email: ${{ secrets.PYANSYS_CI_BOT_EMAIL }}
 
   code-style:
     name: "Code style checks"
@@ -96,7 +113,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
     steps:
       - name: "Build wheelhouse and perform smoke test"
         uses: ansys/actions/build-wheelhouse@a5b0351dc277d68c2dc1beca2d2674c7dfa4fc55 #v10.3.3
@@ -116,14 +133,63 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ['3.11', '3.12', '3.13', '3.14']
     steps:
       - name: "Run unit tests"
         uses: ansys/actions/tests-pytest@a5b0351dc277d68c2dc1beca2d2674c7dfa4fc55 #v10.3.3
         with:
           python-version: ${{ matrix.python-version }}
-          pytest-markers: '-m "not integration"'
-          group-dependencies-name: test
+          pytest-extra-args: '${{ env.PYTEST_ARGUMENTS }} tests --ignore=tests/integration'
+          pytest-markers: '-m "not integration and not system"'
+          group-dependencies-name: tests
+
+  system-tests-tools-linux:
+    name: "System tests (tools, linux)"
+    runs-on: [self-hosted, Linux, pyaedt-toolkit]
+    needs: [test]
+    permissions:
+      contents: read # Needed to checkout the code
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    env:
+      ANSYSEM_ROOT261: '/usr/ansys_inc/v261/AnsysEM'
+      ANS_NODEPCHECK: "1"
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: "Set up Python"
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.TESTS_PYTHON_VERSION }}
+
+      - name: "Set up uv"
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          activate-environment: true
+          enable-cache: false
+          prune-cache: true
+          python-version: ${{ env.TESTS_PYTHON_VERSION }}
+
+      - name: "Install package and test dependencies"
+        run: |
+          uv sync --group tests
+
+      - name: "Remove Ansys processes (if any)"
+        shell: bash
+        run: |
+          for pid in $(ps -eo pid,comm,args | grep -iE "ansys.inc|ansysem" | grep -v grep | awk '{print $1}'); do
+            echo "Killing PID $pid"
+            kill -9 "$pid"
+          done
+
+      - name: "Run integration tests"
+        env:
+          PYTHONMALLOC: malloc
+          PYTEST_EXTRA_ARGS: ${{ env.PYTEST_ARGUMENTS }}
+        run: |
+          pytest ${PYTEST_EXTRA_ARGS} tests/integration -m "integration and system"
 
   build-docs:
     name: "Build documentation"
@@ -168,7 +234,7 @@ jobs:
         uses: ansys/actions/doc-deploy-dev@a5b0351dc277d68c2dc1beca2d2674c7dfa4fc55 #v10.3.3
         with:
           cname: ${{ env.DOCUMENTATION_CNAME }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PYANSYS_CI_BOT_TOKEN  }}
           bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}
           bot-email: ${{ secrets.PYANSYS_CI_BOT_EMAIL }}
 
@@ -188,3 +254,46 @@ jobs:
           bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}
           bot-email: ${{ secrets.PYANSYS_CI_BOT_EMAIL }}
           maximum-pr-doc-deployments: 10
+
+  release:
+    name: "Release project to GitHub and PyPI"
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags')
+    needs: [package, build-docs, update-changelog]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write # Required for GitHub release
+      contents: write # Required for GitHub release
+    steps:
+      - name: "Release to GitHub"
+        uses: ansys/actions/release-github@a5b0351dc277d68c2dc1beca2d2674c7dfa4fc55 #v10.3.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          library-name: ${{ env.PACKAGE_NAME }}
+          add-artifact-attestation-notes: true
+          changelog-release-notes: true
+
+      - name: "Release to PyPI"
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          repository-url: "https://upload.pypi.org/legacy/"
+          print-hash: true
+          packages-dir: dist/${{ env.PACKAGE_NAME }}-artifacts
+          skip-existing: false
+
+  doc-deploy-stable:
+    name: "Deploy stable documentation"
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to push documentation to gh-pages branch
+    needs: [release]
+    steps:
+      - name: "Deploy the stable documentation"
+        uses: ansys/actions/doc-deploy-stable@a5b0351dc277d68c2dc1beca2d2674c7dfa4fc55 #v10.3.3
+        with:
+          cname: ${{ env.DOCUMENTATION_CNAME }}
+          token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
+          render-last: '5'
+          bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}
+          bot-email: ${{ secrets.PYANSYS_CI_BOT_EMAIL }}
