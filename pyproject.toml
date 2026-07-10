@@ -49,7 +49,7 @@ dependencies = [
   "matplotlib>=3.5.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 doc = [
   "ansys-sphinx-theme[autoapi,changelog]==1.9.0",
   "numpydoc==1.10.0",

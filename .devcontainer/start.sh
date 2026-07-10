@@ -10,7 +10,7 @@ source ./.venv_pyaedt/bin/activate
 
 echo "Installing PyAEDT-MCP package and dependencies for development"
 git fetch && git pull
-pip install -e .[tests]
+pip install -e '.[tests]'
 
 echo "Setting pre-commit..."
 pre-commit install --install-hooks
