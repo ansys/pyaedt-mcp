@@ -141,7 +141,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           pytest-extra-args: '${{ env.PYTEST_ARGUMENTS }} tests --ignore=tests/integration'
           pytest-markers: '-m "not integration and not system"'
-          group-dependencies-name: test
+          group-dependencies-name: tests
 
   system-tests-tools-linux:
     name: "System tests (tools, linux)"
