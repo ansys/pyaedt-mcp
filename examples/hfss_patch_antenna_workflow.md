@@ -1,6 +1,3 @@
-# TODO: what is this file?
-
-
 # HFSS Patch Antenna Workflow
 
 This example demonstrates a complete HFSS microstrip patch antenna workflow
