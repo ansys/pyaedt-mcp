@@ -174,7 +174,7 @@ jobs:
 
       - name: "Install package and test dependencies"
         run: |
-          uv sync --extra tests
+          uv sync --group tests
 
       - name: "Remove Ansys processes (if any)"
         shell: bash
@@ -204,6 +204,7 @@ jobs:
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
           dependencies: 'zip libgl1 libglx-mesa0 xvfb'
           sphinxopts: '-W --keep-going'
+          group-dependencies-name: doc
 
   package:
     name: "Package library"
