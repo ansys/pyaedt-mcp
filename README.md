@@ -1,7 +1,10 @@
 <p align="center">
-  <img src="doc/source/_static/images/logo.png" alt="PyAEDT MCP" width="800">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="doc/source/_static/images/logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="doc/source/_static/images/logo-light.png">
+    <img alt="PyAEDT MCP" src="doc/source/_static/images/logo-light.png" width="900">
+  </picture>
 </p>
-
 # PyAEDT MCP Server
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
