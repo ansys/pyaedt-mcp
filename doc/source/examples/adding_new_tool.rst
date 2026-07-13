@@ -1,7 +1,7 @@
 .. _ref_adding_new_tool:
 
-Adding a new tool
-=================
+Add a new tool
+==============
 
 This example shows how to add a new ``@app.tool(...)`` safely and make it visible
 at the right stages of an MCP session.

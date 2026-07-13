@@ -20,6 +20,7 @@
    user_guide/index
    api/index
    examples/index
+   contribution
    changelog
 
 PyAEDT-MCP is an MCP (Model Context Protocol) server for Ansys Electronics Desktop (AEDT).
