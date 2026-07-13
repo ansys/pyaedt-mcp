@@ -3,29 +3,30 @@
 Docker deployment
 =================
 
-PyAEDT-MCP can run as a containerized service with HTTP transport. Because AEDT
-does not have a publicly available Docker image, the MCP container connects to
-an AEDT instance running on the host machine or on a remote server.
+You can run PyAEDT-MCP as a containerized service with HTTP transport.
+Because AEDT does not have a publicly available Docker image, the MCP
+container connects to an AEDT instance running on your host machine or on a
+remote server.
 
 .. warning::
-   HTTP transport is not encrypted. Use only on trusted networks or behind a
+   HTTP transport is not encrypted. Use it only on trusted networks or behind a
    reverse proxy (such as Nginx or HAProxy) that provides TLS/SSL.
 
 Quick start with Docker Compose
 --------------------------------
 
-The easiest path is Docker Compose.
+Use Docker Compose for the fastest setup.
 
-1. Start AEDT on the host machine first:
+#. Start AEDT on the host machine first:
 
    .. code-block:: bash
 
       # Windows
       "C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe" -grpcsrv 50051
 
-    Or open AEDT from the desktop icon.
+   Or open AEDT from the desktop icon.
 
-2. Build and start the MCP container:
+#. Build and start the MCP container:
 
    .. code-block:: bash
 
@@ -33,24 +34,26 @@ The easiest path is Docker Compose.
 
    The MCP server is available at ``http://localhost:8080``.
 
-3. Check the logs:
+#. Check the logs:
 
    .. code-block:: bash
 
       docker compose -f docker/docker-compose.yml logs -f pyaedt-mcp
 
-4. Stop the server:
+#. Stop the server:
 
    .. code-block:: bash
 
       docker compose -f docker/docker-compose.yml down
 
 MCP client configuration
--------------------------
+------------------------
 
-Once the container is running, point your MCP client to the HTTP server.
+After the container starts, point your MCP client to the HTTP server.
 
-**Visual Studio Code** (``.vscode/mcp.json``):
+**Visual Studio Code**
+
+Edit the ``.vscode/mcp.json`` file:
 
 .. code-block:: json
 

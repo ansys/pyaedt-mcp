@@ -4,35 +4,27 @@
 Getting started
 ===============
 
-Start here if you want to install the server, point an MCP client at it, and
-run the first AEDT workflow.
+Start here to install PyAEDT-MCP, connect an MCP client, and run your first
+AEDT workflow.
 
 .. grid:: 2 2 3 3
     :gutter: 1 2 3 3
     :padding: 1 2 3 3
 
-    .. grid-item-card:: :fa:`download`  Installation
+      .. grid-item-card:: :fa:`download`  Installation
           :link: installation
           :link-type: doc
 
-          A step-by-step guide to installing PyAEDT-MCP.
+          Install PyAEDT-MCP.
 
-    .. grid-item-card:: :fa:`cogs`  IDE configuration
+      .. grid-item-card:: :fa:`cogs`  IDE and client configuration
           :link: ide_configuration
           :link-type: doc
 
-          Setting up your IDE for PyAEDT-MCP development.
-
-    .. grid-item-card:: :fa:`users`  Contribution
-          :link: contribution
-          :link-type: doc
-
-          Guidelines for contributing to the PyAEDT-MCP project.
-
+          Configure your IDE and client to use PyAEDT-MCP.
 
 .. toctree::
    :hidden:
 
    installation
    ide_configuration
-   contribution

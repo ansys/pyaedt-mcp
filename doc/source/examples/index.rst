@@ -16,20 +16,20 @@ In this section, you can find typical end-to-end workflows for common AEDT tasks
    :gutter: 1 2 3 3
    :padding: 1 2 3 3
 
-   .. grid-item-card:: :fa:`diagram-project` HFSS patch antenna
+   .. grid-item-card:: :fa:`diagram-project` Run an HFSS patch antenna workflow
       :link: hfss_patch_antenna_workflow
       :link-type: doc
 
-      Follow a complete HFSS patch antenna workflow using the MCP toolset.
+      Run a complete HFSS patch antenna workflow using the MCP toolset.
 
-   .. grid-item-card:: :fa:`wrench` Adding a new tool
+   .. grid-item-card:: :fa:`wrench` Add a new tool
       :link: adding_new_tool
       :link-type: doc
 
       Use a practical checklist to add, validate, and expose new tools.
 
-   .. grid-item-card:: :fa:`video` Video demos
+   .. grid-item-card:: :fa:`video` Watch short videos
       :link: video_demos
       :link-type: doc
 
-      Watch short demos that show common workflows and capabilities.
+      Watch short videos that show common workflows and capabilities.

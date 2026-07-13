@@ -1,11 +1,11 @@
 .. _ref_hfss_patch_antenna_workflow:
 
-HFSS patch antenna workflow
-===========================
+Run an HFSS patch antenna workflow
+==================================
 
-This example demonstrates a complete HFSS microstrip patch antenna workflow
-using the PyAEDT-MCP tools. All steps below were validated live against ANSYS
-AEDT 2026 R1.
+This example shows how to run a complete HFSS microstrip patch antenna workflow with
+PyAEDT-MCP tools. All steps were validated live against Ansys AEDT
+2026 R1.
 
 .. note::
 
@@ -16,10 +16,10 @@ AEDT 2026 R1.
 Tool visibility model
 ---------------------
 
-PyAEDT-MCP uses a connection-aware visibility model so the MCP client sees a
-small, focused tool surface up front and additional tools unlock once an AEDT
-session exists. This avoids "tool not available - connect first" round-trips
-and reduces token cost.
+PyAEDT-MCP uses a connection-aware visibility model. The MCP client sees a small,
+focused tool surface first, and additional tools unlock after an AEDT session
+exists. This avoids "tool not available - connect first" round-trips and
+reduces token cost.
 
 .. list-table::
    :header-rows: 1
@@ -35,11 +35,14 @@ and reduces token cost.
        ``save_project``, ``analyze_design``, ``screenshot``,
        ``run_python_code``, ``run_python_script``, and related tools
 
-The expansion happens automatically as part of the launch or connect tool call
+The tool set expands automatically as part of the launch or connect call
 through ``await ctx.enable_components(tags={"requires_connection"})``.
 
-1. Check AEDT installation
---------------------------
+Workflow steps
+--------------
+
+Check AEDT installation
+~~~~~~~~~~~~~~~~~~~~~~~
 
 **Tool:** ``check_aedt_installed``
 
@@ -50,8 +53,8 @@ through ``await ctx.enable_components(tags={"requires_connection"})``.
      Version: 2026.1
      Executable: C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe
 
-2. Launch AEDT
---------------
+Launch AEDT
+~~~~~~~~~~~
 
 **Tool:** ``launch_aedt``
 
@@ -64,7 +67,8 @@ through ``await ctx.enable_components(tags={"requires_connection"})``.
    * - ``non_graphical``
      - ``False``
 
-Launch in graphical mode so the antenna and S11 report are visible in the GUI.
+Launch in graphical mode so you can view the antenna and S11 report in the
+GUI.
 
 .. code-block:: text
 
@@ -75,8 +79,8 @@ Launch in graphical mode so the antenna and S11 report are visible in the GUI.
      PID: 2600
      Startup Time: ~18s
 
-3. Create HFSS design
----------------------
+Create HFSS design
+~~~~~~~~~~~~~~~~~~
 
 **Tool:** ``create_design``
 
@@ -99,8 +103,8 @@ Launch in graphical mode so the antenna and S11 report are visible in the GUI.
      Project: Project6
      Solution Type: Terminal
 
-4. Build geometry and boundaries
---------------------------------
+Build geometry and boundaries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Tool:** ``run_python_code``
 
@@ -144,8 +148,8 @@ Launch in graphical mode so the antenna and S11 report are visible in the GUI.
 
    Response: Geometry and boundaries created. Objects: ['Substrate', 'Ground', 'Patch']
 
-5. Add feed line, lumped port, and air box
-------------------------------------------
+Add feed line, lumped port, and air box
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Tool:** ``run_python_code``
 
@@ -196,8 +200,8 @@ Launch in graphical mode so the antenna and S11 report are visible in the GUI.
 
    Response: Feed, port, and airbox added. Objects: ['FeedLine', 'Substrate', 'Ground', 'Patch', 'FeedPort', 'AirBox']
 
-6. Create setup and frequency sweep
------------------------------------
+Create setup and frequency sweep
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Tool:** ``run_python_code``
 
@@ -234,15 +238,16 @@ Launch in graphical mode so the antenna and S11 report are visible in the GUI.
 
    Response: Setup and sweep created. Setup: Setup1, Sweep: Sweep1, Valid: True
 
-7. Capture pre-solve screenshot
--------------------------------
+Capture pre-solve screenshot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Tool:** ``screenshot``
 
-Returns a PNG image of the AEDT viewport showing the antenna geometry.
+The tool returns a PNG file of the AEDT viewport showing the antenna
+geometry.
 
-8. Solve the design
--------------------
+Solve design
+~~~~~~~~~~~~
 
 **Tool:** ``run_python_code``
 
@@ -263,12 +268,13 @@ Returns a PNG image of the AEDT viewport showing the antenna geometry.
 
    Response: Solved: True, Time: 81s
 
-9. Create S11 report and export results
----------------------------------------
+Create S11 report and export results
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Tool:** ``run_python_code``
 
-Terminal solution type uses ``St()`` notation instead of ``S()``.
+Because this workflow uses a terminal solution type, use ``St()`` notation
+instead of ``S()``.
 
 .. code-block:: python
 
@@ -318,15 +324,16 @@ Terminal solution type uses ``St()`` notation instead of ``S()``.
 
    Response: S11 Report created! Resonance: 2.8000 GHz, S11 = -5.22 dB
 
-10. Capture post-solve screenshot
----------------------------------
+Capture post-solve screenshot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Tool:** ``screenshot``
 
-Returns a PNG showing the ``S11_Return_Loss`` report visible in the AEDT GUI.
+The tool returns a PNG file that shows the ``S11_Return_Loss`` report in the AEDT
+GUI.
 
-11. Clear AEDT (optional)
--------------------------
+Clear AEDT (optional)
+~~~~~~~~~~~~~~~~~~~~~
 
 **Tool:** ``clear_aedt``
 

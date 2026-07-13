@@ -22,8 +22,11 @@
    examples/index
    changelog
 
-PyAEDT-MCP is an MCP (Model Context Protocol) server for Ansys Electronics Desktop (AEDT), built using `FastMCP <https://github.com/PrefectHQ/fastmcp>`_. It provides a focused set of tools and a persistent `PyAEDT <https://github.com/ansys/pyaedt>`__-backed Python session.
-When the MCP starts, it can optionally automatically connect to a running AEDT instance.
+PyAEDT-MCP is an MCP (Model Context Protocol) server for Ansys Electronics Desktop (AEDT).
+You can use it to access a focused set of tools and a persistent
+`PyAEDT <https://github.com/ansys/pyaedt>`__-backed Python session built with
+`FastMCP <https://github.com/PrefectHQ/fastmcp>`_.
+You can also configure PyAEDT-MCP to connect automatically to a running AEDT instance when it starts.
 
 .. grid:: 2 2 2 2
     :gutter: 1 2 3 3
@@ -33,20 +36,20 @@ When the MCP starts, it can optionally automatically connect to a running AEDT i
         :link: user_guide/overview
         :link-type: doc
 
-        Discover what PyAEDT-MCP is, how it works, and why you should use it.
+        Learn what PyAEDT-MCP is, how it works, and why to use it.
 
     .. grid-item-card:: :fa:`rocket` Get started quickly
         :link: getting_started/installation
         :link-type: doc
 
-        Install the package, start the server, and connect it to AEDT.
+        Install PyAEDT-MCP, start the server, and connect to AEDT.
 
     .. grid-item-card:: :fa:`users` Contribute to the project
-        :link: getting_started/contribution
+        :link: Contribution
         :link-type: doc
 
         Report bugs, suggest features, improve the documentation, or submit
-        pull requests.
+        a pull request.
 
     .. grid-item-card:: :fa:`question` Find help or report issues
         :link: https://github.com/ansys/pyaedt-mcp/discussions
@@ -72,18 +75,18 @@ Setup and advanced tips
         :link: user_guide/tools_and_capabilities
         :link-type: doc
 
-        See the full tool surface, what is available before and after
-        connection, and timeout tiers.
+        Review the full toolset, what is available before and after
+        connection, and the timeout tiers.
 
     .. grid-item-card:: :fa:`diagram-project` Workflow examples
         :link: user_guide/workflows
         :link-type: doc
 
-        Follow practical end-to-end AEDT workflows using the MCP toolset.
+        Follow practical end-to-end AEDT workflows using the PyAEDT-MCP toolset.
 
     .. grid-item-card:: :fa:`book` Best practices
         :link: user_guide/best_practices
         :link-type: doc
 
-        Recommendations for session management, scripting, data handling,
-        visualization, and workflow design.
+        Learn recommended practices for session management, scripting, data
+        handling, visualization, and workflow design.
