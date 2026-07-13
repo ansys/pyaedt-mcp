@@ -5,15 +5,22 @@ Examples
 
 In this section, you can find typical end-to-end workflows for common AEDT tasks, as well as a checklist for adding new tools to the server or demonstrating existing tools in short video demos.
 
+.. toctree::
+   :hidden:
+
+   hfss_patch_antenna_workflow
+   adding_new_tool
+   video_demos
+
 .. grid:: 2 2 2 2
    :gutter: 1 2 3 3
    :padding: 1 2 3 3
 
-   .. grid-item-card:: :fa:`diagram-project` Workflow examples
-      :link: ../user_guide/workflows
+   .. grid-item-card:: :fa:`diagram-project` HFSS patch antenna
+      :link: hfss_patch_antenna_workflow
       :link-type: doc
 
-      Follow practical end-to-end AEDT workflows using the MCP toolset.
+      Follow a complete HFSS patch antenna workflow using the MCP toolset.
 
    .. grid-item-card:: :fa:`wrench` Adding a new tool
       :link: adding_new_tool

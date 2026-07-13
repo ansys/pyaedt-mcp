@@ -9,14 +9,8 @@ PyAEDT-MCP tools together for common AEDT tasks.
 HFSS patch antenna
 ~~~~~~~~~~~~~~~~~~
 
-#. ``check_aedt_installed``
-#. ``connect_to_aedt`` or ``launch_aedt``
-#. ``create_design`` with ``app_type="Hfss"``
-#. ``run_python_code`` - create substrate, patch, ground plane, airbox, ports
-#. ``run_python_code`` - create analysis setup and frequency sweep
-#. ``analyze_design``
-#. ``run_python_code`` - create S-parameter report
-#. ``export_results`` - export ``.s1p`` Touchstone file
+See :doc:`../examples/hfss_patch_antenna_workflow` for the full step-by-step
+workflow, including geometry creation, setup, solve, reporting, and screenshots.
 
 Maxwell motor analysis
 ~~~~~~~~~~~~~~~~~~~~~~
