@@ -136,14 +136,14 @@ the same session. If a script is large, you can split it into smaller chunks
 and run them with ``run_python_code``.
 
 Run an analysis
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 *"Analyze the active design."*
 
 *"Run setup 'Setup1' on the active design."*
 
 Inspect the model
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 *"Take a screenshot of the current view."*
 
@@ -159,7 +159,7 @@ Export results
 *"Export the current design configuration."*
 
 Get workflow guidance
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 When you start the server with ``--include-context``, you can ask for
 topic-specific PyAEDT guidance.

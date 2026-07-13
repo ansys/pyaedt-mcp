@@ -11,17 +11,17 @@ AEDT workflow.
     :gutter: 1 2 3 3
     :padding: 1 2 3 3
 
-      .. grid-item-card:: :fa:`download`  Installation
-          :link: installation
-          :link-type: doc
+    .. grid-item-card:: :fa:`download`  Installation
+        :link: installation
+        :link-type: doc
 
-          Install PyAEDT-MCP.
+        Install PyAEDT-MCP.
 
-      .. grid-item-card:: :fa:`cogs`  IDE and client configuration
-          :link: ide_configuration
-          :link-type: doc
+    .. grid-item-card:: :fa:`cogs`  IDE and client configuration
+        :link: ide_configuration
+        :link-type: doc
 
-          Configure your IDE and client to use PyAEDT-MCP.
+        Configure your IDE and client to use PyAEDT-MCP.
 
 .. toctree::
    :hidden:

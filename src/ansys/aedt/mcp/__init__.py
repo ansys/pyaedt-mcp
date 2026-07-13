@@ -17,7 +17,7 @@
 """PyAEDT-MCP is an MCP (Model Context Protocol) server for Ansys Electronics Desktop (AEDT).
 
 This package provides an MCP server that enables AI assistants to interact
-with Ansys Electronics Desktop (AEDT) through PyAEDT.
+with AEDT through PyAEDT.
 
 Supported AEDT Applications:
 - HFSS (High Frequency Structure Simulator)

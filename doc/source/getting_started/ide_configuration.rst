@@ -12,7 +12,7 @@ Claude Code
 Claude Code is Anthropic's AI-powered code editor with built-in MCP support.
 
 Configure for a specific project (recommended)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Configure PyAEDT-MCP for a specific project:
 
