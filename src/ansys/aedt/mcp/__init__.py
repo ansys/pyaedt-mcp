@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""PyAEDT MCP Server - Model Context Protocol server for Ansys Electronics Desktop.
+"""PyAEDT-MCP is an MCP (Model Context Protocol) server for Ansys Electronics Desktop (AEDT).
 
 This package provides an MCP server that enables AI assistants to interact
 with Ansys Electronics Desktop (AEDT) through PyAEDT.

@@ -71,4 +71,4 @@ Next steps
 
 - Begin with :doc:`../getting_started/index`.
 - Review guidance in :doc:`best_practices`.
-- Learn how to contribute in :doc:`../getting_started/contribution`.
+- Learn how to contribute in :ref:`ref_contributing`.

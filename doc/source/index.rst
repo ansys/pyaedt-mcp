@@ -45,7 +45,7 @@ You can also configure PyAEDT-MCP to connect automatically to a running AEDT ins
         Install PyAEDT-MCP, start the server, and connect to AEDT.
 
     .. grid-item-card:: :fa:`users` Contribute to the project
-        :link: Contribution
+        :link: contribution
         :link-type: doc
 
         Report bugs, suggest features, improve the documentation, or submit

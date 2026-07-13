@@ -46,7 +46,7 @@ Use this option when you want to install from a local clone of the PyAEDT-MCP re
    pip install .
 
 If you plan to contribute, follow the development setup in
-:doc:`contribution` for an editable installation, development dependencies, tests,
+:ref:`ref_contributing` for an editable installation, development dependencies, tests,
 and linters.
 
 Start AEDT in gRPC mode
