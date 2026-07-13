@@ -319,7 +319,7 @@ Terminal solution type uses ``St()`` notation instead of ``S()``.
    Response: S11 Report created! Resonance: 2.8000 GHz, S11 = -5.22 dB
 
 10. Capture post-solve screenshot
---------------------------------
+---------------------------------
 
 **Tool:** ``screenshot``
 

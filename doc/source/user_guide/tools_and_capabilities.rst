@@ -125,7 +125,7 @@ Running inline PyAEDT code
 Use ``run_python_code`` for geometry creation, parameter updates, boundary
 assignment, and any step that does not have a dedicated tool.
 
-All this code will be executed in the **persistent Python session** of the current AEDT Desktop instance. Imports and variables defined in one call are available in all subsequent calls.
+All the code executes in the **persistent Python session** of the current AEDT Desktop instance. Imports and variables defined in one call are available in all subsequent calls.
 
 ``run_python_script`` is also available for executing a complete Python file in the same persistent session. Depending on the size of the script, or the agent guidance, it can use ``run_python_code`` instead of ``run_python_script`` to execute the script in smaller chunks.
 
