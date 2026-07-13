@@ -37,7 +37,8 @@ environment:
 Install PyAEDT-MCP from source
 ------------------------------
 
-Use this option when you want to install from a local clone of the PyAEDT-MCP repository.
+Use this option when you want to install from a local clone of the
+PyAEDT-MCP repository.
 
 .. code-block:: bash
 
@@ -46,8 +47,8 @@ Use this option when you want to install from a local clone of the PyAEDT-MCP re
    pip install .
 
 If you plan to contribute, follow the development setup in
-:ref:`ref_contributing` for an editable installation, development dependencies, tests,
-and linters.
+:ref:`ref_contributing` for an editable installation, development dependencies,
+tests, and linters.
 
 Start AEDT in gRPC mode
 -----------------------
@@ -91,17 +92,17 @@ Review important CLI options
    * - Option
      - Purpose
    * - ``--transport {stdio,http}``
-       - Choose how PyAEDT-MCP connects to the client.
+     - Choose how PyAEDT-MCP connects to the client.
    * - ``--machine`` / ``--port``
-       - Point the startup connection to an AEDT gRPC endpoint.
+     - Point the startup connection to an AEDT gRPC endpoint.
    * - ``--connect``
-       - Connect to AEDT during server startup instead of waiting for a tool call.
+     - Connect to AEDT during server startup instead of waiting for a tool call.
    * - ``--include-context``
-       - Register optional guidance tools for AEDT and PyAEDT workflows.
+     - Register optional guidance tools for AEDT and PyAEDT workflows.
    * - ``--dynamic-tool-discovery``
-       - Hide AEDT-only tools until ``launch_aedt`` or ``connect_to_aedt`` succeeds.
+     - Hide AEDT-only tools until ``launch_aedt`` or ``connect_to_aedt`` succeeds.
    * - ``--http-host`` / ``--http-port``
-       - Set the HTTP transport endpoint.
+     - Set the HTTP transport endpoint.
 
 Follow a typical first workflow
 -------------------------------
