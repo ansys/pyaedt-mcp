@@ -292,7 +292,7 @@ def check_aedt_status(ctx: Context) -> str:
     -------
     str
         JSON string containing comprehensive AEDT status information including:
-    
+
         - connection: Basic connection info (version, machine, port, is_grpc)
         - projects: List of open projects
         - active_project: Currently active project name
@@ -634,8 +634,7 @@ async def connect_to_aedt(
     # Check if there's already a connection
     if ctx.request_context.lifespan_context.desktop is not None:
         return (
-            "Already connected to an AEDT session. "
-            "Disconnect first using 'disconnect_from_aedt'."
+            "Already connected to an AEDT session. Disconnect first using 'disconnect_from_aedt'."
         )
 
     # Docker env-var override: when defaults are used and we are inside a
@@ -812,9 +811,7 @@ def run_python_script(ctx: Context, script_path: str) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return (
-            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
-        )
+        return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
         if not Path(script_path).exists():
@@ -843,7 +840,7 @@ def run_python_code(ctx: Context, code: str) -> str:
         MCP context containing server session and application context.
     code : str
         The Python code to execute. The code has access to:
-        
+
         - `desktop`: PyAEDT instance
         - `odesktop`: Native AEDT oDesktop COM object
         - `aedt_port`: gRPC port of the connected AEDT instance
@@ -856,9 +853,7 @@ def run_python_code(ctx: Context, code: str) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return (
-            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
-        )
+        return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
         logger.info("Executing inline Python code in AEDT...")
@@ -903,9 +898,7 @@ def list_designs(ctx: Context, project_name: str | None = None) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return (
-            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
-        )
+        return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
         if project_name is not None:
@@ -974,9 +967,7 @@ def list_projects(ctx: Context) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return (
-            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
-        )
+        return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
         projects = list(desktop.project_list)
@@ -1014,9 +1005,7 @@ def open_project(ctx: Context, project_path: str, design_name: str | None = None
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return (
-            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
-        )
+        return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
         if not Path(project_path).exists():
@@ -1057,9 +1046,7 @@ def save_project(ctx: Context, project_name: str | None = None, save_as: str | N
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return (
-            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
-        )
+        return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
         logger.info(f"Saving project: {project_name or 'active project'}")
@@ -1111,9 +1098,7 @@ def create_design(
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return (
-            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
-        )
+        return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
         app_class = _get_aedt_app_class(app_type)
@@ -1209,9 +1194,7 @@ def analyze_design(
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return (
-            "No AEDT connection is available. Use connect_to_aedt or launch_aedt first."
-        )
+        return "No AEDT connection is available. Use connect_to_aedt or launch_aedt first."
 
     try:
         if analyze_all_designs:
@@ -1324,9 +1307,7 @@ def export_results(
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return (
-            "No AEDT connection is available. Use connect_to_aedt or launch_aedt first."
-        )
+        return "No AEDT connection is available. Use connect_to_aedt or launch_aedt first."
 
     try:
         logger.info(f"Exporting {export_type} results to: {output_path}")
@@ -1426,7 +1407,7 @@ def screenshot(
     -------
     list[TextContent | ImageContent]
         A list containing:
-    
+
         - TextContent with the screenshot file path
         - ImageContent with the base64-encoded image data
     """
@@ -1437,8 +1418,7 @@ def screenshot(
             TextContent(
                 type="text",
                 text=(
-                    "No AEDT connection is available. "
-                    "Use 'connect_to_aedt' or 'launch_aedt' first."
+                    "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
                 ),
             )
         ]
@@ -1542,9 +1522,7 @@ def export_config(
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return (
-            "No AEDT connection is available. Use connect_to_aedt or launch_aedt first."
-        )
+        return "No AEDT connection is available. Use connect_to_aedt or launch_aedt first."
 
     temp_config_file: str | None = None
 
@@ -1652,9 +1630,7 @@ def get_model_info(ctx: Context, design_name: str | None = None) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return (
-            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
-        )
+        return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
         design_type = desktop.design_type(design_name=design_name)
