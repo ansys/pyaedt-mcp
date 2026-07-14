@@ -3,7 +3,8 @@
 Examples
 ========
 
-In this section, you can find typical end-to-end workflows for common AEDT tasks, as well as a checklist for adding new tools to the server or demonstrating existing tools in short video demos.
+This section provides an HFSS patch antenna workflow, a checklist for adding
+new server tools, and short videos of some common workflows and capabilities.
 
 .. toctree::
    :hidden:
