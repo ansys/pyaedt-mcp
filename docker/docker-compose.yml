@@ -39,7 +39,7 @@ networks:
   pyaedt-network:
     driver: bridge
 
-# Usage eamples:
+# Usage examples:
 #
 # 1. Start AEDT on host machine first:
 #    "C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe" -grpcsrv 50051

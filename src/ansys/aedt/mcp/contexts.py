@@ -63,7 +63,7 @@ PyAEDT is a Python library that provides direct access to AEDT via:
 - **COM/Desktop API**: Direct connection to an AEDT instance
 - **gRPC API** (2022 R2+): Remote connection via a gRPC server
 
-For MCP server, both local and remote gRPC connections are suppported.
+For MCP server, both local and remote gRPC connections are supported.
 
 ## AEDT applications
 
@@ -249,7 +249,7 @@ hfss.analyze()
 hfss.export_touchstone(output_file="antenna.s1p")
 ```
 
-## Key HFSS nethods
+## Key HFSS methods
 
 - `hfss.modeler.create_box()` - Create 3D box
 - `hfss.modeler.create_cylinder()` - Create cylinder
