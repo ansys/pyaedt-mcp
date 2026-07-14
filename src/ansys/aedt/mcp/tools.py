@@ -497,7 +497,7 @@ async def launch_aedt(
         when one or more connectable AEDT sessions are already available.
     application : AEDTAppType, default: None
         AEDT application to launch directly, such as ``"Hfss"`` or ``"Maxwell3d"``.
-        If ``None`, AEDT launches in desktop mode.
+        If ``None``, AEDT launches in desktop mode.
 
     Returns
     -------
@@ -1210,7 +1210,7 @@ def analyze_design(
 
     if desktop is None:
         return (
-            "No AEDT connection is available. Use `connect_to_aedt` or `launch_aedt` first."
+            "No AEDT connection is available. Use connect_to_aedt or launch_aedt first."
         )
 
     try:
@@ -1325,7 +1325,7 @@ def export_results(
 
     if desktop is None:
         return (
-            "No AEDT connection is available. Use `connect_to_aedt` or `launch_aedt` first."
+            "No AEDT connection is available. Use connect_to_aedt or launch_aedt first."
         )
 
     try:
@@ -1543,7 +1543,7 @@ def export_config(
 
     if desktop is None:
         return (
-            "No AEDT connection is available. Use `connect_to_aedt` or `launch_aedt` first."
+            "No AEDT connection is available. Use connect_to_aedt or launch_aedt first."
         )
 
     temp_config_file: str | None = None
