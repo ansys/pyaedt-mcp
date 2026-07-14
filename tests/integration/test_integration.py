@@ -470,7 +470,7 @@ def test_clear_aedt(connected_ctx, test_tmp_dir):
         connected_ctx, test_tmp_dir / "clear_target.aedt", design_name="ClearHfss"
     )
     result = clear_aedt(connected_ctx, close_projects=True)
-    assert "AEDT state iscleared" in result
+    assert "AEDT state is cleared" in result
     data = json.loads(list_projects(connected_ctx))
     assert env["project_name"] not in data["open_projects"]
 
