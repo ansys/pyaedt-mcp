@@ -18,7 +18,7 @@
 
 This module provides MCP tools for interacting with Ansys Electronics Desktop (AEDT)
 through PyAEDT library. It supports all AEDT applications including HFSS, Maxwell,
-Icepak, Circuit, Q3D, and more.
+Icepak, Circuit, and Q3D.
 """
 
 import base64
@@ -48,7 +48,7 @@ from mcp.types import ImageContent, TextContent
 logger = get_logger(__name__)
 
 
-# Tag applied to all tools that require an active AEDT Desktop connection.
+# Tag applied to all tools that require an active AEDT connection.
 # These tools are disabled at startup (before AEDT is connected) and enabled
 # once a connection is established via connect_to_aedt or launch_aedt.
 REQUIRES_AEDT_TAG = "requires_aedt"
@@ -62,8 +62,8 @@ _TIMEOUT_LONG = 600  # launch, script execution, analysis, exports
 def _build_disconnected_status_message(connectable_sessions: list[dict[str, Any]]) -> str:
     """Build a user-facing status message when the MCP is not attached to AEDT."""
     base_message = (
-        "No AEDT Desktop connection available in this MCP session. "
-        "Use connect_to_aedt or launch_aedt tool to establish a connection."
+        "No AEDT connection is available in this MCP session. "
+        "Use 'connect_to_aedt' or 'launch_aedt' to establish a connection."
     )
     if not connectable_sessions:
         return base_message
@@ -71,15 +71,15 @@ def _build_disconnected_status_message(connectable_sessions: list[dict[str, Any]
         session_info = connectable_sessions[0]
         return (
             f"{base_message} Found one running gRPC AEDT session on port {session_info['port']} "
-            "that can be attached with connect_to_aedt, or launch a new desktop with "
-            "launch_aedt(confirm_new_session=True)."
+            "that can be attached with 'connect_to_aedt', or launch a new session with "
+            "'launch_aedt(confirm_new_session=True)'."
         )
     session_list = ", ".join(str(session_info["port"]) for session_info in connectable_sessions)
     return (
         f"{base_message} Multiple running gRPC AEDT sessions are available on "
         f"ports {session_list}. "
-        "Ask the user which session to attach, or whether to open a new desktop, "
-        "before calling connect_to_aedt or launch_aedt(confirm_new_session=True)."
+        "Ask the user which session to connect to, or whether to open a new session, "
+        "before calling 'connect_to_aedt' or 'launch_aedt(confirm_new_session=True)'."
     )
 
 
@@ -92,13 +92,13 @@ def _build_launch_blocked_message(connectable_sessions: list[dict[str, Any]]) ->
         return (
             "A running AEDT gRPC session is already available. "
             f"Ask the user whether to connect to PID {session_info['pid']} on port "
-            f"{session_info['port']} or to open a new desktop. If the user wants a new AEDT "
-            "instance, call launch_aedt(confirm_new_session=True)."
+            f"{session_info['port']} or to open a new session. If the user wants a new AEDT "
+            "session, call launch_aedt(confirm_new_session=True)."
         )
     return (
         "Multiple running AEDT gRPC sessions are already available. "
-        "Ask the user which session to attach, or whether to open a new desktop. "
-        "If the user wants a new AEDT instance, call launch_aedt(confirm_new_session=True).\n"
+        "Ask the user which session to connect to, or whether to open a new session. "
+        "If the user wants a new AEDT session, call 'launch_aedt(confirm_new_session=True)'.\n"
         + _summarize_available_sessions(connectable_sessions)
     )
 
@@ -161,8 +161,8 @@ def _configure_pyaedt_runtime_settings(enable_grpc: bool = False) -> None:
 
     Parameters
     ----------
-    enable_grpc : bool, optional
-        Whether to force gRPC API mode. Default is False.
+    enable_grpc : bool, default: False
+        Whether to force gRPC API mode.
     """
     try:
         # Preferred import path in newer PyAEDT versions.
@@ -174,7 +174,7 @@ def _configure_pyaedt_runtime_settings(enable_grpc: bool = False) -> None:
     if enable_grpc:
         settings.use_grpc_api = True
 
-    # Prevent Desktop shutdown when user-provided code raises.
+    # Prevent AEDT shutdown when user-provided code raises.
     settings.release_on_exception = False
 
 
@@ -268,30 +268,31 @@ def _get_aedt_app_class(app_type: AEDTAppType) -> Any | None:
 
 @app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_QUICK)
 def check_aedt_status(ctx: Context) -> str:
-    """Check the status of AEDT Desktop initialization.
+    """Check the status of AEDT initialization.
 
-    Always reachable, even before a connection has been established. When no
-    AEDT session is active this tool returns a short hint describing how to
-    establish one (``launch_aedt`` or ``connect_to_aedt``); when a session is
-    active it returns full status information.
+    This tool is always reachable, even before a connection has been established.
+    When no AEDT session is active, it returns a short hint describing how to
+    establish one (``launch_aedt`` or ``connect_to_aedt``). When a session is
+    active, it returns full status information.
 
-    This makes it the recommended pre-flight call to decide whether to
+    This makes the tool the recommended pre-flight call to decide whether to
     ``launch_aedt`` (no active session) or ``connect_to_aedt`` (existing
     session detected).
 
     This tool retrieves comprehensive information from the connected AEDT
-    Desktop instance including version, active projects, designs, and
+    instance including version, active projects, designs, and
     connection details.
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
+        MCP context containing server session and application context.
 
     Returns
     -------
     str
         JSON string containing comprehensive AEDT status information including:
+    
         - connection: Basic connection info (version, machine, port, is_grpc)
         - projects: List of open projects
         - active_project: Currently active project name
@@ -347,19 +348,19 @@ def get_pyaedt_logs(
     ----------
     ctx : Context
         MCP context. Included for tool signature consistency.
-    tail_lines : int, optional
-        Number of recent lines to return after filtering. Default is 200.
-    contains : str, optional
+    tail_lines : int, default: 200
+        Number of recent lines to return after filtering.
+    contains : str, default: None
         Case-insensitive substring used to filter log lines.
-    max_chars : int, optional
-        Hard cap for returned log text length. Default is 40000 characters.
+    max_chars : int, default: 40000
+        Hard cap for returned log text length.
 
     Returns
     -------
     str
         JSON string with log metadata and selected log text.
     """
-    del ctx  # tool does not require an active AEDT desktop connection
+    del ctx  # tool does not require an active AEDT connection
 
     if tail_lines <= 0:
         return "Invalid parameter: tail_lines must be greater than 0."
@@ -437,9 +438,9 @@ def check_aedt_installed(ctx: Context) -> str:
         port = int(os.environ.get("AEDT_PORT", "50051"))
         probe = _probe_grpc_endpoint(host, port)
         if probe["reachable"]:
-            return f"Running inside Docker – AEDT gRPC endpoint at {host}:{port} is reachable."
+            return f"Running inside Docker. AEDT gRPC endpoint at {host}:{port} is reachable."
         return (
-            f"Running inside Docker – AEDT gRPC endpoint at "
+            f"Running inside Docker. AEDT gRPC endpoint at "
             f"{host}:{port} is NOT reachable (error: {probe['error']}). "
             f"Ensure AEDT is started with: ansysedt.exe -grpcsrv {port}"
         )
@@ -474,30 +475,29 @@ async def launch_aedt(
     confirm_new_session: bool = False,
     application: AEDTAppType | None = None,
 ) -> str:
-    """Launch a new AEDT Desktop instance.
+    """Launch a new AEDT instance.
 
-    This tool starts a new AEDT Desktop instance using PyAEDT's Desktop class,
-    or launches directly into a specific AEDT application session when requested.
-    The launched instance will be automatically connected and stored in the context
+    This tool starts a new AEDT instance using PyAEDT's ``Desktop`` class,
+    or it launches directly into a specific AEDT application session when requested.
+    The launched instance is automatically connected and stored in the context
     for subsequent operations.
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
-    version : str, optional
-        The AEDT version to launch (e.g., "2026.1", "261"). If None, the latest
-        installed version will be used.
-    non_graphical : bool, optional
-        Whether to launch AEDT in non-graphical mode. Default is False
-        (launch with the AEDT GUI visible).
-    confirm_new_session : bool, optional
-        Explicit confirmation that a new AEDT instance should be launched even
+        MCP context containing server session and application context.
+    version : str, default: None
+        AEDT version to launch (such as ``"2026.1"`` or ``"261"``). If ``None``, the latest
+        installed version is used.
+    non_graphical : bool, default: False
+        Whether to launch AEDT in non-graphical mode. If ``False``, AEDT launches with
+        the GUI visible.
+    confirm_new_session : bool, default: False
+        Whether a new AEDT instance should be launched even
         when one or more connectable AEDT sessions are already available.
-        Default is False.
-    application : AEDTAppType, optional
-        AEDT application to launch directly, such as ``Hfss`` or ``Maxwell3d``.
-        If omitted, AEDT launches in desktop mode.
+    application : AEDTAppType, default: None
+        AEDT application to launch directly, such as ``"Hfss"`` or ``"Maxwell3d"``.
+        If ``None`, AEDT launches in desktop mode.
 
     Returns
     -------
@@ -519,8 +519,8 @@ async def launch_aedt(
         # Check if there's already a connection
         if ctx.request_context.lifespan_context.desktop is not None:
             return (
-                "Already connected to an AEDT Desktop instance. "
-                "Please disconnect first using disconnect_from_aedt tool."
+                "Already connected to an AEDT instance. "
+                "Disconnect first using 'disconnect_from_aedt'."
             )
 
         if not confirm_new_session:
@@ -549,7 +549,7 @@ async def launch_aedt(
                     raise RuntimeError("No AEDT versions found installed on this system.")
             kwargs["version"] = version
             desktop = Desktop(**kwargs)
-            launched_target = "AEDT Desktop"
+            launched_target = "AEDT"
         else:
             app_class = _get_aedt_app_class(application)
             if app_class is None:
@@ -564,7 +564,7 @@ async def launch_aedt(
             desktop = getattr(app_instance, "desktop_class", None)
             if desktop is None:
                 raise RuntimeError(
-                    f"Unable to resolve desktop handle from launched {application} session"
+                    f"Unable to resolve AEDT handle from launched {application} session."
                 )
             launched_target = application
 
@@ -601,27 +601,28 @@ async def connect_to_aedt(
     """Connect to an existing AEDT instance via gRPC.
 
     This tool establishes a connection to a running AEDT instance using gRPC.
-    The AEDT instance must be started with gRPC server enabled:
+    The AEDT instance must be started with a gRPC server enabled:
     `ansysedt.exe -grpcsrv <port>`
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
-    port : int, optional
-        The gRPC port where AEDT is listening. If omitted, the tool can
+        MCP context containing server session and application context.
+    port : int, default: None
+        gRPC port where AEDT is listening. If ``None``, the tool can
         auto-select a discovered local gRPC session or fall back to 50051.
-    machine : str, optional
-        The machine hostname or IP where AEDT is running. Default is "localhost".
-    version : str, optional
-        The AEDT version to connect to. If None, will auto-detect.
-    non_graphical : bool, optional
-        Whether AEDT is running in non-graphical mode. Default is True.
-    project_name : str, optional
+    machine : str, default: ``"localhost"``
+        Machine hostname or IP address where AEDT is running.
+    version : str, default: ``None``
+        AEDT version to connect to. If ``None``, the tool automatically detects
+        the version.
+    non_graphical : bool, default: ``True``
+        Whether AEDT is running in non-graphical mode.
+    project_name : str, default: ``None``
         Project name to activate when connecting directly to a design.
-    design_name : str, optional
+    design_name : str, default: ``None``
         Design name to attach directly to a PyAEDT application session.
-        If omitted, the connection remains at AEDT desktop level.
+        If ``None``, the connection remains at the AEDT level.
 
     Returns
     -------
@@ -633,8 +634,8 @@ async def connect_to_aedt(
     # Check if there's already a connection
     if ctx.request_context.lifespan_context.desktop is not None:
         return (
-            "Already connected to an AEDT Desktop instance. "
-            "Please disconnect first using disconnect_from_aedt tool."
+            "Already connected to an AEDT session. "
+            "Disconnect first using 'disconnect_from_aedt'."
         )
 
     # Docker env-var override: when defaults are used and we are inside a
@@ -658,8 +659,8 @@ async def connect_to_aedt(
         elif len(discovered_sessions) > 1:
             return (
                 "Multiple running AEDT gRPC sessions are available. "
-                "Ask the user which one to attach, or whether to open a new desktop. "
-                "If the user explicitly asks for a new desktop, call "
+                "Ask the user which one to attach, or whether to open a new session. "
+                "If the user explicitly asks for a new session, call "
                 "launch_aedt(confirm_new_session=True).\n"
                 + _summarize_available_sessions(discovered_sessions)
             )
@@ -708,7 +709,7 @@ async def connect_to_aedt(
         await ctx.enable_components(tags={REQUIRES_AEDT_TAG})
         logger.info(f"Connected to AEDT successfully at {machine}:{port}!")
         message = (
-            f"Successfully connected to AEDT at {machine}:{port}\n"
+            f"Successfully connected to AEDT at {machine}:{port}\n."
             f"Version: {desktop.aedt_version_id}\n"
             f"gRPC Mode: {desktop.is_grpc_api}\n"
         )
@@ -748,17 +749,17 @@ async def connect_to_aedt(
 
 @app.tool(tags={"aedt_tools", "locked_connection", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
 async def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
-    """Disconnect from the AEDT Desktop instance.
+    """Disconnect from the AEDT instance.
 
-    This tool closes the connection to the AEDT Desktop instance and releases
+    This tool closes the connection to the AEDT instance and releases
     associated resources.
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
-    close_projects : bool, optional
-        Whether to close all open projects before disconnecting. Default is False.
+        MCP context containing server session and application context.
+    close_projects : bool, default: ``False``
+        Whether to close all open projects before disconnecting.
 
     Returns
     -------
@@ -768,18 +769,18 @@ async def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> st
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection to disconnect."
+        return "No AEDT connection to disconnect."
 
     try:
         logger.info("Disconnecting from AEDT...")
 
-        # Release desktop
+        # Release AEDT
         desktop.release_desktop(close_projects=close_projects)
         ctx.request_context.lifespan_context.desktop = None
 
         await ctx.disable_components(tags={REQUIRES_AEDT_TAG})
         logger.info("Disconnected from AEDT successfully!")
-        return "Successfully disconnected from AEDT Desktop."
+        return "Successfully disconnected from AEDT."
 
     except Exception as e:
         error_msg = f"Error during AEDT disconnect: {str(e)}"
@@ -794,14 +795,14 @@ def run_python_script(ctx: Context, script_path: str) -> str:
 
     This tool runs a Python script from a file path within the AEDT environment,
     using AEDT's built-in Python interpreter. The script has access to all AEDT
-    APIs including oDesktop, oProject, oDesign, etc.
+    APIs including oDesktop, oProject, and oDesign.
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
+        MCP context containing server session and application context.
     script_path : str
-        The path to the Python script file to execute.
+        Path to the Python script file to execute.
 
     Returns
     -------
@@ -812,7 +813,7 @@ def run_python_script(ctx: Context, script_path: str) -> str:
 
     if desktop is None:
         return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
         )
 
     try:
@@ -834,17 +835,18 @@ def run_python_code(ctx: Context, code: str) -> str:
     """Execute Python code inside AEDT.
 
     This tool runs inline Python code within the AEDT environment. The code
-    has access to the connected Desktop instance via the `desktop` variable.
+    has access to the connected AEDT instance via the ``desktop`` variable.
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
+        MCP context containing server session and application context.
     code : str
         The Python code to execute. The code has access to:
-        - `desktop`: The PyAEDT Desktop instance
-        - `odesktop`: The native AEDT oDesktop COM object
-        - `aedt_port`: The gRPC port of the connected AEDT instance
+        
+        - `desktop`: PyAEDT instance
+        - `odesktop`: Native AEDT oDesktop COM object
+        - `aedt_port`: gRPC port of the connected AEDT instance
 
     Returns
     -------
@@ -855,7 +857,7 @@ def run_python_code(ctx: Context, code: str) -> str:
 
     if desktop is None:
         return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
         )
 
     try:
@@ -872,7 +874,7 @@ def run_python_code(ctx: Context, code: str) -> str:
 
         # This tool's explicit contract is to execute user-provided Python inside AEDT.
         exec(code, local_ns)  # nosec B102
-        result = local_ns.get("result", "Code executed successfully (no result variable set)")
+        result = local_ns.get("result", "Code executed successfully. (No result variable set.)")
         return str(result)
 
     except Exception as e:
@@ -888,10 +890,10 @@ def list_designs(ctx: Context, project_name: str | None = None) -> str:
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
-    project_name : str, optional
+        MCP context containing server session and application context.
+    project_name : str, default: None
         Optional project name to limit the response to a single project.
-        If None, all open projects and their designs are returned.
+        If``None``, all open projects and their designs are returned.
 
     Returns
     -------
@@ -902,7 +904,7 @@ def list_designs(ctx: Context, project_name: str | None = None) -> str:
 
     if desktop is None:
         return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
         )
 
     try:
@@ -957,12 +959,12 @@ def list_designs(ctx: Context, project_name: str | None = None) -> str:
 
 @app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_QUICK)
 def list_projects(ctx: Context) -> str:
-    """List all currently open AEDT projects.
+    """List all open AEDT projects.
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
+        MCP context containing server session and application context.
 
     Returns
     -------
@@ -973,7 +975,7 @@ def list_projects(ctx: Context) -> str:
 
     if desktop is None:
         return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
         )
 
     try:
@@ -992,17 +994,17 @@ def list_projects(ctx: Context) -> str:
 
 @app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
 def open_project(ctx: Context, project_path: str, design_name: str | None = None) -> str:
-    """Open an AEDT project file.
+    """Open an AEDT project.
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
-    project_path : str
-        Full path to the .aedt project file.
-    design_name : str, optional
-        Name of the design to activate after opening. If None, the first design
-        will be active.
+        MCP context containing server session and application context.
+    project_path : str, default: None
+        Full path to the AEDT project file.
+    design_name : str, default: None
+        Name of the design to activate after opening. If ``None``, the first design
+        is used
 
     Returns
     -------
@@ -1013,7 +1015,7 @@ def open_project(ctx: Context, project_path: str, design_name: str | None = None
 
     if desktop is None:
         return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
         )
 
     try:
@@ -1041,11 +1043,11 @@ def save_project(ctx: Context, project_name: str | None = None, save_as: str | N
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
-    project_name : str, optional
-        Name of the project to save. If None, saves the active project.
-    save_as : str, optional
-        Path to save the project to. If None, saves to existing location.
+        MCP context containing server session and application context.
+    project_name : str, default: None
+        Name of the project to save. If ``None``, the active project is saved.
+    save_as : str, default: None
+        Path to save the project to. If ``None``, the existing location is used.
 
     Returns
     -------
@@ -1056,7 +1058,7 @@ def save_project(ctx: Context, project_name: str | None = None, save_as: str | N
 
     if desktop is None:
         return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
         )
 
     try:
@@ -1088,16 +1090,17 @@ def create_design(
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
+        MCP context containing server session and application context.
     app_type : str
-        The AEDT application type. Must be one of: 'Hfss', 'Maxwell2d',
-        'Maxwell3d', 'Q3d', 'Q2d', 'Icepak', 'Circuit', 'TwinBuilder',
-        'Mechanical', 'Emit', 'RMXprt', 'Hfss3dLayout'.
-    design_name : str, optional
-        Name for the new design. If None, AEDT will auto-generate a name.
-    project_name : str, optional
-        Project to create design in. If None, uses active project.
-    solution_type : str, optional
+        AEDT application type. Options are ``"Hfss"``, ``"Maxwell2d"``,
+        ``"Maxwell3d"``, ``"Q3d"``, ``"Q2d"``, ``"Icepak"``, ``"Circuit"``,
+        ``"TwinBuilder"``, ``"Mechanical"``, ``"Emit"``, ``"RMXprt"``,
+        and ``"Hfss3dLayout"``.
+    design_name : str, default: None
+        Name for the new design. If ``None``, an auto-generated name is used.
+    project_name : str, default: None
+        Project to create design in. If ``None``, the active project is used.
+    solution_type : str, default: None
         Solution type for the design (app-specific).
 
     Returns
@@ -1109,7 +1112,7 @@ def create_design(
 
     if desktop is None:
         return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
         )
 
     try:
@@ -1165,35 +1168,37 @@ def analyze_design(
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
-    setup_name : str, optional
-        Name of the setup to analyze. If None, analyzes all setups in the target design.
-    project_name : str, optional
-        Name of the project to analyze. If None, uses the active project.
-    design_name : str, optional
-        Name of the design to analyze. If None, uses active design.
-    num_cores : int, optional
+        MCP context containing server session and application context.
+    setup_name : str, default: None
+        Name of the setup to analyze. If ``None``, all setups in the target design
+        are analyzed.
+    project_name : str, default: None
+        Name of the project to analyze. If ``None``, the active project is used.
+    design_name : str, default: None
+        Name of the design to analyze. If ``None``, the active design is used.
+    num_cores : int, default: None
         Number of CPU cores to use for analysis.
-    num_tasks : int, optional
+    num_tasks : int, default: None
         Number of HPC tasks to use for analysis.
-    num_gpus : int, optional
+    num_gpus : int, default: None
         Number of GPUs to use for analysis.
-    acf_file : str, optional
+    acf_file : str, default: None
         Full path to a custom ACF file for HPC configuration.
-    use_auto_settings : bool, optional
+    use_auto_settings : bool, default: True
         Whether to use automatic HPC settings when supported.
-    solve_in_batch : bool, optional
+    solve_in_batch : bool, default: False
         Whether to solve the design in batch mode.
-    machine : str, optional
+    machine : str, default: "localhost"
         Target machine name for remote or batch solves.
-    run_in_thread : bool, optional
+    run_in_thread : bool, default: False
         Whether to submit the batch solve in a background thread.
-    revert_to_initial_mesh : bool, optional
+    revert_to_initial_mesh : bool, default: False
         Whether to revert to the initial mesh before solving.
-    blocking : bool, optional
+    blocking : bool, default: True
         Whether to block until the solve is complete.
-    analyze_all_designs : bool, optional
-        When True, call Desktop.analyze_all for the target project/design. This
+    analyze_all_designs : bool, default: False
+        Whether to analalyze all designs. When ``True``, ``Desktop.analyze_all``
+        is called for the target project/design. This
         analyzes all setups in a design or all designs in a project.
 
     Returns
@@ -1205,26 +1210,26 @@ def analyze_design(
 
     if desktop is None:
         return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+            "No AEDT connection is available. Use `connect_to_aedt` or `launch_aedt` first."
         )
 
     try:
         if analyze_all_designs:
             if setup_name:
                 return (
-                    "setup_name cannot be used when analyze_all_designs=True. "
+                    "`setup_name` cannot be used when `analyze_all_designs=True`. "
                     "Use design-level analysis to solve a specific setup."
                 )
 
             logger.info(
-                "Running desktop analyze_all on project=%s design=%s",
+                "Running AEDT analyze_all on project=%s design=%s",
                 project_name or "active project",
                 design_name or "all designs",
             )
 
             result = desktop.analyze_all(project=project_name, design=design_name)
             if not result:
-                return "Analysis failed during desktop-wide analyze_all invocation."
+                return "Analysis failed during AEDT-wide 'analyze_all' invocation."
 
             return (
                 "Analysis completed successfully.\n"
@@ -1302,14 +1307,14 @@ def export_results(
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
+        MCP context containing server session and application context.
     output_path : str
-        Path where results will be exported.
-    export_type : str, optional
-        Type of export. Options: 'touchstone', 'profile', 'convergence', 'mesh'.
-        Default is 'touchstone'.
-    setup_name : str, optional
-        Setup name for the export. If None, uses active setup.
+        Path to export the results to.
+    export_type : str, default: ``"touchstone"``
+        Type of export. Options are ``"touchstone"``, ``"profile"``,
+        ``"convergence"``, and ``"mesh"``.
+    setup_name : str, default: None
+        Setup name for the export. If ``None``, the active setup is used.
 
     Returns
     -------
@@ -1320,7 +1325,7 @@ def export_results(
 
     if desktop is None:
         return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+            "No AEDT connection is available. Use `connect_to_aedt` or `launch_aedt` first."
         )
 
     try:
@@ -1399,29 +1404,29 @@ def screenshot(
     """Capture a screenshot of the current AEDT design view.
 
     This tool captures the current design preview as an image. It supports
-    model views, field plots, and mesh visualizations depending on what's
+    model views, field plots, and mesh visualizations, depending on what's
     currently displayed in AEDT.
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
-    path : str, optional
-        Output image path. Default is ``"screenshot.jpg"``.
-    project : str, optional
-        Project containing the design to capture. If None, uses active project.
-    design : str, optional
-        Design to capture. If None, uses active design.
-    plot_type : str, optional
-        Type of screenshot: "model", "field", or "mesh". Default is "model".
-    open_viewer : bool, optional
+        MCP context containing server session and application context.
+    path : str, default: ``"screenshot.jpg"``
+        Output image path.
+    project : str, default: None
+        Project containing the design to capture. If ``None``, the active project is used.
+    design : str, default: None
+        Design to capture. If ``None``, the active design is used.
+    plot_type : str, default: ``"model"``
+        Type of screenshot. Options are ``"model"``, ``"field"``, and ``"mesh"``.
+    open_viewer : bool, default: True
         Whether to open the saved screenshot in the system image viewer.
-        Default is True.
 
     Returns
     -------
     list[TextContent | ImageContent]
         A list containing:
+    
         - TextContent with the screenshot file path
         - ImageContent with the base64-encoded image data
     """
@@ -1432,8 +1437,8 @@ def screenshot(
             TextContent(
                 type="text",
                 text=(
-                    "No AEDT Desktop connection available. "
-                    "Use connect_to_aedt or launch_aedt tool first."
+                    "No AEDT connection is available. "
+                    "Use 'connect_to_aedt' or 'launch_aedt' first."
                 ),
             )
         ]
@@ -1511,34 +1516,34 @@ def export_config(
     design: str | None = None,
     overwrite: bool = False,
 ) -> str:
-    """Export the active design configuration as JSON.
+    """Export the active design configuration as a JSON file.
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
-    output : str, optional
-        Output JSON file path. If omitted, the configuration is exported to a
+        MCP context containing server session and application context.
+    output : str, default: None
+        Path to output the JSON file to. If ``None``, the configuration is exported to a
         temporary file and returned inline.
-    project : str, optional
+    project : str, default: None
         Project containing the design to export.
-    design : str, optional
+    design : str, default: None
         Design to export configuration from.
-    overwrite : bool, optional
-        Whether to overwrite an existing config file.
+    overwrite : bool, default: False
+        Whether to overwrite an existing configuration file.
 
     Returns
     -------
     str
         JSON string containing the exported configuration and associated
-        design metadata. When ``output`` is provided, the returned JSON also
-        includes the written config file path.
+        design metadata. When ``output`` is provided, the returned JSON string also
+        includes the written configuration file path.
     """
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
         return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+            "No AEDT connection is available. Use `connect_to_aedt` or `launch_aedt` first."
         )
 
     temp_config_file: str | None = None
@@ -1590,14 +1595,14 @@ def export_config(
 
 @app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
 def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
-    """Clear AEDT state by closing all projects.
+    """Clear the AEDT state by closing all projects.
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
-    close_projects : bool, optional
-        Whether to close all open projects. Default is True.
+        MCP context containing server session and application context.
+    close_projects : bool, default: True
+        Whether to close all open projects.
 
     Returns
     -------
@@ -1607,7 +1612,7 @@ def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
     desktop = ctx.request_context.lifespan_context.desktop
 
     if desktop is None:
-        return "No AEDT Desktop connection available."
+        return "No AEDT connection is available."
 
     try:
         logger.info("Clearing AEDT state...")
@@ -1619,7 +1624,7 @@ def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
 
         desktop.clear_messages()
 
-        return f"AEDT state cleared. Closed {len(projects) if close_projects else 0} project(s)."
+        return f"AEDT state is cleared. Closed {len(projects) if close_projects else 0} project(s)."
 
     except Exception as e:
         error_msg = f"Error clearing AEDT: {str(e)}"
@@ -1634,9 +1639,10 @@ def get_model_info(ctx: Context, design_name: str | None = None) -> str:
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
-    design_name : str, optional
-        Name of the design to get info for. If None, uses active design.
+        MCP context containing server session and application context.
+    design_name : str, default: None
+        Name of the design to get information for. If ``None``, the active design
+        is used.
 
     Returns
     -------
@@ -1647,7 +1653,7 @@ def get_model_info(ctx: Context, design_name: str | None = None) -> str:
 
     if desktop is None:
         return (
-            "No AEDT Desktop connection available. Use connect_to_aedt or launch_aedt tool first."
+            "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
         )
 
     try:

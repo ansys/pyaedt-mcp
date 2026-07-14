@@ -73,7 +73,7 @@ GUI.
 .. code-block:: text
 
    Response:
-     Successfully launched AEDT Desktop
+     Successfully launched AEDT
      Version: 2026.1
      gRPC Port: 59661
      PID: 2600

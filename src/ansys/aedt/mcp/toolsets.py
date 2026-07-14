@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Toolset definitions for PyAnsysMCPService discovery.
+"""Toolset definitions for PyAnsys MCP service discovery.
 
 Exposes the ``toolsets://definition`` MCP resource that groups every tool
-registered on the PyAEDT MCP server into logical, user-facing categories.
+registered on PyAEDT-MCP into logical, user-facing categories.
 Each toolset entry follows the schema agreed across the Ansys MCP family:
 
 ``{"name": str, "description": str, "skill": str, "tools": list[str]}``
@@ -185,9 +185,9 @@ def _build_toolsets() -> list[dict[str, Any]]:
 @app.resource(
     "toolsets://definition",
     name="toolsets_definition",
-    description="Toolset definitions for PyAnsysMCPService discovery.",
+    description="Toolset definitions for PyAnsys MCP service discovery.",
     mime_type="application/json",
 )
 def get_toolsets() -> list[dict[str, Any]]:
-    """Return toolset definitions for PyAnsysMCPService discovery."""
+    """Get toolset definitions for PyAnsys MCP service discovery."""
     return _build_toolsets()

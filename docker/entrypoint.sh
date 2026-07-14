@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# entrypoint.sh – smart launcher for PyAEDT MCP inside Docker
+# entrypoint.sh – smart launcher for PyAEDT-MCP inside Docker
 set -euo pipefail
 
 CMD_ARGS=(

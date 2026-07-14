@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Real-AEDT integration tests for the PyAEDT MCP tool surface.
+"""Real-AEDT integration tests for the PyAEDT-MCP tool surface.
 
 These tests require AEDT to be installed and are intended to run against real
 desktop instances only. No AEDT connection is mocked in this module.

@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Context tools for PyAEDT MCP Server.
+"""Context tools for PyAEDT-MCP.
 
 This module defines MCP tools that provide context and guidance for
 PyAEDT and Ansys Electronics Desktop (AEDT) workflows. These tools return
@@ -54,19 +54,21 @@ def get_guidelines_for_workflow_overview() -> str:
     """
     return """# AEDT Simulation Workflow Overview
 
-When explaining or generating PyAEDT or Ansys Electronics Desktop workflows, ALWAYS FOLLOW this general simulation process.
+When explaining or generating PyAEDT or AEDT workflows, always follow this general simulation process.
 
 ## PyAEDT Architecture
 
-PyAEDT is a Python library that provides direct access to Ansys Electronics Desktop (AEDT) via:
-1. **COM/Desktop API**: Direct connection to AEDT instance
-2. **gRPC API** (2022 R2+): Remote connection via gRPC server
+PyAEDT is a Python library that provides direct access to AEDT via:
 
-For MCP server, we support both local and remote gRPC connections.
+- **COM/Desktop API**: Direct connection to an AEDT instance
+- **gRPC API** (2022 R2+): Remote connection via a gRPC server
 
-## AEDT Applications
+For MCP server, both local and remote gRPC connections are suppported.
+
+## AEDT applications
 
 AEDT includes multiple physics solvers:
+
 - **HFSS**: High-frequency electromagnetic simulation (RF, microwave, antennas)
 - **Maxwell 2D/3D**: Low-frequency electromagnetic simulation (motors, transformers)
 - **Q3D/Q2D**: Parasitic extraction (capacitance, inductance, resistance)
@@ -76,41 +78,41 @@ AEDT includes multiple physics solvers:
 - **EMIT**: EMI/EMC analysis
 - **Mechanical**: Structural analysis within AEDT
 
-## General Workflow Steps
+## General workflow steps
 
-1. **Environment Setup**
-   - Launch or connect to AEDT Desktop
-   - Configure project settings
+1. **Environment setup**
+   - Launch or connect to AEDT.
+   - Configure project settings.
 
 2. **Preprocessing**
-   - Create or open a project
-   - Create a design (application-specific)
-   - Import or create geometry
-   - Define materials and assign to bodies
-   - Set up mesh operations
+   - Create or open a project.
+   - Create a design (application-specific).
+   - Import or create geometry.
+   - Define materials and assign to bodies.
+   - Set up mesh operations.
 
-3. **Analysis Setup**
-   - Create analysis setup (frequency, transient, etc.)
-   - Apply boundary conditions
-   - Apply excitations/sources
-   - Configure parametric sweeps if needed
+3. **Analysis setup**
+   - Create analysis setup (such as frequency or transient).
+   - Apply boundary conditions.
+   - Apply excitations/sources.
+   - Configure parametric sweeps if needed.
 
 4. **Solution**
-   - Validate design
-   - Run simulation
-   - Monitor progress
+   - Validate design.
+   - Run simulation.
+   - Monitor progress.
 
 5. **Postprocessing**
-   - Create reports (S-parameters, fields, etc.)
-   - Export results
-   - Generate images/animations
+   - Create reports (such as S-parameters and fields).
+   - Export results.
+   - Generate images/animations.
 
 ## Code Pattern
 
 ```python
 from ansys.aedt.core import Hfss, Desktop
 
-# Launch or connect to AEDT (omit ``version`` to use the latest installed AEDT)
+# Launch or connect to AEDT (omit ``version`` to use the latest installed AEDT version)
 desktop = Desktop(non_graphical=True)
 
 # Create an application — ALWAYS pass port=desktop.port to reuse the same AEDT instance
@@ -130,7 +132,7 @@ hfss.analyze()
 hfss.export_touchstone()
 ```
 
-## gRPC Connection (Remote)
+## gRPC connection (remote)
 
 For remote connections, AEDT must be started in gRPC server mode:
 ```bash
@@ -162,15 +164,15 @@ def get_guidelines_for_hfss() -> str:
 
 HFSS (High Frequency Structure Simulator) is used for high-frequency electromagnetic simulations including antennas, RF circuits, and microwave components.
 
-## Solution Types
+## Solution types
 
-1. **Modal** - Port-based network analysis (S-parameters)
-2. **Terminal** - Circuit-based terminal solutions
-3. **Transient** - Time-domain simulations
-4. **Eigenmode** - Resonant cavity analysis
-5. **SBR+** - Shooting and Bouncing Rays for large structures
+- **Modal**: Port-based network analysis (S-parameters)
+- **Terminal**: Circuit-based terminal solutions
+- **Transient**: Time-domain simulations
+- **Eigenmode**: Resonant cavity analysis
+- **SBR+**: Shooting and bouncing rays for large structures
 
-## Common Workflow
+## Common workflow
 
 ```python
 from ansys.aedt.core import Hfss
@@ -247,7 +249,7 @@ hfss.analyze()
 hfss.export_touchstone(output_file="antenna.s1p")
 ```
 
-## Key HFSS Methods
+## Key HFSS nethods
 
 - `hfss.modeler.create_box()` - Create 3D box
 - `hfss.modeler.create_cylinder()` - Create cylinder
@@ -261,7 +263,7 @@ hfss.export_touchstone(output_file="antenna.s1p")
 - `hfss.analyze()` - Run simulation
 - `hfss.export_touchstone()` - Export S-parameters
 
-## Post-Processing
+## Postprocessing
 
 ```python
 # Create S-parameter report
@@ -301,23 +303,23 @@ def get_guidelines_for_maxwell() -> str:
 
 Maxwell is used for low-frequency electromagnetic simulations including electric machines, transformers, actuators, and sensors.
 
-## Solution Types
+## Solution types
 
 ### Maxwell 3D
-- **Magnetostatic** - DC magnetic fields
-- **Electrostatic** - DC electric fields
-- **EddyCurrent** - AC magnetic with eddy currents
-- **Transient** - Time-varying fields
-- **ElectroDCConduction** - DC current flow
-- **ACConduction** - AC current flow
+- **Magnetostatic**: DC magnetic fields
+- **Electrostatic**: DC electric fields
+- **EddyCurrent**: AC magnetic with eddy currents
+- **Transient**: Time-varying fields
+- **ElectroDCConduction**: DC current flow
+- **ACConduction**: AC current flow
 
 ### Maxwell 2D
-- **MagnetostaticXY/RZ** - 2D magnetostatic
-- **TransientXY/RZ** - 2D transient
-- **EddyCurrentXY/RZ** - 2D eddy current
-- **ElectrostaticXY/RZ** - 2D electrostatic
+- **MagnetostaticXY/RZ**: 2D magnetostatic
+- **TransientXY/RZ**: 2D transient
+- **EddyCurrentXY/RZ**: 2D eddy current
+- **ElectrostaticXY/RZ**: 2D electrostatic
 
-## Common Workflow - Electric Motor
+## Common workflow - electric motor
 
 ```python
 from ansys.aedt.core import Maxwell3d
@@ -405,21 +407,21 @@ m3d.assign_matrix(sources=["Coil_A", "Coil_B", "Coil_C"])
 m3d.analyze()
 ```
 
-## Key Maxwell Methods
+## Key Maxwell methods
 
-- `m3d.assign_coil()` - Assign coil to objects
-- `m3d.assign_winding()` - Create winding excitation
-- `m3d.assign_current()` - Assign current source
-- `m3d.assign_voltage()` - Assign voltage source
-- `m3d.assign_torque()` - Calculate torque
-- `m3d.assign_force()` - Calculate force
-- `m3d.assign_rotate_motion()` - Rotational motion
-- `m3d.assign_translate_motion()` - Linear motion
-- `m3d.assign_matrix()` - Inductance/capacitance matrix
-- `m3d.eddy_effects_on()` - Enable eddy currents
-- `m3d.set_core_losses()` - Enable core loss calculation
+- `m3d.assign_coil()`: Assign coil to objects.
+- `m3d.assign_winding()`: Create winding excitation.
+- `m3d.assign_current()`: Assign current source.
+- `m3d.assign_voltage()`: Assign voltage source.
+- `m3d.assign_torque()`: Calculate torque.
+- `m3d.assign_force()`: Calculate force.
+- `m3d.assign_rotate_motion()`: Assign rotational motion.
+- `m3d.assign_translate_motion()`: Assign linear motion.
+- `m3d.assign_matrix()`: Assign inductance/capacitance matrix.
+- `m3d.eddy_effects_on()`: Enable eddy currents.
+- `m3d.set_core_losses()`: Enable core loss calculation.
 
-## Post-Processing
+## Postprocessing
 
 ```python
 # Get torque vs time
@@ -1828,24 +1830,24 @@ def get_guidelines_for(content: GuidelinesContent) -> str:
 
     Use this tool before writing PyAEDT or Ansys AEDT scripting code to
     retrieve the relevant guidelines for the workflow step or solver you are
-    about to use. Call it once per topic needed; it is strongly recommended
-    before every code-generation task.
+    about to use. Call it once per topic needed. You should call it before
+    every code-generation task.
 
     Parameters
     ----------
     content : str
-        The guideline topic to retrieve. One of:
+        Guideline topic to retrieve. Options follow:
 
-        - ``"workflow"``: PyAEDT workflow overview.
-        - ``"hfss"``: HFSS (high-frequency electromagnetics) guidelines.
-        - ``"maxwell"``: Maxwell (low-frequency electromagnetics).
-        - ``"icepak"``: Icepak (electronics thermal) guidelines.
-        - ``"circuit"``: Circuit / Twin Builder guidelines.
-        - ``"geometry"``: Geometry creation and modeling.
-        - ``"mesh"``: Mesh operations and refinement.
-        - ``"boundaries"``: Boundary conditions and excitations.
-        - ``"postprocessing"``: Reports, fields, and visualization.
-        - ``"parametric"``: Parametric sweeps and optimization.
+        - ``"workflow"``: PyAEDT workflow overview
+        - ``"hfss"``: HFSS (high-frequency electromagnetics)
+        - ``"maxwell"``: Maxwell (low-frequency electromagnetics)
+        - ``"icepak"``: Icepak (electronics thermal)
+        - ``"circuit"``: Circuit / Twin Builder
+        - ``"geometry"``: Geometry creation and modeling
+        - ``"mesh"``: Mesh operations and refinement
+        - ``"boundaries"``: Boundary conditions and excitations
+        - ``"postprocessing"``: Reports, fields, and visualization
+        - ``"parametric"``: Parametric sweeps and optimization
 
     Returns
     -------

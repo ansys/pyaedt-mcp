@@ -45,9 +45,9 @@ these tools are hidden again.
    * - Tool
      - Description
    * - ``disconnect_from_aedt``
-     - Release the current AEDT Desktop connection.
+     - Release the current AEDT connection.
    * - ``clear_aedt``
-     - Close all open projects and release the Desktop process.
+     - Close all open projects and release the AEDT process.
    * - ``list_projects``
      - List all currently open AEDT projects.
    * - ``list_designs``

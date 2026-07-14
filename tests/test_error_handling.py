@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for error handling in PyAEDT MCP Server."""
+"""Tests for error handling in PyAEDT-MCP."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 

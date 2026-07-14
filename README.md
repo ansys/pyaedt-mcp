@@ -2,7 +2,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="doc/source/_static/images/logo-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="doc/source/_static/images/logo-light.png">
-    <img alt="PyAEDT MCP" src="doc/source/_static/images/logo-light.png" width="900">
+    <img alt="PyAEDT-MCP" src="doc/source/_static/images/logo-light.png" width="900">
   </picture>
 </p>
 

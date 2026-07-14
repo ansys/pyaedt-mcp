@@ -19,8 +19,9 @@
 This package provides an MCP server that enables AI assistants to interact
 with AEDT through PyAEDT.
 
-Supported AEDT Applications:
-- HFSS (High Frequency Structure Simulator)
+Supported AEDT applications:
+
+- HFSS (High-frequency structure simulator)
 - Maxwell 2D/3D (Low-frequency electromagnetics)
 - Q3D/Q2D (Parasitic extraction)
 - Icepak (Thermal management)
@@ -46,6 +47,6 @@ import importlib.metadata as importlib_metadata
 from ansys.aedt.mcp.server import app, launcher
 
 __version__ = importlib_metadata.version(__name__.replace(".", "-"))
-"""PyAEDT MCP version."""
+"""PyAEDT-MCP version."""
 
 __all__ = ["app", "launcher", "__version__"]

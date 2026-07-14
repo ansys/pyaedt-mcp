@@ -123,7 +123,7 @@ asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "auto"
 markers = [
   "integration: marks tests as integration tests (require running AEDT instance)",
-  "system: marks tests that require a dedicated runner with a real AEDT Desktop session",
+  "system: marks tests that require a dedicated runner with a real AEDT session",
   "general: marks the live AEDT system tests that cover the general tool surface",
   "unit: marks tests as unit tests (do not require running AEDT instance)",
   "slow: Tests that take a long time to run",

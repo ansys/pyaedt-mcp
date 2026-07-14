@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Helper functions for PyAEDT MCP server.
+"""Helper functions for PyAEDT-MCP.
 
-This module provides utility functions for working with AEDT Desktop
+This module provides utility functions for working with AEDT
 instances and extracting information from them.
 """
 
@@ -65,7 +65,7 @@ def discover_available_aedt_sessions() -> list[dict[str, Any]]:
     -------
     list[dict[str, Any]]
         Session metadata similar to the PyAEDT CLI ``session list`` output.
-        Each entry includes whether the session is connectable from the MCP,
+        Each entry includes whether the session is connectable from PyAEDT-MCP,
         which currently requires gRPC mode with a known port.
     """
     from ansys.aedt.core.cli.aedt import _discover_aedt_sessions
@@ -82,12 +82,12 @@ def discover_available_aedt_sessions() -> list[dict[str, Any]]:
 
 
 def get_aedt_info(desktop: Any) -> dict[str, Any]:
-    """Get comprehensive information from an AEDT Desktop instance.
+    """Get comprehensive information from an AEDT instance.
 
     Parameters
     ----------
     desktop : Any
-        The AEDT Desktop instance.
+        AEDT instance.
 
     Returns
     -------
@@ -174,12 +174,12 @@ def get_aedt_info(desktop: Any) -> dict[str, Any]:
 
 
 def get_design_info(app: Any) -> dict[str, Any]:
-    """Get information about an AEDT application/design.
+    """Get information about an AEDT application or design.
 
     Parameters
     ----------
     app : Any
-        An AEDT application instance (Hfss, Maxwell3d, Icepak, etc.)
+        AEDT application instance (such as HFSS, Maxwell3d, Icepak, and so on).
 
     Returns
     -------
@@ -231,17 +231,17 @@ def get_design_info(app: Any) -> dict[str, Any]:
 
 
 def parse_aedt_version(version_str: str | None) -> str | None:
-    """Parse and normalize AEDT version string.
+    """Parse and normalize an AEDT version string.
 
     Parameters
     ----------
     version_str : str | None
-        Version string in various formats (e.g., "2026.1", "261", "26.1")
+        Version string in various formats (such as "2026.1", "261", or "26.1").
 
     Returns
     -------
     str | None
-        Normalized version string or None if invalid.
+        Normalized version string or ``None`` if invalid.
     """
     if version_str is None:
         return None
@@ -277,17 +277,17 @@ def parse_aedt_version(version_str: str | None) -> str | None:
 
 
 def get_design_type_map() -> dict[str, Any]:
-    """Return a mapping from AEDT design-type strings to PyAEDT application classes.
+    """Get a mapping from AEDT design-type strings to PyAEDT application classes.
 
     The keys are the design-type identifiers returned by
-    ``Desktop.design_type()``.  The values are the corresponding PyAEDT
+    ``Desktop.design_type()``. The values are the corresponding PyAEDT
     application classes that can be instantiated to attach to an existing
     AEDT session.
 
     Returns
     -------
     dict[str, Any]
-        Mapping of design-type string to PyAEDT app class.
+        Mapping of design-type string to a PyAEDT application class.
     """
     import ansys.aedt.core as aedt_module
 
@@ -312,21 +312,21 @@ def resolve_design_app(
     project_name: str | None = None,
     design_name: str | None = None,
 ) -> tuple[Any, str | None, str | None]:
-    """Resolve and attach to the PyAEDT app for a target design.
+    """Resolve and attach to the PyAEDT application for a target design.
 
     Parameters
     ----------
     desktop : Any
-        Connected AEDT Desktop instance.
-    project_name : str, optional
-        Project name to resolve. If omitted, the active project is used.
-    design_name : str, optional
-        Design name to resolve. If omitted, the active design is used.
+        Connected AEDT instance.
+    project_name : str, default: None
+        Project name to resolve. If ``None``, the active project is used.
+    design_name : str, default: None
+        Design name to resolve. If ``None``, the active design is used.
 
     Returns
     -------
     tuple[Any, str | None, str | None]
-        Tuple containing the attached PyAEDT app instance, resolved project
+        Tuple containing the attached PyAEDT application instance, resolved project
         name, and resolved design name.
 
     Raises

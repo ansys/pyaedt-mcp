@@ -80,7 +80,7 @@ def test_app_context_product_instance_property():
 def test_mcp_server_initialization():
     """Test that MCP server is properly initialized."""
     assert app is not None
-    assert app.name == "PyAEDT MCP Server"
+    assert app.name == "PyAEDT-MCP"
 
 
 @pytest.mark.unit
@@ -123,7 +123,7 @@ def test_pyaedt_mcp_class():
 
     # Test with default name
     mcp = PyAEDTMCP()
-    assert mcp.name == "PyAEDT MCP Server"
+    assert mcp.name == "PyAEDT-MCP"
 
     # Test with custom name
     mcp_custom = PyAEDTMCP(name="Custom AEDT Server")

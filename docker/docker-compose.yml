@@ -1,18 +1,18 @@
-# Docker Compose for PyAEDT MCP Server
+# Docker Compose for PyAEDT-MCP
 #
 # Note: Unlike MAPDL and Mechanical, AEDT does not have a publicly available
 # Docker image. This compose file is for reference and local development.
 #
 # To use AEDT with Docker, you would need:
-# 1. A custom AEDT container image (internal/enterprise only)
-# 2. AEDT installed on the host machine with proper licensing
+# - A custom AEDT container image (internal/enterprise only)
+# - AEDT installed on the host machine with proper licensing
 #
 # For most use cases, run AEDT directly on your machine:
 #   Windows: "C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe" -grpcsrv 50051
 #   Linux:   /ansys_inc/v261/AnsysEM/Linux64/ansysedt -grpcsrv 50051
 
 services:
-  # PyAEDT MCP Server
+  # PyAEDT-MCP
   # Connects to AEDT running on host machine or remote server
   pyaedt-mcp:
     build:
@@ -39,7 +39,7 @@ networks:
   pyaedt-network:
     driver: bridge
 
-# Usage Examples:
+# Usage eamples:
 #
 # 1. Start AEDT on host machine first:
 #    "C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe" -grpcsrv 50051
