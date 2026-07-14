@@ -99,7 +99,7 @@ class TestErrorHandling:
 
         result = check_aedt_status(mock_context_no_desktop)
         assert isinstance(result, str)
-        assert "No AEDT Desktop connection is available" in result
+        assert "No AEDT connection is available" in result
 
     def test_invalid_context_structure(self):
         """Test handling of invalid context structure."""
@@ -112,7 +112,7 @@ class TestErrorHandling:
         invalid_context.request_context.lifespan_context.desktop = None
 
         result = check_aedt_status(invalid_context)
-        assert "No AEDT Desktop connection is available" in result
+        assert "No AEDT connection is available" in result
 
     @pytest.mark.asyncio
     async def test_desktop_connection_error(self, mock_context_no_desktop):
@@ -142,7 +142,7 @@ class TestErrorHandling:
         from ansys.aedt.mcp.tools import analyze_design
 
         result = analyze_design(mock_context_no_desktop)
-        assert "No AEDT Desktop connection" in result or "Error" in result
+        assert "No AEDT connection" in result or "Error" in result
 
     def test_empty_python_code(self, mock_context):
         """Test handling of empty Python code."""
@@ -171,4 +171,4 @@ class TestErrorHandling:
         from ansys.aedt.mcp.tools import export_results
 
         result = export_results(mock_context_no_desktop, output_path="/tmp/results.snp")
-        assert "No AEDT Desktop connection" in result or "Error" in result
+        assert "No AEDT connection" in result or "Error" in result

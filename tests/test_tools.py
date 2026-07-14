@@ -958,7 +958,7 @@ class TestAnalyzeDesign:
         )
 
         mock_context.request_context.lifespan_context.desktop.analyze_all.assert_not_called()
-        assert "setup_name cannot be used" in result
+        assert "`setup_name` cannot be used" in result
 
     def test_analyze_design_analyze_all_failure(self, mock_context):
         """Test desktop analyze_all failure response."""
@@ -968,7 +968,7 @@ class TestAnalyzeDesign:
 
         result = analyze_design(mock_context, analyze_all_designs=True)
 
-        assert "Analysis failed during desktop-wide analyze_all invocation" in result
+        assert "Analysis failed during AEDT-wide 'analyze_all' invocation." in result
 
     def test_analyze_design_app_failure(self, mock_context):
         """Test design-level analyze false result message."""
@@ -1479,7 +1479,7 @@ class TestToolErrorBranches:
             result = await launch_aedt(mock_context_no_desktop, application="Hfss")
 
         assert "Failed to launch AEDT" in result
-        assert "Unable to resolve desktop handle" in result
+        assert "Unable to resolve AEDT handle" in result
 
     @pytest.mark.asyncio
     async def test_connect_tip_with_project_name(self, mock_context_no_desktop):
