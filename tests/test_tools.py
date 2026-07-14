@@ -211,7 +211,7 @@ class TestLaunchAEDT:
             assert call_kwargs["non_graphical"] is False
             assert call_kwargs["version"] == "2026.1"
             mock_cfg.assert_called_once_with()
-            assert "Successfully launched AEDT Desktop" in result
+            assert "Successfully launched AEDT" in result
 
     @pytest.mark.asyncio
     async def test_launch_asks_to_connect_when_session_exists(self, mock_context_no_desktop):
@@ -291,7 +291,7 @@ class TestLaunchAEDT:
 
         mock_cfg.assert_called_once_with()
         assert mock_desktop.call_args[1]["new_desktop"] is True
-        assert "Successfully launched AEDT." in result
+        assert "Successfully launched AEDT" in result
 
 
 @pytest.mark.unit
@@ -327,7 +327,7 @@ class TestConnectToAEDT:
             result = await connect_to_aedt(mock_context_no_desktop, port=50051)
 
             mock_cfg.assert_called_once_with(enable_grpc=True)
-            assert "Successfully connected to AEDT." in result
+            assert "Successfully connected to AEDT" in result
 
     @pytest.mark.asyncio
     async def test_connect_auto_selects_single_discovered_session(self, mock_context_no_desktop):
@@ -359,7 +359,7 @@ class TestConnectToAEDT:
         ):
             result = await connect_to_aedt(mock_context_no_desktop)
 
-        assert "Successfully connected to AEDT." in result
+        assert "Successfully connected to AEDT" in result
         assert mock_desktop.call_args[1]["port"] == 50062
 
     @pytest.mark.asyncio

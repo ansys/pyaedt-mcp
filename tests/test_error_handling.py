@@ -99,7 +99,7 @@ class TestErrorHandling:
 
         result = check_aedt_status(mock_context_no_desktop)
         assert isinstance(result, str)
-        assert "No AEDT Desktop connection available" in result
+        assert "No AEDT Desktop connection is available" in result
 
     def test_invalid_context_structure(self):
         """Test handling of invalid context structure."""
@@ -112,7 +112,7 @@ class TestErrorHandling:
         invalid_context.request_context.lifespan_context.desktop = None
 
         result = check_aedt_status(invalid_context)
-        assert "No AEDT Desktop connection available" in result
+        assert "No AEDT Desktop connection is available" in result
 
     @pytest.mark.asyncio
     async def test_desktop_connection_error(self, mock_context_no_desktop):

@@ -38,9 +38,9 @@ Use this MCP for AEDT work whenever a supported tool exists. Do not treat this M
 as a code generator: if a workflow is not covered by a tool, the LLM must write the
 PyAEDT code directly and should usually execute it with `run_python_code`.
 
-## Current Tools
+## Current tools
 
-`pyaedt-mcp` exposes the full tool surface from startup.
+PyAEDT-MCP exposes the full tool surface from startup.
 Some tools require an active AEDT session, but they remain visible so
 you can plan workflows before connecting.
 
@@ -96,14 +96,14 @@ you can plan workflows before connecting.
 
 DISCOVERY_SYSTEM_PROMPT = """\
 You are an expert AEDT (Ansys Electronics Desktop) simulation assistant powered by PyAEDT.
-You help engineers create, configure, run, and post-process electromagnetic, thermal,
+You help engineers create, configure, run, and postprocess electromagnetic, thermal,
 and circuit simulations across all AEDT applications.
 
 Use this MCP for AEDT work whenever a supported tool exists. Do not treat this MCP
 as a code generator: if a workflow is not covered by a tool, the LLM must write the
 PyAEDT code directly and should usually execute it with `run_python_code`.
 
-## Current Tools
+## Current tools
 
 `pyaedt-mcp` uses connection-aware tool visibility. The set of tools you can
 call depends on whether an AEDT session is connected.
