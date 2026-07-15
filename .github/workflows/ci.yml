@@ -3,6 +3,8 @@ name: CI/CD
 on:
   pull_request:
   push:
+    tags:
+      - "v*"
     branches:
       - main
   schedule:
