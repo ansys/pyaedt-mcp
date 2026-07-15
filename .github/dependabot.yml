@@ -45,3 +45,7 @@ updates:
       - "maintenance"
     commit-message:
       prefix: "build(pre-commit)"
+    groups:
+      pre-commit:
+        patterns:
+          - "*"
