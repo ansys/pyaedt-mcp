@@ -14,12 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Entry point for PyAEDT MCP server when run as a module.
+"""Entry point for PyAEDT-MCP when run as a module.
 
 Usage:
     python -m ansys.aedt.mcp [options]
 
 Options:
+
     --transport {stdio,http}  Transport type (default: stdio)
     --machine MACHINE         AEDT machine hostname (default: localhost)
     --port PORT              AEDT gRPC port (default: 50051)

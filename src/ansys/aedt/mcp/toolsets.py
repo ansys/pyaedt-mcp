@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Toolset definitions for PyAnsysMCPService discovery.
+"""Toolset definitions for PyAnsys MCP service discovery.
 
 Exposes the ``toolsets://definition`` MCP resource that groups every tool
-registered on the PyAEDT MCP server into logical, user-facing categories.
+registered on PyAEDT-MCP into logical, user-facing categories.
 Each toolset entry follows the schema agreed across the Ansys MCP family:
 
 ``{"name": str, "description": str, "skill": str, "tools": list[str]}``
@@ -44,22 +44,22 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
         "skill": (
             "Call check_aedt_installed once at startup to confirm the AEDT "
             "binary is on disk. First call check_aedt_status before every "
-            "workflow to see whether this MCP already has a live Desktop "
+            "workflow to see whether this MCP already has a live AEDT "
             "connection and to discover local AEDT sessions that can be "
             "attached. If multiple connectable sessions are reported, ask the "
             "user which session to connect to and include the option to open "
-            "a new desktop instead. If one connectable session is reported, "
-            "ask whether to connect to it or open a new desktop. Prefer "
-            "connect_to_aedt to attach to a running Desktop (machine + gRPC "
+            "a new session instead. If one connectable session is reported, "
+            "ask whether to connect to it or open a new instance. Prefer "
+            "connect_to_aedt to attach to a running session (machine + gRPC "
             "port). Only use launch_aedt(confirm_new_session=True) after the "
             "user explicitly confirms a new instance is needed. If the user "
-            "directly asks for a new desktop or new AEDT session, skip the "
+            "directly asks for a new instance or new AEDT session, skip the "
             "question and call launch_aedt(confirm_new_session=True). If the "
             "connected session has no open projects and the user asked for a "
             "specific solver such as Hfss or Maxwell3d, call create_design "
             "with the matching app_type. Call "
             "disconnect_from_aedt for a graceful detach "
-            "and clear_aedt to fully release the Desktop process."
+            "and clear_aedt to fully release the AEDT process."
         ),
         "tools": [
             "check_aedt_installed",
@@ -185,9 +185,9 @@ def _build_toolsets() -> list[dict[str, Any]]:
 @app.resource(
     "toolsets://definition",
     name="toolsets_definition",
-    description="Toolset definitions for PyAnsysMCPService discovery.",
+    description="Toolset definitions for PyAnsys MCP service discovery.",
     mime_type="application/json",
 )
 def get_toolsets() -> list[dict[str, Any]]:
-    """Return toolset definitions for PyAnsysMCPService discovery."""
+    """Get toolset definitions for PyAnsys MCP service discovery."""
     return _build_toolsets()

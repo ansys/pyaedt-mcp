@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Basic tests for PyAEDT MCP Server package."""
+"""Basic tests for PyAEDT-MCP."""
 
 import pytest
 

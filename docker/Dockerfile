@@ -1,4 +1,4 @@
-# PyAEDT MCP Server Dockerfile
+# PyAEDT-MCP Dockerfile
 # -------------------------------------------------------
 # Build:
 #   docker build --build-arg PYANSYS_PYPI_INDEX_URL=<url> \
@@ -50,5 +50,5 @@ ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Labels
 LABEL maintainer="PyAnsys Team"
-LABEL description="PyAEDT MCP Server for AI-driven AEDT automation"
+LABEL description="PyAEDT-MCP for AI-driven AEDT automation"
 LABEL version="0.1.0"

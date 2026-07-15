@@ -4,8 +4,7 @@
 User guide
 ==========
 
-This section explains how the package is structured, how the runtime behaves,
-and how to use the server effectively.
+Learn how to use PyAEDT-MCP effectively.
 
 .. grid:: 2 2 3 3
     :gutter: 1 2 3 3
@@ -21,13 +20,13 @@ and how to use the server effectively.
         :link: tools_and_capabilities
         :link-type: doc
 
-        Reference for every tool the server exposes.
+        Reference for every tool PyAEDT-MCP exposes.
 
     .. grid-item-card:: Workflows
         :link: workflows
         :link-type: doc
 
-        How to use the server to run workflows in AEDT.
+        How to use PyAEDT-MCP to run workflows in AEDT.
 
     .. grid-item-card:: Best practices
         :link: best_practices

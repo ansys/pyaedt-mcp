@@ -14,7 +14,7 @@ Claude Code is Anthropic's AI-powered code editor with built-in MCP support.
 Configure for a specific project (recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Run from the project directory:
+Configure PyAEDT-MCP for a specific project:
 
 .. code-block:: bash
 
@@ -22,7 +22,7 @@ Run from the project directory:
    claude mcp add --transport stdio pyaedt-mcp -- \
      uvx --from git+https://github.com/ansys/pyaedt-mcp ansys-aedt-mcp
 
-**Advantages**
+Advantages:
 
 - Scoped to the project, shareable via version control.
 - Supports per-project CLI flags (for example ``--include-context``).
@@ -30,12 +30,14 @@ Run from the project directory:
 Configure globally
 ~~~~~~~~~~~~~~~~~~
 
+Configure PyAEDT-MCP for all your Claude Code projects:
+
 .. code-block:: bash
 
    claude mcp add --transport stdio --scope user pyaedt-mcp -- \
      uvx --from git+https://github.com/ansys/pyaedt-mcp ansys-aedt-mcp
 
-**Advantages**
+Advantages:
 
 - Available in all Claude Code projects without per-project configuration.
 
@@ -45,12 +47,12 @@ See `Claude Code MCP installation
 Visual Studio Code
 ------------------
 
-VS Code integrates MCP servers through the Copilot extension.
+Visual Studio Code integrates MCP servers through the Copilot extension.
 
 Start from GitHub (recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Add this to ``.vscode/mcp.json`` (create the file if it does not exist):
+Add this to the ``.vscode/mcp.json`` file in your project directory:
 
 .. code-block:: json
 
@@ -68,10 +70,12 @@ Add this to ``.vscode/mcp.json`` (create the file if it does not exist):
      }
    }
 
-Use local development install
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If the ``.vscode/mcp.json`` file does not exist, create it.
 
-If you have cloned the repository and installed it in a virtual environment:
+Set up for local development
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use this configuration when working from a local clone of the repository:
 
 .. code-block:: json
 
@@ -88,12 +92,13 @@ If you have cloned the repository and installed it in a virtual environment:
      }
    }
 
-Use ``bin/python`` instead of ``Scripts/python`` on Linux or macOS.
+.. note::
+  On Linux or macOS, use ``bin/python`` instead of ``Scripts/python``.
 
 Use uv as an alternative
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you prefer, you can use ``uv`` as your Python package and project manager:
+If you prefer, you can use uv as your Python package and project manager:
 
 .. code-block:: json
 
@@ -110,7 +115,7 @@ If you prefer, you can use ``uv`` as your Python package and project manager:
 Configure HTTP transport
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you have started the server with ``--transport http``:
+If you start PyAEDT-MCP with ``--transport http``, use this client configuration:
 
 .. code-block:: json
 
@@ -123,16 +128,16 @@ If you have started the server with ``--transport http``:
      }
    }
 
-Start the server before connecting:
+Start PyAEDT-MCP before you connect:
 
 .. code-block:: bash
 
    ansys-aedt-mcp --transport http --http-host 127.0.0.1 --http-port 8080
 
 Use Docker endpoint
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
-If you start the MCP server with Docker Compose, use the default HTTP endpoint:
+If you start PyAEDT-MCP with Docker Compose, use the default HTTP endpoint:
 
 .. code-block:: json
 
@@ -145,25 +150,27 @@ If you start the MCP server with Docker Compose, use the default HTTP endpoint:
      }
    }
 
-For more details, see :doc:`../user_guide/docker`.
+For more information, see :doc:`../user_guide/docker`.
 
 Enable MCP in Visual Studio Code
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. Open VS Code settings (``Ctrl+,`` / ``Cmd+,``).
+1. Open VS Code settings (``Ctrl+,`` or ``Cmd+,``).
 2. Search for ``MCP``.
-3. Enable the setting to allow Copilot to use MCP servers.
-4. Restart VS Code.
+3. Enable the settings that allow Copilot to use MCP servers.
 
-See `Visual Studio Code MCP servers
-<https://code.visualstudio.com/docs/copilot/customization/mcp-servers>`_
-documentation for details.
+   For more information, see `Add and manage MCP servers in VS Code
+   <https://code.visualstudio.com/docs/copilot/customization/mcp-servers>`_
+   in the Visual Studio Code documentation.
+
+4. Restart Visual Studio Code.
 
 Claude Desktop
 --------------
 
-Edit ``~/Library/Application Support/Claude/claude_desktop_config.json``
-(macOS) or the equivalent path on Windows:
+Claude Desktop is Anthropic’s macOS desktop app with full MCP support.
+Edit the ``~/Library/Application Support/Claude/claude_desktop_config.json``
+file on macOS or the equivalent path on Windows:
 
 .. code-block:: json
 
@@ -182,8 +189,8 @@ Edit ``~/Library/Application Support/Claude/claude_desktop_config.json``
      }
    }
 
-Claude Code and Visual Studio Code
-------------------------------------
+Claude Code versus Visual Studio Code
+-------------------------------------
 
 .. list-table::
    :header-rows: 1
@@ -201,8 +208,8 @@ Claude Code and Visual Studio Code
      - STDIO (default)
      - STDIO or HTTP
    * - Team sharing
-     - Via project config files
-     - Via ``.vscode/mcp.json`` in the repository
+     - With project config files
+     - With ``.vscode/mcp.json`` in the repository
    * - Learning curve
      - Low (CLI-based)
      - Medium (JSON configuration)
@@ -213,10 +220,12 @@ Advanced configuration
 Auto-connect to AEDT on startup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pass ``--connect`` to have the server attach to AEDT during initialization.
+Pass ``--connect`` to have the server connect to AEDT during initialization.
 Use ``--machine`` and ``--port`` to target a specific gRPC endpoint:
 
-**Visual Studio Code** (``.vscode/mcp.json``):
+**Visual Studio Code**
+
+Edit the ``.vscode/mcp.json`` file:
 
 .. code-block:: json
 
@@ -237,7 +246,7 @@ Use ``--machine`` and ``--port`` to target a specific gRPC endpoint:
      }
    }
 
-**Claude Code**:
+**Claude Code:**
 
 .. code-block:: bash
 
@@ -288,7 +297,9 @@ Enable debug logging
 
 Set the ``FASTMCP_LOG_LEVEL`` environment variable to ``DEBUG``:
 
-**Visual Studio Code** (``.vscode/mcp.json``):
+**Visual Studio Code**
+
+Edit the ``.vscode/mcp.json`` file:
 
 .. code-block:: json
 
@@ -309,14 +320,14 @@ Set the ``FASTMCP_LOG_LEVEL`` environment variable to ``DEBUG``:
      }
    }
 
-**Command line**:
+**Command line:**
 
 .. code-block:: bash
 
    FASTMCP_LOG_LEVEL=DEBUG ansys-aedt-mcp
 
 Connect with HTTP (Docker or remote)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For containerized or remote deployments, see :doc:`../user_guide/docker`.
 

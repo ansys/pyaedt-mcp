@@ -319,7 +319,7 @@ def test_startup_code_save_plot_paths(monkeypatch):
     from ansys.aedt.mcp.aedt_helper import startup_code
 
     monkeypatch.setattr(startup_code, "MATPLOTLIB_AVAILABLE", False)
-    assert "matplotlib is not installed" in startup_code.save_matplotlib_plot()
+    assert "Matplotlib is not installed" in startup_code.save_matplotlib_plot()
 
     plotter = MagicMock()
     monkeypatch.setattr(startup_code, "PYVISTA_AVAILABLE", False)

@@ -3,42 +3,42 @@
 Installation
 ============
 
-``ansys-aedt-mcp`` can run in two common modes:
+You can run PyAEDT-MCP in two modes:
 
 - Start the MCP server and let it launch AEDT later through tools.
-- Start or reuse an AEDT gRPC session first, then have the server connect to it.
+- Start or reuse an AEDT gRPC session, and then connect PyAEDT-MCP to it.
 
-Requirements
-------------
+Check prerequisites
+-------------------
 
 - Python 3.11 or later
 - AEDT 2022 R2 or later for gRPC workflows
 - A local AEDT installation or a reachable remote AEDT endpoint
 
-Install with ``uvx``
---------------------
+Run PyAEDT-MCP with uvx
+-----------------------
 
-Use ``uvx`` when you want to run the server without cloning the repository.
+Use uvx when you want to run PyAEDT-MCP without cloning the repository:
 
 .. code-block:: bash
 
    uvx --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp
 
-Install with ``pip``
---------------------
+Install PyAEDT-MCP with ``pip``
+-------------------------------
 
-Use ``pip`` when you want the package available in your current Python
-environment.
+Use ``pip`` when you want to install PyAEDT-MCP in your current Python
+environment:
 
 .. code-block:: bash
 
    pip install git+https://github.com/ansys/pyaedt-mcp.git
 
-Install from source
--------------------
+Install PyAEDT-MCP from source
+------------------------------
 
-Use this option when you have cloned the repository and want a local
-installation.
+Use this option when you want to install from a local clone of the
+PyAEDT-MCP repository.
 
 .. code-block:: bash
 
@@ -46,28 +46,31 @@ installation.
    cd pyaedt-mcp
    pip install .
 
-If you plan to contribute (editable install, development dependencies, tests,
-and linters), follow the development setup in :doc:`contribution`.
+If you plan to contribute, follow the development setup in
+:ref:`ref_contributing` for an editable installation, development dependencies,
+tests, and linters.
 
-Start AEDT in GRPC mode
+Start AEDT in gRPC mode
 -----------------------
 
-If you want to attach to an existing AEDT session, start AEDT in GRPC mode. You can do it from the command line or from the AEDT GUI. By default PyAEDT supports GRPC in AEDT 2022 R2 and later.
+If you want to connect to an existing AEDT session, start AEDT in gRPC mode.
+You can start it from the command line or from the AEDT GUI. PyAEDT supports
+gRPC in AEDT 2022 R2 and later.
 
 .. code-block:: bash
 
    "C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe" -grpcsrv 50051
 
-Start the MCP server
---------------------
+Start PyAEDT-MCP
+----------------
 
-The default transport is ``stdio``.
+PyAEDT-MCP uses STDIO by default.
 
 .. code-block:: bash
 
    ansys-aedt-mcp
 
-Common options:
+You can use these common options:
 
 .. code-block:: bash
 
@@ -76,10 +79,12 @@ Common options:
    ansys-aedt-mcp --include-context
    ansys-aedt-mcp --dynamic-tool-discovery
 
-After the server starts, you can connect to it with any MCP-compatible client, such as Claude Code, Copilot CLI, Codex, Cursor etc. See :doc:`ide_configuration` for more details.
+After PyAEDT-MCP starts, connect to it with any MCP-compatible client, such as
+Claude Code, Copilot CLI, Codex, or Cursor. For more information, see
+:doc:`ide_configuration`.
 
-Important CLI options
----------------------
+Review important CLI options
+----------------------------
 
 .. list-table::
    :header-rows: 1
@@ -87,22 +92,22 @@ Important CLI options
    * - Option
      - Purpose
    * - ``--transport {stdio,http}``
-     - Choose how the MCP server is exposed to the client.
+     - Choose how PyAEDT-MCP connects to the client.
    * - ``--machine`` / ``--port``
-     - Point startup connection logic to an AEDT gRPC endpoint.
+     - Point the startup connection to an AEDT gRPC endpoint.
    * - ``--connect``
-     - Attach to AEDT during server startup instead of waiting for a tool call.
+     - Connect to AEDT during server startup instead of waiting for a tool call.
    * - ``--include-context``
      - Register optional guidance tools for AEDT and PyAEDT workflows.
    * - ``--dynamic-tool-discovery``
      - Hide AEDT-only tools until ``launch_aedt`` or ``connect_to_aedt`` succeeds.
    * - ``--http-host`` / ``--http-port``
-     - Configure the HTTP transport endpoint.
+     - Set the HTTP transport endpoint.
 
-Typical first workflow
-----------------------
+Follow a typical first workflow
+-------------------------------
 
-Once the client is connected to the MCP server, the normal flow is:
+After your client connects to PyAEDT-MCP, follow this typical workflow:
 
 1. Call ``check_aedt_installed``.
 2. Call ``check_aedt_status``.
@@ -112,9 +117,9 @@ Once the client is connected to the MCP server, the normal flow is:
 
 .. note::
 
-  If an operation is not supported by the tool surface, the AI Agent can
-  generate a Python snippet and call ``run_python_code`` to execute it in the
-  persistent PyAEDT session.
+   If the tool surface does not support an operation, the AI agent can generate
+   a Python snippet and run it with ``run_python_code`` in the persistent
+   PyAEDT session.
 
-For recommended usage patterns, see :doc:`../user_guide/best_practices`. To
-review the available tool surface, see :doc:`../user_guide/tools_and_capabilities`.
+For recommended usage patterns, see :doc:`../user_guide/best_practices`.
+To review the available tools, see :doc:`../user_guide/tools_and_capabilities`.

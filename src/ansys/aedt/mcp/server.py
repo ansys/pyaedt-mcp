@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Lifespan and CLI entry for the PyAEDT MCP server with startup options."""
+"""Lifespan and CLI entry for PyAEDT-MCP with startup options."""
 
 import argparse
 from dataclasses import dataclass
@@ -36,13 +36,13 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
     Attributes
     ----------
     desktop : Optional[Any]
-        AEDT Desktop instance connection. Using Any to avoid type issues.
+        AEDT instance connection. Using ``Any`` avoids type issues.
     transport_type : str
-        Transport type for MCP server ('stdio' or 'http').
+        Transport type for MCP server. Options are ``"stdio"`` or ``"http"``.
     aedt_machine : Optional[str]
-        Machine name or IP for AEDT connection.
+        Machine name or IP address for the AEDT connection.
     aedt_port : Optional[int]
-        Port number for AEDT gRPC connection.
+        Port number for the AEDT gRPC connection.
     aedt_version : Optional[str]
         Version of AEDT to use.
     non_graphical : bool
@@ -61,7 +61,7 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
         List of allowed CORS origins for HTTP transport.
     """
 
-    desktop: Any | None = None  # Using Any to avoid type issues with AEDT variants
+    desktop: Any | None = None  # Using 'Any' to avoid type issues with AEDT variants
     transport_type: str = "stdio"
     aedt_machine: str | None = None
     aedt_port: int | None = None
@@ -76,12 +76,12 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
 
     @property
     def product_instance(self) -> Optional[Any]:
-        """Returns the default AEDT Desktop instance for backward compatibility.
+        """Default AEDT instance for backward compatibility.
 
         Returns
         -------
         Optional[Any]
-            The default AEDT Desktop instance, or None if not connected.
+            Default AEDT instance or ``None`` if not connected.
         """
         return self.desktop
 
@@ -92,9 +92,9 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
 
 
 class PyAEDTMCP(PyAnsysBaseMCP):
-    """FastMCP server for managing AEDT Desktop instances."""
+    """FastMCP server for managing AEDT instances."""
 
-    def __init__(self, name: str = "PyAEDT MCP Server", *args, **kwargs):
+    def __init__(self, name: str = "PyAEDT-MCP", *args, **kwargs):
         super().__init__(name=name, *args, **kwargs)
 
     def create_context(self) -> PyAEDTAppContext:
@@ -104,7 +104,7 @@ class PyAEDTMCP(PyAnsysBaseMCP):
         Returns
         -------
         PyAEDTAppContext
-            The application context for managing AEDT instances.
+            Application context for managing AEDT instances.
         """
         startup_code = "from ansys.aedt.mcp.aedt_helper.startup_code import *"
         python_session = PersistentPythonSession(
@@ -145,7 +145,7 @@ class PyAEDTMCP(PyAnsysBaseMCP):
 
     def product_startup(self):
         """Allow PyAEDT-MCP specific startup actions."""
-        logger.info("PyAEDT MCP server starting up...")
+        logger.info("PyAEDT-MCP starting up...")
 
         context = self.context
 
@@ -191,7 +191,7 @@ class PyAEDTMCP(PyAnsysBaseMCP):
 
 
 # Pass lifespan to server
-app = PyAEDTMCP(name="PyAEDT MCP Server")
+app = PyAEDTMCP(name="PyAEDT-MCP")
 
 
 @dataclass
@@ -221,7 +221,7 @@ def launcher(argv: list[str] | None = None) -> None:
     Parameters
     ----------
     argv : list[str] | None
-        Optional list of arguments for testing. Defaults to `sys.argv[1:]`.
+        Optional list of arguments for testing. If ``None``, ``"sys.argv[1:]"`` is used.
     """
     if argv is None:
         argv = sys.argv[1:]

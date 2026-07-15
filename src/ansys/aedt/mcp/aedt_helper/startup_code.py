@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Startup code for persistent Python session in PyAEDT MCP.
+"""Startup code for a persistent Python session in PyAEDT-MCP.
 
 This module is executed when a persistent Python session is started
 for running user code in the MCP server context.
@@ -54,26 +54,26 @@ except ImportError:
 
 
 def save_matplotlib_plot(filename="plot.png", return_base64=False, dpi=150):
-    """Save matplotlib plot to file and optionally return as base64.
+    """Save a Matplotlib plot to a file and optionally return as base64.
 
-    Uses the current matplotlib figure.
+    Uses the current Matplotlib figure.
 
     Parameters
     ----------
-    filename : str
-        Output filename
-    return_base64 : bool
-        If True, return base64-encoded image data
-    dpi : int
-        Resolution in dots per inch
+    filename : str, default: ``"plot.png"``
+        Output filename.
+    return_base64 : bool, default: False
+        Whether to return the plot as base64-encoded image data.
+    dpi : int,  default: 150
+        Resolution in dots per inch.
 
     Returns
     -------
     str
-        File path or base64 data URI
+        File path or base64 data URI.
     """
     if not MATPLOTLIB_AVAILABLE:
-        return "matplotlib is not installed – cannot save plot"
+        return "Matplotlib is not installed. Cannot save plot."
 
     if return_base64:
         buffer = BytesIO()
@@ -91,21 +91,21 @@ def save_matplotlib_plot(filename="plot.png", return_base64=False, dpi=150):
 
 def save_pyvista_plot(plotter, filename="plot.png", return_base64=False):
     """
-    Save PyVista plot to file and optionally return as base64.
+    Save a PyVista plot to a file and optionally return as base64.
 
     Parameters
     ----------
     plotter : pv.Plotter
-        The PyVista plotter to save
-    filename : str
-        Output filename
-    return_base64 : bool
-        If True, return base64-encoded image data
+        PyVista plotter to save.
+    filename : str, default: ``"plot.png"``
+        Output filename.
+    return_base64 : bool, default: False
+        Whether to return the plot as base64-encoded image data.
 
     Returns
     -------
     str
-        File path or base64 data URI
+        File path or base64 data URI.
     """
     if not PYVISTA_AVAILABLE:
         return "PyVista is not available"
@@ -143,7 +143,7 @@ def get_aedt_version():
 def list_aedt_applications():
     """List available AEDT applications."""
     return [
-        "Hfss - High Frequency Structure Simulator",
+        "Hfss - High-Frequency Structure Simulator",
         "Maxwell2d - 2D Electromagnetic Simulation",
         "Maxwell3d - 3D Electromagnetic Simulation",
         "Q3d - 3D Quasi-Static Extraction",

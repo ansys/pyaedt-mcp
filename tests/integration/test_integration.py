@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Real-AEDT integration tests for the PyAEDT MCP tool surface.
+"""Real-AEDT integration tests for the PyAEDT-MCP tool surface.
 
 These tests require AEDT to be installed and are intended to run against real
 desktop instances only. No AEDT connection is mocked in this module.
@@ -282,7 +282,7 @@ def test_check_aedt_status_disconnected(empty_ctx):
 async def test_launch_aedt_real_instance(empty_ctx):
     try:
         result = await launch_aedt(empty_ctx, non_graphical=True, confirm_new_session=True)
-        assert "Successfully launched AEDT Desktop" in result
+        assert "Successfully launched AEDT" in result
         status = json.loads(check_aedt_status(empty_ctx))
         assert status["connected"] is True
     finally:
@@ -470,7 +470,7 @@ def test_clear_aedt(connected_ctx, test_tmp_dir):
         connected_ctx, test_tmp_dir / "clear_target.aedt", design_name="ClearHfss"
     )
     result = clear_aedt(connected_ctx, close_projects=True)
-    assert "AEDT state cleared" in result
+    assert "AEDT state is cleared" in result
     data = json.loads(list_projects(connected_ctx))
     assert env["project_name"] not in data["open_projects"]
 
@@ -498,8 +498,8 @@ async def test_connect_to_existing_live_session(running_aedt_session):
 @pytest.mark.asyncio
 async def test_disconnect_from_aedt(empty_ctx):
     launch_result = await launch_aedt(empty_ctx, non_graphical=True, confirm_new_session=True)
-    assert "Successfully launched AEDT Desktop" in launch_result
+    assert "Successfully launched AEDT" in launch_result
 
     result = await disconnect_from_aedt(empty_ctx)
-    assert result == "Successfully disconnected from AEDT Desktop."
+    assert result == "Successfully disconnected from AEDT."
     assert empty_ctx.request_context.lifespan_context.desktop is None

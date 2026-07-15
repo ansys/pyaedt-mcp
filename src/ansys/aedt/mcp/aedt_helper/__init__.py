@@ -14,4 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Helper functions for AEDT MCP."""
+"""Helper functions for PyAEDT-MCP."""

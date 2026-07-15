@@ -3,23 +3,24 @@
 Best practices
 ==============
 
-This section describes recommended usage patterns for PyAEDT-MCP. Following these practices helps you avoid common pitfalls, improve performance, and make your workflows more robust.
+Use these recommended patterns for PyAEDT-MCP to avoid common pitfalls,
+improve performance, and build more robust workflows.
 
 Session management
 ------------------
 
-**Reuse the AEDT Desktop connection**
+**Reuse the AEDT connection.**
     Keep the same AEDT session open across multiple tool calls. Each
     ``launch_aedt`` or ``connect_to_aedt`` call incurs a non-trivial startup
     cost; only reconnect when genuinely necessary.
 
-**Prefer** ``check_aedt_status`` **before every workflow**
+**Check AEDT status before every workflow.**
     Always call ``check_aedt_status`` at the start of a workflow to confirm
-    whether a Desktop connection already exists. Use the result to decide
+    whether an AEDT connection already exists. Use the result to decide
     between ``launch_aedt`` (no session) and ``connect_to_aedt`` (existing
     session).
 
-**Clean shutdown**
+**Shut down cleanly.**
     Disconnect properly when done. Abrupt termination can leave AEDT processes
     running and files in an inconsistent state. The active AEDT session stays
     tied to the MCP server until you explicitly release it. If you do not
@@ -27,7 +28,7 @@ Session management
     ``disconnect_from_aedt`` for a graceful release or ``clear_aedt`` to also
     close all open projects.
 
-**Error handling**
+**Check for errors.**
     Check the text returned by every tool for error messages before
     proceeding. Most tools return a human-readable error string rather than
     raising an exception, so the next step in a workflow can act on the result.
@@ -35,24 +36,24 @@ Session management
 Scripting with ``run_python_code``
 -----------------------------------
 
-**Use the persistent session**
+**Use the persistent session.**
     ``run_python_code`` and ``run_python_script`` share a persistent Python
-    interpreter. Prefer breaking complex workflows into several short
-    ``run_python_code`` calls rather than one large script; this gives the AI
-    assistant a chance to inspect intermediate state.
+    interpreter. Break complex workflows into several short
+    ``run_python_code`` calls instead of one large script so you can inspect
+    intermediate state.
 
-     .. note::
-         By default, PyAEDT-MCP applies ``settings.release_on_exception = False``
-         in the execution session. This keeps the AEDT session alive when
-         generated code fails, which allows the AI agent to iterate and retry
-         fixes instead of losing the whole session.
+    .. note::
+        By default, PyAEDT-MCP applies ``settings.release_on_exception = False``
+        in the execution session. This keeps the AEDT session alive when
+        generated code fails, which allows the AI agent to iterate and retry
+        fixes instead of losing the whole session.
 
-**Prefer** ``run_python_code`` **over** ``run_python_script``
+**Choose** ``run_python_code`` **over** ``run_python_script``.
     Use ``run_python_code`` for short inline tasks. Reserve
     ``run_python_script`` for files that already exist on disk (for example,
     customer-provided scripts or parametric templates).
 
-**Use** ``get_guidelines_for`` **before generating code**
+**Use** ``get_guidelines_for`` **before you generate code**.
     When ``--include-context`` is active, call ``get_guidelines_for`` with the
     relevant topic before writing PyAEDT code. The returned guidelines contain
     correct API patterns, avoiding common mistakes.
@@ -65,12 +66,12 @@ Scripting with ``run_python_code``
 Data handling
 -------------
 
-**Extract only what you need**
+**Extract only what you need.**
     Query specific design properties or result values rather than loading
     entire result sets. AEDT result files can be large; targeted extraction is
     faster and less likely to hit tool timeouts.
 
-**Cache extracted data**
+**Cache extracted data.**
     Store extracted data in Python variables within the persistent session so
     subsequent analysis steps can reuse it without re-querying AEDT.
 
@@ -83,7 +84,7 @@ Data handling
 Visualization
 -------------
 
-**Screenshot after key steps**
+**Capture screenshots after key steps.**
     Call ``screenshot`` after geometry creation, after meshing, and after
     analysis to give the AI assistant a visual checkpoint. This helps detect
     geometry errors before solving.
@@ -92,30 +93,30 @@ Visualization
        Screenshots need the project to be saved beforehand. If the project is unsaved,
        the screenshot tool returns an error.
 
-**Use** ``run_python_code`` **for custom plots**
+**Use** ``run_python_code`` **for custom plots.**
     For plots beyond what AEDT produces natively, use PyAEDT's report API or
     Matplotlib inside ``run_python_code``. The persistent session keeps
     previously imported libraries available.
 
-**Export for documentation**
+**Export artifacts for documentation.**
     Save high-quality screenshots and result plots with meaningful file names
     so they can be included directly in engineering reports.
 
 Workflow design
 ---------------
 
-**Break complex tasks into steps**
+**Break complex tasks into steps.**
     A well-structured workflow calls one dedicated tool per logical step
     (connect → create design → set up geometry → analyze → export). This keeps
     each tool call focused, makes errors easier to diagnose, and avoids timeout
     issues.
 
-**Validate input before sending to AEDT**
+**Validate input before sending to AEDT.**
     Check parameter values (for example, frequencies, dimensions, materials)
     in a ``run_python_code`` call before passing them to the solver. Early
     validation avoids long solve runs that fail for trivial reasons.
 
-**Design for recovery**
+**Design for recovery.**
     Structure workflows so that individual steps can be re-run without
     starting over. Use ``save_project`` after expensive geometry or mesh steps
     to create recovery points.
@@ -123,16 +124,16 @@ Workflow design
 Performance
 -----------
 
-**Minimize Desktop restarts**
+**Minimize AEDT restarts.**
     Relaunching AEDT adds tens of seconds of overhead. Reuse the existing
     session across as many operations as possible.
 
-**Parallel independent analyses**
+**Run independent analyses in parallel.**
     When running multiple independent designs (for example, a geometry sweep),
     consider using AEDT's built-in parametric solver rather than running
     designs sequentially from the MCP server.
 
-**Result processing in Python**
-    Extract result data into Python arrays or DataFrames and perform analysis
+**Process results in Python.**
+    Extract result data into Python arrays or DataFrames and analyze it
     there rather than issuing repeated AEDT queries. The persistent session
     retains the data between calls.

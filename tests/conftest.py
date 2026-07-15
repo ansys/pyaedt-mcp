@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test configuration for PyAEDT MCP tests."""
+"""Test configuration for PyAEDT-MCP tests."""
 
 from pathlib import Path
 import shutil

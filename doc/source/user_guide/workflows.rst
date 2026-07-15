@@ -3,32 +3,32 @@
 Workflow examples
 =================
 
-These examples provide practical, end-to-end sequences that show how to use
-PyAEDT-MCP tools together for common AEDT tasks.
+Use these practical, end-to-end workflows to run common AEDT tasks with
+PyAEDT-MCP tools.
 
 HFSS patch antenna
 ~~~~~~~~~~~~~~~~~~
 
-See :doc:`../examples/hfss_patch_antenna_workflow` for the full step-by-step
-workflow, including geometry creation, setup, solve, reporting, and screenshots.
+See :doc:`../examples/hfss_patch_antenna_workflow` for a complete step-by-step
+workflow that covers geometry creation, setup, solve, reporting, and screenshots.
 
 Maxwell motor analysis
 ~~~~~~~~~~~~~~~~~~~~~~
 
-#. ``connect_to_aedt`` or ``launch_aedt``
-#. ``create_design`` with ``app_type="Maxwell3d"``
-#. ``run_python_code`` - build motor geometry and assign materials
-#. ``run_python_code`` - assign windings, excitations, and motion setup
-#. ``analyze_design``
-#. ``run_python_code`` - create torque/speed report
+#. Run ``connect_to_aedt`` or ``launch_aedt`` to connect to or launch AEDT.
+#. Create a design with ``create_design`` and ``app_type="Maxwell3d"``.
+#. Run ``run_python_code`` to build the motor geometry and assign materials.
+#. Run ``run_python_code`` to assign windings, excitations, and motion setup.
+#. Run ``analyze_design`` to analyze your design.
+#. Run ``run_python_code`` to create a torque and speed report.
 
 Icepak thermal analysis
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-#. ``connect_to_aedt`` or ``launch_aedt``
-#. ``create_design`` with ``app_type="Icepak"``
-#. ``run_python_code`` - create PCB, components, and heat sources
-#. ``run_python_code`` - assign boundary conditions
-#. ``analyze_design``
-#. ``run_python_code`` - create temperature-contour plot
-#. ``export_results``
+#. Run ``connect_to_aedt`` or ``launch_aedt`` to connect to or launch AEDT.
+#. Create a design with ``create_design`` and ``app_type="Icepak"``.
+#. Run ``run_python_code`` to create the PCB, components, and heat sources.
+#. Run ``run_python_code`` to assign boundary conditions.
+#. Run ``analyze_design`` to analyze your design.
+#. Run ``run_python_code`` to create a temperature contour plot.
+#. Run ``export_results`` to export the simulation results.
