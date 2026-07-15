@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ansys/pymechanical-mcp/main/doc/source/_static/images/logo-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ansys/pymechanical-mcp/main/doc/source/_static/images/logo-light.png">
-    <img alt="PyAEDT-MCP" src="https://raw.githubusercontent.com/ansys/pymechanical-mcp/main/doc/source/_static/images/logo-light.png" width="900">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ansys/pyaedt-mcp/main/doc/source/_static/images/logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ansys/pyaedt-mcp/main/doc/source/_static/images/logo-light.png">
+    <img alt="PyAEDT-MCP" src="https://raw.githubusercontent.com/ansys/pyaedt-mcp/main/doc/source/_static/images/logo-light.png" width="900">
   </picture>
 </p>
 
