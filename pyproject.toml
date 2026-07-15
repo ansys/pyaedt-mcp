@@ -41,7 +41,7 @@ maintainers = [{name = "Synopsys, Inc. and ANSYS, Inc.", email = "pyansys-core@s
 name = "ansys-aedt-mcp"
 readme = "README.md"
 requires-python = ">=3.11,<4"
-version = "0.1.dev0"
+version = "0.1.0"
 
 dependencies = [
   "pyaedt[all]>=0.10.0",
