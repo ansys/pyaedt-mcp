@@ -747,11 +747,16 @@ async def connect_to_aedt(
 
 
 @app.tool(tags={"aedt_tools", "locked_connection", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
-async def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> str:
+async def disconnect_from_aedt(
+    ctx: Context,
+    close_projects: bool = False,
+    close_desktop: bool | None = None,
+) -> str:
     """Disconnect from the AEDT instance.
 
-    This tool closes the connection to the AEDT instance and releases
-    associated resources.
+    This tool detaches the MCP session from the AEDT instance and releases
+    associated resources. It can either keep the AEDT window open or close
+    the AEDT desktop entirely.
 
     Parameters
     ----------
@@ -759,6 +764,10 @@ async def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> st
         MCP context containing server session and application context.
     close_projects : bool, default: ``False``
         Whether to close all open projects before disconnecting.
+    close_desktop : bool, default: ``None``
+        Whether to close the AEDT desktop on disconnect. Set to ``False`` to
+        keep the AEDT window open after detaching the MCP session. When ``None``,
+        the tool asks the caller to choose before disconnecting.
 
     Returns
     -------
@@ -770,21 +779,32 @@ async def disconnect_from_aedt(ctx: Context, close_projects: bool = False) -> st
     if desktop is None:
         return "No AEDT connection to disconnect."
 
+    if close_desktop is None:
+        return (
+            "Specify whether to close the AEDT desktop during disconnect. "
+            "Use 'disconnect_from_aedt(close_desktop=False)' to keep the AEDT window open, "
+            "or 'disconnect_from_aedt(close_desktop=True)' to close AEDT."
+        )
+
     try:
         logger.info("Disconnecting from AEDT...")
 
         # Release AEDT
-        desktop.release_desktop(close_projects=close_projects)
+        desktop.release_desktop(close_projects=close_projects, close_on_exit=close_desktop)
         ctx.request_context.lifespan_context.desktop = None
+        ctx.request_context.lifespan_context.aedt_port = None
 
         await ctx.disable_components(tags={REQUIRES_AEDT_TAG})
         logger.info("Disconnected from AEDT successfully!")
-        return "Successfully disconnected from AEDT."
+        if close_desktop:
+            return "Successfully disconnected from AEDT and closed the desktop session."
+        return "Successfully disconnected from AEDT while keeping the desktop session open."
 
     except Exception as e:
         error_msg = f"Error during AEDT disconnect: {str(e)}"
         logger.error(error_msg)
         ctx.request_context.lifespan_context.desktop = None
+        ctx.request_context.lifespan_context.aedt_port = None
         return error_msg
 
 
