@@ -463,14 +463,47 @@ class TestDisconnectFromAEDT:
             assert "No AEDT connection" in result
 
     @pytest.mark.asyncio
-    async def test_disconnect_success(self, mock_context):
-        """Test successful disconnect."""
+    async def test_disconnect_requires_explicit_close_choice(self, mock_context):
+        """Test disconnect asks whether AEDT should remain open when unspecified."""
         from ansys.aedt.mcp.tools import disconnect_from_aedt
 
         with patch("ansys.aedt.mcp.tools.session") as mock_session:
             mock_session.locked_connection = False
             result = await disconnect_from_aedt(mock_context)
-            assert "Successfully disconnected" in result
+            assert "Specify whether to close the AEDT desktop" in result
+            mock_context.request_context.lifespan_context.desktop.release_desktop.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_disconnect_success_keep_desktop_open(self, mock_context):
+        """Test successful disconnect without closing the AEDT desktop."""
+        from ansys.aedt.mcp.tools import disconnect_from_aedt
+
+        desktop = mock_context.request_context.lifespan_context.desktop
+
+        with patch("ansys.aedt.mcp.tools.session") as mock_session:
+            mock_session.locked_connection = False
+            result = await disconnect_from_aedt(mock_context, close_desktop=False)
+
+        assert "keeping the desktop session open" in result
+        desktop.release_desktop.assert_called_once_with(close_projects=False, close_on_exit=False)
+        assert mock_context.request_context.lifespan_context.desktop is None
+        assert mock_context.request_context.lifespan_context.aedt_port is None
+
+    @pytest.mark.asyncio
+    async def test_disconnect_success_close_desktop(self, mock_context):
+        """Test successful disconnect while closing the AEDT desktop."""
+        from ansys.aedt.mcp.tools import disconnect_from_aedt
+
+        desktop = mock_context.request_context.lifespan_context.desktop
+
+        with patch("ansys.aedt.mcp.tools.session") as mock_session:
+            mock_session.locked_connection = False
+            result = await disconnect_from_aedt(
+                mock_context, close_projects=True, close_desktop=True
+            )
+
+        assert "closed the desktop session" in result
+        desktop.release_desktop.assert_called_once_with(close_projects=True, close_on_exit=True)
 
 
 @pytest.mark.unit
@@ -1509,10 +1542,11 @@ class TestToolErrorBranches:
             RuntimeError("disconnect boom")
         )
 
-        result = await disconnect_from_aedt(mock_context)
+        result = await disconnect_from_aedt(mock_context, close_desktop=False)
 
         assert "Error during AEDT disconnect" in result
         assert mock_context.request_context.lifespan_context.desktop is None
+        assert mock_context.request_context.lifespan_context.aedt_port is None
 
 
 @pytest.mark.unit
@@ -1755,7 +1789,7 @@ class TestRequiresAEDTVisibility:
         """Successful disconnect_from_aedt should call ctx.disable_components."""
         from ansys.aedt.mcp.tools import disconnect_from_aedt
 
-        await disconnect_from_aedt(mock_context)
+        await disconnect_from_aedt(mock_context, close_desktop=False)
         mock_context.disable_components.assert_called_once_with(tags={"requires_aedt"})
 
     def test_requires_aedt_tag_present_on_correct_tools(self):
