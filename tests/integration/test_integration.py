@@ -500,6 +500,6 @@ async def test_disconnect_from_aedt(empty_ctx):
     launch_result = await launch_aedt(empty_ctx, non_graphical=True, confirm_new_session=True)
     assert "Successfully launched AEDT" in launch_result
 
-    result = await disconnect_from_aedt(empty_ctx)
-    assert result == "Successfully disconnected from AEDT."
+    result = await disconnect_from_aedt(empty_ctx, close_desktop=True)
+    assert result == "Successfully disconnected from AEDT and closed the desktop session."
     assert empty_ctx.request_context.lifespan_context.desktop is None
