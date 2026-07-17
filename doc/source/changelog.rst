@@ -9,6 +9,42 @@ This section contains the release notes for PyAEDT-MCP.
 
 .. towncrier release notes start
 
+`0.1.1 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.1.1>`_ - July 17, 2026
+==================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Fixed
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Added option to only disconnect
+          - `#57 <https://github.com/ansys/pyaedt-mcp/pull/57>`_
+
+
+  .. tab-item:: Dependencies
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Bump typos from v1.48.0 to 5.0.7 in the pre-commit group
+          - `#55 <https://github.com/ansys/pyaedt-mcp/pull/55>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update CHANGELOG for v0.1.0
+          - `#54 <https://github.com/ansys/pyaedt-mcp/pull/54>`_
+
+
 `0.1.0 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.1.0>`_ - July 15, 2026
 ==================================================================================
 
