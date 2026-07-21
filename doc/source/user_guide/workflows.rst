@@ -1,7 +1,7 @@
 .. _ref_workflows:
 
-Workflow examples
-=================
+Workflows
+=========
 
 Use these practical, end-to-end workflows to run common AEDT tasks with
 PyAEDT-MCP tools.
