@@ -1,0 +1,154 @@
+
+
+
+
+
+
+:class:`PyAEDTMCP`
+==================
+
+
+.. py:class:: ansys.aedt.mcp.server.PyAEDTMCP(name: str = 'PyAEDT-MCP', *args, **kwargs)
+
+   Bases: :py:obj:`ansys.common.mcp.PyAnsysBaseMCP`
+
+
+   
+   FastMCP server for managing AEDT instances.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. py:currentmodule:: PyAEDTMCP
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+   .. tab-item:: Methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~create_context`
+            - Create a new application context.
+          * - :py:attr:`~product_startup`
+            - Allow PyAEDT-MCP specific startup actions.
+          * - :py:attr:`~product_cleanup`
+            - Perform cleanup actions for AEDT instances on shutdown.
+
+
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.server import PyAEDTMCP
+
+
+
+Method detail
+-------------
+
+.. py:method:: create_context() -> PyAEDTAppContext
+
+   
+   Create a new application context.
+
+
+
+
+
+   :Returns:
+
+       :obj:`PyAEDTAppContext`
+           Application context for managing AEDT instances.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: product_startup()
+
+   
+   Allow PyAEDT-MCP specific startup actions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: product_cleanup()
+
+   
+   Perform cleanup actions for AEDT instances on shutdown.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+

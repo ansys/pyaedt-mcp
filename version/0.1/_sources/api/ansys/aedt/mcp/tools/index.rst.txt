@@ -1,0 +1,1015 @@
+
+
+
+
+
+
+The ``tools.py`` module
+=======================
+
+.. py:module:: ansys.aedt.mcp.tools
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: tools
+.. tab-set::
+
+
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~check_aedt_status`
+            - Check the status of AEDT initialization.
+
+
+          * - :py:obj:`~get_pyaedt_logs`
+            - Return recent entries from the PyAEDT global logger.
+
+
+          * - :py:obj:`~check_aedt_installed`
+            - Check if AEDT is installed on the system.
+
+
+          * - :py:obj:`~launch_aedt`
+            - Launch a new AEDT instance.
+
+
+          * - :py:obj:`~connect_to_aedt`
+            - Connect to an existing AEDT instance via gRPC.
+
+
+          * - :py:obj:`~disconnect_from_aedt`
+            - Disconnect from the AEDT instance.
+
+
+          * - :py:obj:`~run_python_script`
+            - Execute a Python script file inside AEDT.
+
+
+          * - :py:obj:`~run_python_code`
+            - Execute Python code inside AEDT.
+
+
+          * - :py:obj:`~list_designs`
+            - List projects and designs for the connected AEDT instance.
+
+
+          * - :py:obj:`~list_projects`
+            - List all open AEDT projects.
+
+
+          * - :py:obj:`~open_project`
+            - Open an AEDT project.
+
+
+          * - :py:obj:`~save_project`
+            - Save an AEDT project.
+
+
+          * - :py:obj:`~create_design`
+            - Create a new design in AEDT.
+
+
+          * - :py:obj:`~analyze_design`
+            - Run analysis on an AEDT design.
+
+
+          * - :py:obj:`~export_results`
+            - Export simulation results from AEDT.
+
+
+          * - :py:obj:`~screenshot`
+            - Capture a screenshot of the current AEDT design view.
+
+
+          * - :py:obj:`~export_config`
+            - Export the active design configuration as a JSON file.
+
+
+          * - :py:obj:`~clear_aedt`
+            - Clear the AEDT state by closing all projects.
+
+
+          * - :py:obj:`~get_model_info`
+            - Get information about the current model/design.
+
+
+
+    .. tab-item:: Attributes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~logger`
+            - 
+
+
+          * - :py:obj:`~AEDTAppType`
+            - 
+
+
+
+    .. tab-item:: Constants
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~REQUIRES_AEDT_TAG`
+            - 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+List of tools in PyAEDT-MCP.
+
+This module provides MCP tools for interacting with Ansys Electronics Desktop (AEDT)
+through PyAEDT library. It supports all AEDT applications including HFSS, Maxwell,
+Icepak, Circuit, and Q3D.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: check_aedt_status(ctx: fastmcp.server.Context) -> str
+
+   
+   Check the status of AEDT initialization.
+
+   This tool is always reachable, even before a connection has been established.
+   When no AEDT session is active, it returns a short hint describing how to
+   establish one (``launch_aedt`` or ``connect_to_aedt``). When a session is
+   active, it returns full status information.
+
+   This makes the tool the recommended pre-flight call to decide whether to
+   ``launch_aedt`` (no active session) or ``connect_to_aedt`` (existing
+   session detected).
+
+   This tool retrieves comprehensive information from the connected AEDT
+   instance including version, active projects, designs, and
+   connection details.
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           JSON string containing comprehensive AEDT status information including:
+           
+           - connection: Basic connection info (version, machine, port, is_grpc)
+           - projects: List of open projects
+           - active_project: Currently active project name
+           - active_design: Currently active design name
+           - installed_versions: Available AEDT versions on the system
+           
+           Returns an error message if AEDT is not available.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_pyaedt_logs(ctx: fastmcp.server.Context, tail_lines: int = 200, contains: str | None = None, max_chars: int = 40000) -> str
+
+   
+   Return recent entries from the PyAEDT global logger.
+
+   This tool reads the active PyAEDT global log file and returns a tail view
+   of the log contents. Optionally filter lines using a case-insensitive
+   substring.
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context. Included for tool signature consistency.
+
+       **tail_lines** : :class:`python:int`, default: 200
+           Number of recent lines to return after filtering.
+
+       **contains** : :class:`python:str`, default: :data:`python:None`
+           Case-insensitive substring used to filter log lines.
+
+       **max_chars** : :class:`python:int`, default: 40000
+           Hard cap for returned log text length.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           JSON string with log metadata and selected log text.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: check_aedt_installed(ctx: fastmcp.server.Context) -> str
+
+   
+   Check if AEDT is installed on the system.
+
+   This tool checks for valid AEDT installations on the system and
+   returns information about available versions.
+
+   When running inside a Docker container, the tool probes the remote
+   gRPC endpoint (``AEDT_MACHINE:AEDT_PORT``) instead of searching
+   for a local AEDT installation.
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Status message indicating whether AEDT is installed and which versions
+           are available.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: launch_aedt(ctx: fastmcp.server.Context, version: str | None = None, non_graphical: bool = False, confirm_new_session: bool = False, application: AEDTAppType | None = None) -> str
+   :async:
+
+
+   
+   Launch a new AEDT instance.
+
+   This tool starts a new AEDT instance using PyAEDT's ``Desktop`` class,
+   or it launches directly into a specific AEDT application session when requested.
+   The launched instance is automatically connected and stored in the context
+   for subsequent operations.
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **version** : :class:`python:str`, default: :data:`python:None`
+           AEDT version to launch (such as ``"2026.1"`` or ``"261"``). If ``None``, the latest
+           installed version is used.
+
+       **non_graphical** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:False`
+           Whether to launch AEDT in non-graphical mode. If ``False``, AEDT launches with
+           the GUI visible.
+
+       **confirm_new_session** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:False`
+           Whether a new AEDT instance should be launched even
+           when one or more connectable AEDT sessions are already available.
+
+       **application** : :obj:`AEDTAppType`, default: :data:`python:None`
+           AEDT application to launch directly, such as ``"Hfss"`` or ``"Maxwell3d"``.
+           If ``None``, AEDT launches in desktop mode.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Launch status message with AEDT version and connection information.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: connect_to_aedt(ctx: fastmcp.server.Context, port: int | None = None, machine: str = 'localhost', version: str | None = None, non_graphical: bool = True, project_name: str | None = None, design_name: str | None = None) -> str
+   :async:
+
+
+   
+   Connect to an existing AEDT instance via gRPC.
+
+   This tool establishes a connection to a running AEDT instance using gRPC.
+   The AEDT instance must be started with a gRPC server enabled:
+   `ansysedt.exe -grpcsrv <port>`
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **port** : :class:`python:int`, default: :data:`python:None`
+           gRPC port where AEDT is listening. If ``None``, the tool can
+           auto-select a discovered local gRPC session or fall back to 50051.
+
+       **machine** : :class:`python:str`, default: ``"localhost"``
+           Machine hostname or IP address where AEDT is running.
+
+       **version** : :class:`python:str`, default: ``None``
+           AEDT version to connect to. If ``None``, the tool automatically detects
+           the version.
+
+       **non_graphical** : :ref:`bool <python:bltin-boolean-values>`, default: ``True``
+           Whether AEDT is running in non-graphical mode.
+
+       **project_name** : :class:`python:str`, default: ``None``
+           Project name to activate when connecting directly to a design.
+
+       **design_name** : :class:`python:str`, default: ``None``
+           Design name to attach directly to a PyAEDT application session.
+           If ``None``, the connection remains at the AEDT level.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Connection status message with AEDT version information.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: disconnect_from_aedt(ctx: fastmcp.server.Context, close_projects: bool = False, close_desktop: bool | None = None) -> str
+   :async:
+
+
+   
+   Disconnect from the AEDT instance.
+
+   This tool detaches the MCP session from the AEDT instance and releases
+   associated resources. It can either keep the AEDT window open or close
+   the AEDT desktop entirely.
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **close_projects** : :ref:`bool <python:bltin-boolean-values>`, default: ``False``
+           Whether to close all open projects before disconnecting.
+
+       **close_desktop** : :ref:`bool <python:bltin-boolean-values>`, default: ``None``
+           Whether to close the AEDT desktop on disconnect. Set to ``False`` to
+           keep the AEDT window open after detaching the MCP session. When ``None``,
+           the tool asks the caller to choose before disconnecting.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Disconnection status message.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: run_python_script(ctx: fastmcp.server.Context, script_path: str) -> str
+
+   
+   Execute a Python script file inside AEDT.
+
+   This tool runs a Python script from a file path within the AEDT environment,
+   using AEDT's built-in Python interpreter. The script has access to all AEDT
+   APIs including oDesktop, oProject, and oDesign.
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **script_path** : :class:`python:str`
+           Path to the Python script file to execute.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Script execution result or error message.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: run_python_code(ctx: fastmcp.server.Context, code: str) -> str
+
+   
+   Execute Python code inside AEDT.
+
+   This tool runs inline Python code within the AEDT environment. The code
+   has access to the connected AEDT instance via the ``desktop`` variable.
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **code** : :class:`python:str`
+           The Python code to execute. The code has access to:
+           
+           - `desktop`: PyAEDT instance
+           - `odesktop`: Native AEDT oDesktop COM object
+           - `aedt_port`: gRPC port of the connected AEDT instance
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Code execution result or error message.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: list_designs(ctx: fastmcp.server.Context, project_name: str | None = None) -> str
+
+   
+   List projects and designs for the connected AEDT instance.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **project_name** : :class:`python:str`, default: :data:`python:None`
+           Optional project name to limit the response to a single project.
+           If``None``, all open projects and their designs are returned.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           JSON string containing the connected instance projects and designs.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: list_projects(ctx: fastmcp.server.Context) -> str
+
+   
+   List all open AEDT projects.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           JSON string containing the list of open projects and their count.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: open_project(ctx: fastmcp.server.Context, project_path: str, design_name: str | None = None) -> str
+
+   
+   Open an AEDT project.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **project_path** : :class:`python:str`, default: :data:`python:None`
+           Full path to the AEDT project file.
+
+       **design_name** : :class:`python:str`, default: :data:`python:None`
+           Name of the design to activate after opening. If ``None``, the first design
+           is used
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Status message with project and design information.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: save_project(ctx: fastmcp.server.Context, project_name: str | None = None, save_as: str | None = None) -> str
+
+   
+   Save an AEDT project.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **project_name** : :class:`python:str`, default: :data:`python:None`
+           Name of the project to save. If ``None``, the active project is saved.
+
+       **save_as** : :class:`python:str`, default: :data:`python:None`
+           Path to save the project to. If ``None``, the existing location is used.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Status message confirming the save operation.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: create_design(ctx: fastmcp.server.Context, app_type: AEDTAppType, design_name: str | None = None, project_name: str | None = None, solution_type: str | None = None) -> str
+
+   
+   Create a new design in AEDT.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **app_type** : :class:`python:str`
+           AEDT application type. Options are ``"Hfss"``, ``"Maxwell2d"``,
+           ``"Maxwell3d"``, ``"Q3d"``, ``"Q2d"``, ``"Icepak"``, ``"Circuit"``,
+           ``"TwinBuilder"``, ``"Mechanical"``, ``"Emit"``, ``"RMXprt"``,
+           and ``"Hfss3dLayout"``.
+
+       **design_name** : :class:`python:str`, default: :data:`python:None`
+           Name for the new design. If ``None``, an auto-generated name is used.
+
+       **project_name** : :class:`python:str`, default: :data:`python:None`
+           Project to create design in. If ``None``, the active project is used.
+
+       **solution_type** : :class:`python:str`, default: :data:`python:None`
+           Solution type for the design (app-specific).
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Status message with the created design information.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: analyze_design(ctx: fastmcp.server.Context, setup_name: str | None = None, project_name: str | None = None, design_name: str | None = None, num_cores: int | None = None, num_tasks: int | None = None, num_gpus: int | None = None, acf_file: str | None = None, use_auto_settings: bool = True, solve_in_batch: bool = False, machine: str = 'localhost', run_in_thread: bool = False, revert_to_initial_mesh: bool = False, blocking: bool = True, analyze_all_designs: bool = False) -> str
+
+   
+   Run analysis on an AEDT design.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **setup_name** : :class:`python:str`, default: :data:`python:None`
+           Name of the setup to analyze. If ``None``, all setups in the target design
+           are analyzed.
+
+       **project_name** : :class:`python:str`, default: :data:`python:None`
+           Name of the project to analyze. If ``None``, the active project is used.
+
+       **design_name** : :class:`python:str`, default: :data:`python:None`
+           Name of the design to analyze. If ``None``, the active design is used.
+
+       **num_cores** : :class:`python:int`, default: :data:`python:None`
+           Number of CPU cores to use for analysis.
+
+       **num_tasks** : :class:`python:int`, default: :data:`python:None`
+           Number of HPC tasks to use for analysis.
+
+       **num_gpus** : :class:`python:int`, default: :data:`python:None`
+           Number of GPUs to use for analysis.
+
+       **acf_file** : :class:`python:str`, default: :data:`python:None`
+           Full path to a custom ACF file for HPC configuration.
+
+       **use_auto_settings** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:True`
+           Whether to use automatic HPC settings when supported.
+
+       **solve_in_batch** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:False`
+           Whether to solve the design in batch mode.
+
+       **machine** : :class:`python:str`, default: "localhost"
+           Target machine name for remote or batch solves.
+
+       **run_in_thread** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:False`
+           Whether to submit the batch solve in a background thread.
+
+       **revert_to_initial_mesh** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:False`
+           Whether to revert to the initial mesh before solving.
+
+       **blocking** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:True`
+           Whether to block until the solve is complete.
+
+       **analyze_all_designs** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:False`
+           Whether to analalyze all designs. When ``True``, ``Desktop.analyze_all``
+           is called for the target project/design. This
+           analyzes all setups in a design or all designs in a project.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Status message with analysis results.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: export_results(ctx: fastmcp.server.Context, output_path: str, export_type: str = 'touchstone', setup_name: str | None = None) -> str
+
+   
+   Export simulation results from AEDT.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **output_path** : :class:`python:str`
+           Path to export the results to.
+
+       **export_type** : :class:`python:str`, default: ``"touchstone"``
+           Type of export. Options are ``"touchstone"``, ``"profile"``,
+           ``"convergence"``, and ``"mesh"``.
+
+       **setup_name** : :class:`python:str`, default: :data:`python:None`
+           Setup name for the export. If ``None``, the active setup is used.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Status message with export file path.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: screenshot(ctx: fastmcp.server.Context, path: str = 'screenshot.jpg', project: str | None = None, design: str | None = None, plot_type: str = 'model', open_viewer: bool = True) -> list[mcp.types.TextContent | mcp.types.ImageContent]
+
+   
+   Capture a screenshot of the current AEDT design view.
+
+   This tool captures the current design preview as an image. It supports
+   model views, field plots, and mesh visualizations, depending on what's
+   currently displayed in AEDT.
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **path** : :class:`python:str`, default: ``"screenshot.jpg"``
+           Output image path.
+
+       **project** : :class:`python:str`, default: :data:`python:None`
+           Project containing the design to capture. If ``None``, the active project is used.
+
+       **design** : :class:`python:str`, default: :data:`python:None`
+           Design to capture. If ``None``, the active design is used.
+
+       **plot_type** : :class:`python:str`, default: ``"model"``
+           Type of screenshot. Options are ``"model"``, ``"field"``, and ``"mesh"``.
+
+       **open_viewer** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:True`
+           Whether to open the saved screenshot in the system image viewer.
+
+
+
+   :Returns:
+
+       :class:`python:list`\[:obj:`TextContent` | :obj:`ImageContent`]
+           A list containing:
+           
+           - TextContent with the screenshot file path
+           - ImageContent with the base64-encoded image data
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: export_config(ctx: fastmcp.server.Context, output: str | None = None, project: str | None = None, design: str | None = None, overwrite: bool = False) -> str
+
+   
+   Export the active design configuration as a JSON file.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **output** : :class:`python:str`, default: :data:`python:None`
+           Path to output the JSON file to. If ``None``, the configuration is exported to a
+           temporary file and returned inline.
+
+       **project** : :class:`python:str`, default: :data:`python:None`
+           Project containing the design to export.
+
+       **design** : :class:`python:str`, default: :data:`python:None`
+           Design to export configuration from.
+
+       **overwrite** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:False`
+           Whether to overwrite an existing configuration file.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           JSON string containing the exported configuration and associated
+           design metadata. When ``output`` is provided, the returned JSON string also
+           includes the written configuration file path.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: clear_aedt(ctx: fastmcp.server.Context, close_projects: bool = True) -> str
+
+   
+   Clear the AEDT state by closing all projects.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **close_projects** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:True`
+           Whether to close all open projects.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Status message confirming the clear operation.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_model_info(ctx: fastmcp.server.Context, design_name: str | None = None) -> str
+
+   
+   Get information about the current model/design.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **design_name** : :class:`python:str`, default: :data:`python:None`
+           Name of the design to get information for. If ``None``, the active design
+           is used.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           JSON string containing model information.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: REQUIRES_AEDT_TAG
+   :value: 'requires_aedt'
+
+
+.. py:data:: logger
+
+.. py:data:: AEDTAppType
+
+
+

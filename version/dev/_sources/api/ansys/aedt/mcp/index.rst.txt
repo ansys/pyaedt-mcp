@@ -1,0 +1,221 @@
+
+
+
+
+
+
+The ``ansys.aedt.mcp`` library
+==============================
+
+.. py:module:: ansys.aedt.mcp
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: mcp
+.. tab-set::
+
+    .. tab-item:: Subpackages
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.aedt_helper`
+            - Helper functions for PyAEDT-MCP.
+
+
+
+    .. tab-item:: Submodules
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.__main__`
+            - Entry point for PyAEDT-MCP when run as a module.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.contexts`
+            - Context tools for PyAEDT-MCP.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.helpers`
+            - Helper functions for PyAEDT-MCP.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.prompts`
+            - Prompt templates for PyAEDT-MCP.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.server`
+            - Lifespan and CLI entry for PyAEDT-MCP with startup options.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.tools`
+            - List of tools in PyAEDT-MCP.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.toolsets`
+            - Toolset definitions for PyAnsys MCP service discovery.
+
+
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~launcher`
+            - Entry point for the MCP server.
+
+
+
+    .. tab-item:: Attributes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~app`
+            - 
+
+
+          * - :py:obj:`~__version__`
+            - PyAEDT-MCP version.
+
+
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-md-package"></span> aedt_helper</api/ansys/aedt/mcp/aedt_helper/index>
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-fa-file"></span> __main__</api/ansys/aedt/mcp/__main__/index>
+    <span class="nf nf-fa-file"></span> contexts</api/ansys/aedt/mcp/contexts/index>
+    <span class="nf nf-fa-file"></span> helpers</api/ansys/aedt/mcp/helpers/index>
+    <span class="nf nf-fa-file"></span> prompts</api/ansys/aedt/mcp/prompts/index>
+    <span class="nf nf-fa-file"></span> server</api/ansys/aedt/mcp/server/index>
+    <span class="nf nf-fa-file"></span> tools</api/ansys/aedt/mcp/tools/index>
+    <span class="nf nf-fa-file"></span> toolsets</api/ansys/aedt/mcp/toolsets/index>
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+
+PyAEDT-MCP is an MCP (Model Context Protocol) server for Ansys Electronics Desktop (AEDT).
+
+This package provides an MCP server that enables AI assistants to interact
+with AEDT through PyAEDT.
+
+Supported AEDT applications:
+
+- HFSS (High-frequency structure simulator)
+- Maxwell 2D/3D (Low-frequency electromagnetics)
+- Q3D/Q2D (Parasitic extraction)
+- Icepak (Thermal management)
+- Circuit (Circuit simulation)
+- TwinBuilder (System modeling)
+- Mechanical (Structural analysis)
+- EMIT (EMI/EMC analysis)
+- RMXprt (Rotating machine design)
+- HFSS 3D Layout (High-speed electronics)
+
+Example:
+    Run the MCP server::
+
+        $ ansys-aedt-mcp --transport stdio
+
+    Or connect to a running AEDT instance::
+
+        $ ansys-aedt-mcp --connect --machine localhost --port 50051
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+
+
+.. py:data:: __version__
+
+   
+   PyAEDT-MCP version.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+

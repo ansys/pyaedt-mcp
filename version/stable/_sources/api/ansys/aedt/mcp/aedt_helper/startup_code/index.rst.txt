@@ -1,0 +1,242 @@
+
+
+
+
+
+
+The ``startup_code.py`` module
+==============================
+
+.. py:module:: ansys.aedt.mcp.aedt_helper.startup_code
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: startup_code
+.. tab-set::
+
+
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~save_matplotlib_plot`
+            - Save a Matplotlib plot to a file and optionally return as base64.
+
+
+          * - :py:obj:`~save_pyvista_plot`
+            - Save a PyVista plot to a file and optionally return as base64.
+
+
+          * - :py:obj:`~get_aedt_version`
+            - Get the PyAEDT version.
+
+
+          * - :py:obj:`~list_aedt_applications`
+            - List available AEDT applications.
+
+
+
+
+    .. tab-item:: Constants
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~MATPLOTLIB_AVAILABLE`
+            - 
+
+
+          * - :py:obj:`~PYVISTA_AVAILABLE`
+            - 
+
+
+          * - :py:obj:`~PIL_AVAILABLE`
+            - 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Startup code for a persistent Python session in PyAEDT-MCP.
+
+This module is executed when a persistent Python session is started
+for running user code in the MCP server context.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: save_matplotlib_plot(filename='plot.png', return_base64=False, dpi=150)
+
+   
+   Save a Matplotlib plot to a file and optionally return as base64.
+
+   Uses the current Matplotlib figure.
+
+   :Parameters:
+
+       **filename** : :class:`python:str`, default: ``"plot.png"``
+           Output filename.
+
+       **return_base64** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:False`
+           Whether to return the plot as base64-encoded image data.
+
+       **dpi** : :class:`python:int`,  default: 150
+           Resolution in dots per inch.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           File path or base64 data URI.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: save_pyvista_plot(plotter, filename='plot.png', return_base64=False)
+
+   
+   Save a PyVista plot to a file and optionally return as base64.
+
+
+   :Parameters:
+
+       **plotter** : :obj:`pv.Plotter`
+           PyVista plotter to save.
+
+       **filename** : :class:`python:str`, default: ``"plot.png"``
+           Output filename.
+
+       **return_base64** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:False`
+           Whether to return the plot as base64-encoded image data.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           File path or base64 data URI.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_aedt_version()
+
+   
+   Get the PyAEDT version.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: list_aedt_applications()
+
+   
+   List available AEDT applications.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: MATPLOTLIB_AVAILABLE
+   :value: True
+
+
+.. py:data:: PYVISTA_AVAILABLE
+   :value: True
+
+
+.. py:data:: PIL_AVAILABLE
+   :value: True
+
+
+
+
