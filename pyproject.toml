@@ -64,8 +64,8 @@ doc = [
 ]
 tests = [
   "ansys-common-mcp==0.3.2",
-  "matplotlib==3.11.0",
-  "pyaedt==1.2.0",
+  "matplotlib==3.11.1",
+  "pyaedt==1.3.0",
   "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
   "pytest-cov==7.1.0",
