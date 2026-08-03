@@ -9,6 +9,8 @@ PyAEDT MCP.
 
 <!-- Begin content specific to your library here. -->
 
+The following contribution information is specific to PyAEDT MCP.
+
 ## Add a new tool
 
 PyAEDT-MCP uses connection-aware tool visibility: tools that need a live
