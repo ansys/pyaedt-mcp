@@ -9,7 +9,6 @@ classifiers = [
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
@@ -40,7 +39,7 @@ license-files = ["LICENSE"]
 maintainers = [{name = "Synopsys, Inc. and ANSYS, Inc.", email = "pyansys-core@synopsys.com"}]
 name = "ansys-aedt-mcp"
 readme = "README.md"
-requires-python = ">=3.11,<4"
+requires-python = ">=3.12,<4"
 version = "0.1.dev0"
 
 dependencies = [
@@ -63,7 +62,7 @@ doc = [
   "sphinxcontrib-video==0.4.2",
 ]
 tests = [
-  "ansys-common-mcp==0.3.2",
+  "ansys-common-mcp==0.3.3",
   "matplotlib==3.11.0",
   "pyaedt==1.2.0",
   "pytest==9.1.1",
@@ -118,7 +117,7 @@ explicit_package_bases = true
 ignore_missing_imports = true
 mypy_path = "src"
 namespace_packages = true
-python_version = "3.11"
+python_version = "3.14"
 warn_unused_configs = true
 
 [tool.pytest.ini_options]
