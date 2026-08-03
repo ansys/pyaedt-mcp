@@ -3,15 +3,17 @@
 Overall guidance on contributing to a PyAnsys library appears in the
 [Contributing] topic in the *PyAnsys developer's guide*. Ensure that you
 are thoroughly familiar with this guide before attempting to contribute to
-the PyAEDT-MCP project.
-
-The following contribution information is specific to PyAEDT-MCP.
+PyAEDT MCP.
 
 [Contributing]: https://dev.docs.pyansys.com/how-to/contributing.html
 
+<!-- Begin content specific to your library here. -->
+
+The following contribution information is specific to PyAEDT MCP.
+
 ## Add a new tool
 
-PyAEDT-MCP uses connection-aware tool visibility: tools that need a live
+PyAEDT MCP uses connection-aware tool visibility: tools that need a live
 AEDT session are hidden until `launch_aedt` or `connect_to_aedt` succeeds.
 This is enforced via tool **tags**.
 
@@ -26,7 +28,7 @@ When you add a new `@app.tool(...)` to `src/ansys/aedt/mcp/tools.py`:
       ...
   ```
 
-  No further action is required. PyAEDT-MCP disables it until a session
+  No further action is required. PyAEDT MCP disables it until a session
   exists, then `enable_components(tags={REQUIRES_AEDT_TAG})` unlocks it.
 
 - **Special case: The tool is genuinely usable BEFORE any AEDT session**
