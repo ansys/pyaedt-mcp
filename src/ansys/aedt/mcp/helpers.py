@@ -20,6 +20,7 @@ This module provides utility functions for working with AEDT
 instances and extracting information from them.
 """
 
+from dataclasses import asdict
 from pathlib import Path
 import socket
 from typing import Any
@@ -73,7 +74,7 @@ def discover_available_aedt_sessions() -> list[dict[str, Any]]:
     sessions = _discover_aedt_sessions()
     normalized_sessions = []
     for session_info in sessions:
-        normalized = dict(session_info)
+        normalized = asdict(session_info)
         normalized["connectable"] = (
             normalized.get("mode") == "grpc" and normalized.get("port") is not None
         )

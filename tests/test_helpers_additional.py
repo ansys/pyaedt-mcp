@@ -17,6 +17,7 @@
 """Additional unit tests for helper and startup modules."""
 
 import builtins
+from dataclasses import dataclass
 from pathlib import Path
 import runpy
 import sys
@@ -171,24 +172,33 @@ def test_probe_grpc_endpoint_unreachable(monkeypatch):
 
 
 def test_discover_available_aedt_sessions_uses_pyaedt_cli(monkeypatch):
+    @dataclass
+    class _SessionInfo:
+        pid: int
+        port: int | None
+        mode: str
+        version: str
+        non_graphical: bool
+        student_version: bool
+
     cli_module = ModuleType("ansys.aedt.core.cli.aedt")
     cli_module._discover_aedt_sessions = lambda: [
-        {
-            "pid": 101,
-            "port": 50051,
-            "mode": "grpc",
-            "version": "2026.1",
-            "non_graphical": True,
-            "student_version": False,
-        },
-        {
-            "pid": 202,
-            "port": None,
-            "mode": "com",
-            "version": "2025.2",
-            "non_graphical": False,
-            "student_version": False,
-        },
+        _SessionInfo(
+            pid=101,
+            port=50051,
+            mode="grpc",
+            version="2026.1",
+            non_graphical=True,
+            student_version=False,
+        ),
+        _SessionInfo(
+            pid=202,
+            port=None,
+            mode="com",
+            version="2025.2",
+            non_graphical=False,
+            student_version=False,
+        ),
     ]
 
     monkeypatch.setitem(sys.modules, "ansys.aedt.core.cli.aedt", cli_module)
