@@ -47,7 +47,7 @@ dependencies = [
   "ansys-common-mcp>=0.3.3",
   "ansys-tools-visualization-interface",
   "pyvista[io]>=0.38.0,<0.49",
-  "matplotlib>=3.11.0",
+  "matplotlib>=3.11.1",
   "vtk>=9.0,<9.7",
   "pillow",
 ]
@@ -56,7 +56,7 @@ dependencies = [
 doc = [
   "ansys-sphinx-theme[autoapi,changelog]==1.9.0",
   "numpydoc==1.10.0",
-  "sphinx-autodoc-typehints==3.6.1",
+  "sphinx-autodoc-typehints==3.13.0",
   "sphinx-design==0.7.0",
   "sphinx-notfound-page==1.1.0",
   "sphinxcontrib-video==0.4.2",
