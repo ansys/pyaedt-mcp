@@ -160,7 +160,7 @@ Enable MCP in Visual Studio Code
 3. Enable the settings that allow Copilot to use MCP servers.
 
    For more information, see `Add and manage MCP servers in VS Code
-   <https://code.visualstudio.com/docs/copilot/customization/mcp-servers>`_
+   <https://code.visualstudio.com/docs/agents/reference/mcp-configuration>`_
    in the Visual Studio Code documentation.
 
 4. Restart Visual Studio Code.
