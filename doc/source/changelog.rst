@@ -9,54 +9,6 @@ This section contains the release notes for PyAEDT-MCP.
 
 .. towncrier release notes start
 
-`0.1.3 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.1.3>`_ - August 05, 2026
-====================================================================================
-
-.. tab-set::
-
-
-  .. tab-item:: Fixed
-
-    .. list-table::
-        :header-rows: 0
-        :widths: auto
-
-        * - Drop Python 3.11 support and bump ansys-common-mcp to 0.3.3
-          - `#68 <https://github.com/ansys/pyaedt-mcp/pull/68>`_
-
-        * - Update pyaedt dependency and refactor session info handling
-          - `#72 <https://github.com/ansys/pyaedt-mcp/pull/72>`_
-
-
-  .. tab-item:: Dependencies
-
-    .. list-table::
-        :header-rows: 0
-        :widths: auto
-
-        * - Bump https://github.com/astral-sh/ruff-pre-commit from v0.15.21 to 0.16.0 in the pre-commit group across 1 directory
-          - `#65 <https://github.com/ansys/pyaedt-mcp/pull/65>`_
-
-        * - Bump the actions group across 1 directory with 20 updates
-          - `#67 <https://github.com/ansys/pyaedt-mcp/pull/67>`_
-
-        * - Bump the pip-deps group across 1 directory with 3 updates
-          - `#71 <https://github.com/ansys/pyaedt-mcp/pull/71>`_
-
-
-  .. tab-item:: Maintenance
-
-    .. list-table::
-        :header-rows: 0
-        :widths: auto
-
-        * - Update CHANGELOG for v0.1.2
-          - `#63 <https://github.com/ansys/pyaedt-mcp/pull/63>`_
-
-        * - Update missing or outdated files
-          - `#69 <https://github.com/ansys/pyaedt-mcp/pull/69>`_
-
-
 `0.1.2 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.1.2>`_ - July 21, 2026
 ==================================================================================
 
