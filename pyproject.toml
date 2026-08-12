@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "flit_core.buildapi"
-requires = ["flit_core >=3.2,<4"]
+requires = ["flit_core >=3.2,<5"]
 
 [project]
 authors = [{name = "Synopsys, Inc. and ANSYS, Inc.", email = "pyansys-core@synopsys.com"}]
@@ -54,9 +54,9 @@ dependencies = [
 
 [dependency-groups]
 doc = [
-  "ansys-sphinx-theme[autoapi,changelog]==1.9.0",
+  "ansys-sphinx-theme[autoapi,changelog]==1.10.0",
   "numpydoc==1.10.0",
-  "sphinx-autodoc-typehints==3.13.0",
+  "sphinx-autodoc-typehints==3.13.2",
   "sphinx-design==0.7.0",
   "sphinx-notfound-page==1.1.0",
   "sphinxcontrib-video==0.4.2",
