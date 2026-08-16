@@ -1,8 +1,7 @@
 # Contributors
 
-## Project Leads
+## Project Lead
 
-* [Tushar Bana](https://github.com/tusharbana-ansys)
 * [Eduardo Blanco](https://github.com/eblanco-ansys)
 
 ## Individual Contributors
@@ -12,3 +11,4 @@
 * [Kathy Pippert](https://github.com/PipKat)
 * [Maxime Rey](https://github.com/MaxJPRey)
 * [Roberto Pastor Muela](https://github.com/RobPasMue)
+* [Tushar Bana](https://github.com/tusharbana-ansys)
