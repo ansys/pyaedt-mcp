@@ -1280,12 +1280,13 @@ def analyze_design(
             )
 
         return (
-            "Analysis completed successfully.\n"
+            "Analysis started successfully and is running asynchronously.\n"
             f"Project: {resolved_project_name or app_instance.project_name or 'Unknown'}\n"
             f"Design: {resolved_design_name or app_instance.design_name or 'Unknown'}\n"
             f"Setup: {setup_name or 'all setups'}\n"
             f"Mode: {'batch' if solve_in_batch else 'interactive'}\n"
-            f"Result: {result}"
+            f"Result: {result}\n"
+            "Check the simulation status in AEDT before running dependent operations."
         )
 
     except Exception as e:

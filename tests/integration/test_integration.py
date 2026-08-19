@@ -415,7 +415,7 @@ def test_analyze_design(live_project_env):
         setup_name=live_project_env["setup_name"],
         **ANALYZE_KWARGS,
     )
-    assert "Analysis completed successfully" in result
+    assert "Analysis started successfully and is running asynchronously" in result
 
 
 @pytest.mark.timeout(_LIVE_ANALYZE_TIMEOUT_SECONDS)
