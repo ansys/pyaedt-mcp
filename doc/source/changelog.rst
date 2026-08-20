@@ -9,6 +9,73 @@ This section contains the release notes for PyAEDT-MCP.
 
 .. towncrier release notes start
 
+`0.1.4 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.1.4>`_ - August 20, 2026
+====================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Fixed
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Analyze timeout
+          - `#82 <https://github.com/ansys/pyaedt-mcp/pull/82>`_
+
+
+  .. tab-item:: Documentation
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Fixed link
+          - `#75 <https://github.com/ansys/pyaedt-mcp/pull/75>`_
+
+        * - Update \`\`CONTRIBUTORS.md\`\` with the latest contributors
+          - `#81 <https://github.com/ansys/pyaedt-mcp/pull/81>`_
+
+        * - Added copy button and improvements
+          - `#85 <https://github.com/ansys/pyaedt-mcp/pull/85>`_
+
+
+  .. tab-item:: Dependencies
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Bump pypa/gh-action-pypi-publish from 1.14.1 to 1.14.2 in the actions group
+          - `#76 <https://github.com/ansys/pyaedt-mcp/pull/76>`_
+
+        * - Bump the pip-deps group with 3 updates
+          - `#78 <https://github.com/ansys/pyaedt-mcp/pull/78>`_
+
+        * - Bump the actions group with 15 updates
+          - `#79 <https://github.com/ansys/pyaedt-mcp/pull/79>`_
+
+        * - Bump https://github.com/astral-sh/ruff-pre-commit from v0.16.0 to 0.16.1 in the pre-commit group
+          - `#80 <https://github.com/ansys/pyaedt-mcp/pull/80>`_
+
+        * - Bump https://github.com/astral-sh/ruff-pre-commit from v0.16.1 to 0.16.2 in the pre-commit group
+          - `#83 <https://github.com/ansys/pyaedt-mcp/pull/83>`_
+
+        * - Bump the actions group with 16 updates
+          - `#84 <https://github.com/ansys/pyaedt-mcp/pull/84>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update CHANGELOG for v0.1.3
+          - `#74 <https://github.com/ansys/pyaedt-mcp/pull/74>`_
+
+
 `0.1.3 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.1.3>`_ - August 05, 2026
 ====================================================================================
 
