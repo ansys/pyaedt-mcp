@@ -1165,7 +1165,6 @@ def analyze_design(
     machine: str = "localhost",
     run_in_thread: bool = False,
     revert_to_initial_mesh: bool = False,
-    blocking: bool = True,
     analyze_all_designs: bool = False,
 ) -> str:
     """Run analysis on an AEDT design.
@@ -1199,8 +1198,6 @@ def analyze_design(
         Whether to submit the batch solve in a background thread.
     revert_to_initial_mesh : bool, default: False
         Whether to revert to the initial mesh before solving.
-    blocking : bool, default: True
-        Whether to block until the solve is complete.
     analyze_all_designs : bool, default: False
         Whether to analalyze all designs. When ``True``, ``Desktop.analyze_all``
         is called for the target project/design. This
@@ -1271,7 +1268,7 @@ def analyze_design(
             machine=machine,
             run_in_thread=run_in_thread,
             revert_to_initial_mesh=revert_to_initial_mesh,
-            blocking=blocking,
+            blocking=False,
         )
 
         if not result:
@@ -1283,13 +1280,13 @@ def analyze_design(
             )
 
         return (
-            "Analysis completed successfully.\n"
+            "Analysis started successfully and is running asynchronously.\n"
             f"Project: {resolved_project_name or app_instance.project_name or 'Unknown'}\n"
             f"Design: {resolved_design_name or app_instance.design_name or 'Unknown'}\n"
             f"Setup: {setup_name or 'all setups'}\n"
             f"Mode: {'batch' if solve_in_batch else 'interactive'}\n"
-            f"Blocking: {blocking}\n"
-            f"Result: {result}"
+            f"Result: {result}\n"
+            "Check the simulation status in AEDT before running dependent operations."
         )
 
     except Exception as e:
