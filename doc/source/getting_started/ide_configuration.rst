@@ -16,10 +16,20 @@ Configure for a specific project (recommended)
 
 Configure PyAEDT-MCP for a specific project:
 
+**Linux (bash):**
+
 .. code-block:: bash
 
    cd my-project
    claude mcp add --transport stdio pyaedt-mcp -- \
+     uvx --from git+https://github.com/ansys/pyaedt-mcp ansys-aedt-mcp
+
+On Windows PowerShell, run:
+
+.. code-block:: powershell
+
+   cd my-project
+   claude mcp add --transport stdio pyaedt-mcp -- `
      uvx --from git+https://github.com/ansys/pyaedt-mcp ansys-aedt-mcp
 
 Advantages:
@@ -32,9 +42,18 @@ Configure globally
 
 Configure PyAEDT-MCP for all your Claude Code projects:
 
+**Linux (bash):**
+
 .. code-block:: bash
 
    claude mcp add --transport stdio --scope user pyaedt-mcp -- \
+     uvx --from git+https://github.com/ansys/pyaedt-mcp ansys-aedt-mcp
+
+On Windows PowerShell, run:
+
+.. code-block:: powershell
+
+   claude mcp add --transport stdio --scope user pyaedt-mcp -- `
      uvx --from git+https://github.com/ansys/pyaedt-mcp ansys-aedt-mcp
 
 Advantages:
@@ -128,9 +147,9 @@ If you start PyAEDT-MCP with ``--transport http``, use this client configuration
      }
    }
 
-Start PyAEDT-MCP before you connect:
+Start PyAEDT-MCP before you connect. This command works in any terminal:
 
-.. code-block:: bash
+.. code-block:: console
 
    ansys-aedt-mcp --transport http --http-host 127.0.0.1 --http-port 8080
 
@@ -160,7 +179,7 @@ Enable MCP in Visual Studio Code
 3. Enable the settings that allow Copilot to use MCP servers.
 
    For more information, see `Add and manage MCP servers in VS Code
-   <https://code.visualstudio.com/docs/copilot/customization/mcp-servers>`_
+   <https://code.visualstudio.com/docs/agents/reference/mcp-configuration>`_
    in the Visual Studio Code documentation.
 
 4. Restart Visual Studio Code.
@@ -248,10 +267,20 @@ Edit the ``.vscode/mcp.json`` file:
 
 **Claude Code:**
 
+**Linux (bash):**
+
 .. code-block:: bash
 
    claude mcp add --transport stdio pyaedt-mcp -- \
      uvx --from git+https://github.com/ansys/pyaedt-mcp ansys-aedt-mcp \
+     --connect --machine 192.168.1.100 --port 50051
+
+**Windows PowerShell:**
+
+.. code-block:: powershell
+
+   claude mcp add --transport stdio pyaedt-mcp -- `
+     uvx --from git+https://github.com/ansys/pyaedt-mcp ansys-aedt-mcp `
      --connect --machine 192.168.1.100 --port 50051
 
 .. warning::
@@ -288,7 +317,7 @@ Enable dynamic tool discovery
 Use ``--dynamic-tool-discovery`` to hide AEDT-only tools until a session is
 established. This keeps the AI assistant's context small before connection.
 
-.. code-block:: bash
+.. code-block:: console
 
    ansys-aedt-mcp --dynamic-tool-discovery
 
@@ -320,11 +349,18 @@ Edit the ``.vscode/mcp.json`` file:
      }
    }
 
-**Command line:**
+**Linux (bash):**
 
 .. code-block:: bash
 
    FASTMCP_LOG_LEVEL=DEBUG ansys-aedt-mcp
+
+**Windows PowerShell:**
+
+.. code-block:: powershell
+
+  $env:FASTMCP_LOG_LEVEL = "DEBUG"
+  ansys-aedt-mcp
 
 Connect with HTTP (Docker or remote)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

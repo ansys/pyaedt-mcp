@@ -125,7 +125,7 @@ jobs:
       contents: write       # Required to commit changelog fragments to the repository
       pull-requests: write  # Required to update PR with changelog information
     steps:
-    - uses: ansys/actions/doc-changelog@9dc4e3161033d2c2485fbf9687d40cfb7a661fb2 # v10.3.6
+    - uses: ansys/actions/doc-changelog@7e89e00c5619374a1da8c2e876309d8b15ff0559 # v11.0.3
       with:
         bot-email: ${{ secrets.PYANSYS_CI_BOT_EMAIL }}
         bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}

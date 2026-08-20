@@ -1,9 +1,9 @@
 # Contributors
 
-## Project Leads
+## Project Lead
 
-* [Tushar Bana](https://github.com/tusharbana-ansys)
 * [Eduardo Blanco](https://github.com/eblanco-ansys)
+* [Tushar Bana](https://github.com/tusharbana-ansys)
 
 ## Individual Contributors
 
