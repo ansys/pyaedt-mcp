@@ -933,7 +933,6 @@ class TestAnalyzeDesign:
                 machine="remote-host",
                 run_in_thread=True,
                 revert_to_initial_mesh=True,
-                blocking=False,
             )
 
         mock_get_app.assert_called_once_with(
@@ -954,7 +953,8 @@ class TestAnalyzeDesign:
             revert_to_initial_mesh=True,
             blocking=False,
         )
-        assert "Analysis completed successfully" in result
+        assert "Analysis started successfully and is running asynchronously" in result
+        assert "Check the simulation status in AEDT" in result
         assert "Project: Project1" in result
         assert "Design: Design1" in result
         assert "Setup: Setup1" in result

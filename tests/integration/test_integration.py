@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -62,6 +63,14 @@ ANALYZE_KWARGS = {
 }
 
 _LIVE_ANALYZE_TIMEOUT_SECONDS = 900
+
+
+def _wait_for_simulation_completion(active_app) -> None:
+    deadline = time.monotonic() + _LIVE_ANALYZE_TIMEOUT_SECONDS
+    while active_app.are_there_simulations_running:
+        if time.monotonic() >= deadline:
+            pytest.fail("AEDT simulation did not finish before the export timeout.")
+        time.sleep(1)
 
 
 def _configure_live_settings() -> None:
@@ -415,7 +424,7 @@ def test_analyze_design(live_project_env):
         setup_name=live_project_env["setup_name"],
         **ANALYZE_KWARGS,
     )
-    assert "Analysis completed successfully" in result
+    assert "Analysis started successfully and is running asynchronously" in result
 
 
 @pytest.mark.timeout(_LIVE_ANALYZE_TIMEOUT_SECONDS)
@@ -428,6 +437,7 @@ def test_export_results(live_project_env, test_tmp_dir):
         setup_name=live_project_env["setup_name"],
         **ANALYZE_KWARGS,
     )
+    _wait_for_simulation_completion(live_project_env["active_app"])
     result = export_results(
         live_project_env["ctx"],
         output_path=str(touchstone_path),
