@@ -835,10 +835,10 @@ class TestScreenshot:
         mock_app.design_name = "Design1"
         mock_app.project_name = "Project1"
 
-        def _export_image(path):
-            Path(path).write_bytes(b"\xff\xd8\xff" + b"\x00" * 100)
+        def _export_image(full_name, width, height):
+            Path(full_name).write_bytes(b"\xff\xd8\xff" + b"\x00" * 100)
 
-        mock_app.export_design_preview_to_jpg.side_effect = _export_image
+        mock_app.post.export_model_picture.side_effect = _export_image
 
         with (
             patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app),
@@ -853,8 +853,43 @@ class TestScreenshot:
         assert "Design: Design1" in result[0].text
         assert "Project: Project1" in result[0].text
         assert "Opened screenshot in the default image viewer." in result[0].text
+        assert test_image.exists()
         assert result[1].mimeType == "image/jpeg"
+        mock_app.post.export_model_picture.assert_called_once_with(
+            full_name=str(test_image.resolve()),
+            width=1920,
+            height=1080,
+        )
         mock_open_viewer.assert_called_once_with(test_image.resolve())
+
+    def test_screenshot_uses_4k_resolution(self, mock_context, tmp_path):
+        """Test screenshot exports at 4k resolution when requested."""
+        from ansys.aedt.mcp.tools import screenshot
+
+        test_image = tmp_path / "screenshot.jpg"
+        mock_app = MagicMock()
+        mock_app.design_name = "Design1"
+        mock_app.project_name = "Project1"
+        mock_app.post.export_model_picture.side_effect = lambda full_name, width, height: Path(
+            full_name
+        ).write_bytes(b"\xff\xd8\xff" + b"\x00" * 100)
+
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
+            result = screenshot(
+                mock_context,
+                path=str(test_image),
+                resolution="4k",
+                open_viewer=False,
+            )
+
+        assert len(result) == 2
+        assert test_image.exists()
+        assert result[1].mimeType == "image/jpeg"
+        mock_app.post.export_model_picture.assert_called_once_with(
+            full_name=str(test_image.resolve()),
+            width=3840,
+            height=2160,
+        )
 
     def test_screenshot_viewer_failure_does_not_fail_capture(self, mock_context, tmp_path):
         """Test screenshot still succeeds when viewer launch fails."""
@@ -869,9 +904,9 @@ class TestScreenshot:
         mock_app = MagicMock()
         mock_app.design_name = "Design1"
         mock_app.project_name = "Project1"
-        mock_app.export_design_preview_to_jpg.side_effect = lambda path: Path(path).write_bytes(
-            b"\xff\xd8\xff" + b"\x00" * 100
-        )
+        mock_app.post.export_model_picture.side_effect = lambda full_name, width, height: Path(
+            full_name
+        ).write_bytes(b"\xff\xd8\xff" + b"\x00" * 100)
 
         with (
             patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app),
@@ -895,7 +930,7 @@ class TestScreenshot:
         mock_context.request_context.lifespan_context.desktop.design_type.return_value = "HFSS"
 
         mock_app = MagicMock()
-        mock_app.export_design_preview_to_jpg.side_effect = RuntimeError("preview export failed")
+        mock_app.post.export_model_picture.side_effect = RuntimeError("model picture export failed")
 
         with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
             result = screenshot(mock_context)

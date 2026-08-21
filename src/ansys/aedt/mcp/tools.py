@@ -1397,6 +1397,7 @@ def screenshot(
     project: str | None = None,
     design: str | None = None,
     plot_type: str = "model",
+    resolution: Literal["1080p", "4k"] = "1080p",
     open_viewer: bool = True,
 ) -> list[TextContent | ImageContent]:
     """Capture a screenshot of the current AEDT design view.
@@ -1417,6 +1418,9 @@ def screenshot(
         Design to capture. If ``None``, the active design is used.
     plot_type : str, default: ``"model"``
         Type of screenshot. Options are ``"model"``, ``"field"``, and ``"mesh"``.
+    resolution : {``"1080p"``, ``"4k"``}, default: ``"1080p"``
+        Image resolution. ``"1080p"`` exports a 1920 x 1080 image, while ``"4k"``
+        exports a 3840 x 2160 image.
     open_viewer : bool, default: True
         Whether to open the saved screenshot in the system image viewer.
 
@@ -1453,15 +1457,19 @@ def screenshot(
         except Exception as resolve_error:
             return [TextContent(type="text", text=f"Cannot capture screenshot: {resolve_error}")]
 
-        # AEDT only exports JPEG; force a .jpg extension so the file content
-        # matches the file name (avoids writing JPEG bytes to a .png file).
         resolved_output = Path(path).expanduser().resolve()
         if resolved_output.suffix.lower() not in {".jpg", ".jpeg"}:
             resolved_output = resolved_output.with_suffix(".jpg")
         output_path = str(resolved_output)
+        width, height = (3840, 2160) if resolution == "4k" else (1920, 1080)
 
+        # Export image as JPG
         try:
-            app_instance.export_design_preview_to_jpg(output_path)
+            app_instance.post.export_model_picture(
+                full_name=output_path,
+                width=width,
+                height=height,
+            )
         except Exception as export_error:
             raise RuntimeError(
                 f"Failed to export screenshot: {export_error}. "
