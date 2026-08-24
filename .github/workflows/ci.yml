@@ -145,6 +145,36 @@ jobs:
           pytest-markers: '-m "not integration and not system"'
           group-dependencies-name: tests
 
+  desktop-app:
+    name: "Build Windows desktop app"
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "Set up uv"
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
+        with:
+          enable-cache: false
+
+      - name: "Stage embedded runtime"
+        shell: pwsh
+        run: uv run python .\desktop_app\stage_desktop_runtime.py
+
+      - name: "Build desktop executable"
+        shell: pwsh
+        run: uv run --group desktop flet pack .\desktop_app\desktop_launcher.py --name PyAEDT_MCP --icon .\desktop_app\assets\pyaedt_mcp_icon.ico --add-data .\desktop_app\.desktop-runtime:runtime --add-data .\desktop_app\assets:assets --yes
+
+      - name: "Upload desktop executable"
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: PyAEDT_MCP-windows
+          path: dist/PyAEDT_MCP.exe
+
   system-tests-tools-linux:
     name: "System tests (tools, linux)"
     runs-on: [self-hosted, Linux, pyaedt-toolkit]

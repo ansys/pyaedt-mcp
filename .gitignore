@@ -122,3 +122,4 @@ temp/
 *.tmp
 *.bak
 *batch.log
+desktop_app/.desktop-runtime/
