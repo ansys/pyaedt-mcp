@@ -9,6 +9,8 @@ concurrency:
   group: release-windows-installer-${{ github.event.release.id }}
   cancel-in-progress: false
 
+permissions: {}
+
 jobs:
   build-windows-executable:
     name: Build and upload Windows executable
