@@ -5,13 +5,16 @@ on:
     types:
       - published
 
-permissions:
-  contents: write
+concurrency:
+  group: release-windows-installer-${{ github.event.release.id }}
+  cancel-in-progress: false
 
 jobs:
   build-windows-executable:
     name: Build and upload Windows executable
     runs-on: windows-latest
+    permissions:
+      contents: write # Needed to upload the Windows executable to the release
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -15,7 +15,7 @@ SERVER_MODE_FLAG = "--server"
 def hidden_window_options() -> dict[str, Any]:
     """Return subprocess options that prevent Windows console windows from appearing."""
     if os.name == "nt":
-        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+        return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW")}
     return {}
 
 
