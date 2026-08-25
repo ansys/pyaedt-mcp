@@ -75,6 +75,8 @@ tests = [
 desktop = [
   "flet>=0.28",
   "flet-cli>=0.28",
+  "packaging",
+  "pillow",
   "pystray>=0.19.5",
   "pyinstaller>=6.0",
 ]
