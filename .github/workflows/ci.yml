@@ -141,7 +141,22 @@ jobs:
         uses: ansys/actions/tests-pytest@7e89e00c5619374a1da8c2e876309d8b15ff0559 #v11.0.3
         with:
           python-version: ${{ matrix.python-version }}
-          pytest-extra-args: '${{ env.PYTEST_ARGUMENTS }} tests --ignore=tests/integration'
+          pytest-extra-args: '${{ env.PYTEST_ARGUMENTS }} tests --ignore=tests/desktop --ignore=tests/integration'
+          pytest-markers: '-m "not integration and not system"'
+          group-dependencies-name: tests
+
+  desktop-unit-tests:
+    name: "Desktop unit tests"
+    runs-on: windows-latest
+    needs: [smoke-tests]
+    permissions:
+      contents: read # Needed to checkout the code
+    steps:
+      - name: "Run desktop unit tests"
+        uses: ansys/actions/tests-pytest@7e89e00c5619374a1da8c2e876309d8b15ff0559 #v11.0.3
+        with:
+          python-version: ${{ env.TESTS_PYTHON_VERSION }}
+          pytest-extra-args: '${{ env.PYTEST_ARGUMENTS }} tests/desktop'
           pytest-markers: '-m "not integration and not system"'
           group-dependencies-name: tests
 
