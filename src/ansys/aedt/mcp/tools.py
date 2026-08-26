@@ -1257,6 +1257,13 @@ def analyze_design(
             setup_name or "all setups",
         )
 
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            validation_log_file = Path(temporary_directory) / "validation.log"
+            if not app_instance.validate_simple(log_file=validation_log_file):
+                if validation_log_file.is_file():
+                    return validation_log_file.read_text(encoding="utf-8", errors="replace")
+                return "Design validation failed."
+
         result = app_instance.analyze(
             setup=setup_name,
             cores=num_cores,

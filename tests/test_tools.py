@@ -951,6 +951,7 @@ class TestAnalyzeDesign:
         mock_app = MagicMock()
         mock_app.project_name = "Project1"
         mock_app.design_name = "Design1"
+        mock_app.validate_simple.return_value = 1
         mock_app.analyze.return_value = True
 
         with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app) as mock_get_app:
@@ -994,6 +995,27 @@ class TestAnalyzeDesign:
         assert "Design: Design1" in result
         assert "Setup: Setup1" in result
         assert "Mode: batch" in result
+        mock_app.validate_simple.assert_called_once()
+
+    def test_analyze_design_stops_when_validation_fails(self, mock_context):
+        """Test validation failures are reported without starting analysis."""
+        from ansys.aedt.mcp.tools import analyze_design
+
+        mock_app = MagicMock()
+        mock_app.project_name = "Project1"
+        mock_app.design_name = "Design1"
+
+        def write_validation_log(log_file):
+            Path(log_file).write_text("Error: Missing boundary condition", encoding="utf-8")
+            return 0
+
+        mock_app.validate_simple.side_effect = write_validation_log
+
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
+            result = analyze_design(mock_context, setup_name="Setup1")
+
+        mock_app.analyze.assert_not_called()
+        assert result == "Error: Missing boundary condition"
 
     def test_analyze_design_can_run_desktop_analyze_all(self, mock_context):
         """Test explicit desktop-wide analysis path."""
