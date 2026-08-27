@@ -59,7 +59,7 @@ these tools are hidden again.
    * - ``create_design``
      - Create a new design (HFSS, Maxwell, Icepak, Circuit, and so on).
    * - ``validate_design``
-      - Run design validation checks before solving.
+     - Run design validation checks before solving.
    * - ``analyze_design``
      - Run the configured solver analysis on the active design.
    * - ``export_config``
@@ -199,7 +199,7 @@ server indefinitely.
    * - Medium
      - 120 seconds
      - ``launch_aedt``, ``connect_to_aedt``, ``disconnect_from_aedt``,
-        ``open_project``, ``save_project``, ``create_design``, ``validate_design``,
+       ``open_project``, ``save_project``, ``create_design``, ``validate_design``,
        ``screenshot``, ``clear_aedt``, and ``export_config``
    * - Long
      - 600 s
