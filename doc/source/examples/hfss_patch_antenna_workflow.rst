@@ -32,7 +32,7 @@ reduces token cost.
        ``get_guidelines_for``
    * - After ``launch_aedt`` or ``connect_to_aedt``
      - ``check_aedt_status``, ``create_design``, ``open_project``,
-        ``save_project``, ``validate_design``, ``analyze_design``, ``screenshot``,
+       ``save_project``, ``validate_design``, ``analyze_design``, ``screenshot``,
        ``run_python_code``, ``run_python_script``, and related tools
 
 The tool set expands automatically as part of the launch or connect call
