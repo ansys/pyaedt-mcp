@@ -1150,6 +1150,83 @@ def create_design(
         return error_msg
 
 
+def _validate_active_design(app_instance: Any) -> str | None:
+    """Run ``validate_simple`` and return error details when validation fails."""
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        validation_log_file = Path(temporary_directory) / "validation.log"
+        if not app_instance.validate_simple(log_file=validation_log_file):
+            if validation_log_file.is_file():
+                return validation_log_file.read_text(encoding="utf-8", errors="replace")
+            return "Design validation failed."
+    return None
+
+
+@app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
+def validate_design(
+    ctx: Context,
+    project_name: str | None = None,
+    design_name: str | None = None,
+) -> str:
+    """Validate an AEDT design without starting a solve.
+
+    Parameters
+    ----------
+    ctx : Context
+        MCP context containing server session and application context.
+    project_name : str, default: None
+        Name of the project to validate. If ``None``, the active project is used.
+    design_name : str, default: None
+        Name of the design to validate. If ``None``, the active design is used.
+
+    Returns
+    -------
+    str
+        Validation status and details from AEDT validation logs when available.
+    """
+    desktop = ctx.request_context.lifespan_context.desktop
+
+    if desktop is None:
+        return "No AEDT connection is available. Use connect_to_aedt or launch_aedt first."
+
+    try:
+        from ansys.aedt.core import get_pyaedt_app
+
+        app_instance = get_pyaedt_app(
+            project_name=project_name,
+            design_name=design_name,
+            desktop=desktop,
+        )
+
+        resolved_project_name = app_instance.project_name or project_name
+        resolved_design_name = app_instance.design_name or design_name
+
+        logger.info(
+            "Validating design project=%s design=%s",
+            resolved_project_name or app_instance.project_name or "active project",
+            resolved_design_name or app_instance.design_name or "active design",
+        )
+
+        validation_error = _validate_active_design(app_instance)
+        if validation_error is not None:
+            return (
+                "Design validation failed.\n"
+                f"Project: {resolved_project_name or app_instance.project_name or 'Unknown'}\n"
+                f"Design: {resolved_design_name or app_instance.design_name or 'Unknown'}\n"
+                f"Details:\n{validation_error}"
+            )
+
+        return (
+            "Design validation passed.\n"
+            f"Project: {resolved_project_name or app_instance.project_name or 'Unknown'}\n"
+            f"Design: {resolved_design_name or app_instance.design_name or 'Unknown'}"
+        )
+
+    except Exception as e:
+        error_msg = f"Error during design validation: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+
 @app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_LONG)
 def analyze_design(
     ctx: Context,
@@ -1257,12 +1334,9 @@ def analyze_design(
             setup_name or "all setups",
         )
 
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            validation_log_file = Path(temporary_directory) / "validation.log"
-            if not app_instance.validate_simple(log_file=validation_log_file):
-                if validation_log_file.is_file():
-                    return validation_log_file.read_text(encoding="utf-8", errors="replace")
-                return "Design validation failed."
+        validation_error = _validate_active_design(app_instance)
+        if validation_error is not None:
+            return validation_error
 
         result = app_instance.analyze(
             setup=setup_name,
