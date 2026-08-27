@@ -190,7 +190,7 @@ jobs:
 
       - name: "Build Flet desktop executable"
         shell: pwsh
-        run: uv run --no-sync flet build windows .\desktop_app --module-name desktop_ui --project PyAEDT_MCP_Desktop --artifact PyAEDT_MCP_Desktop --output .\dist\PyAEDT_MCP_Desktop
+        run: uv run --no-sync flet build windows .\desktop_app --module-name desktop_ui --project PyAEDT_MCP_Desktop --artifact PyAEDT_MCP_Desktop --output .\dist\PyAEDT_MCP_Desktop --yes --no-rich-output
 
       - name: "Upload desktop executable"
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
