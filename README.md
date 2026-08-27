@@ -104,7 +104,7 @@ pre-commit install
 
 3. Point an MCP client at the server:
 
-   ***Visual Studio Code**
+   **Visual Studio Code**
 
    ```json
    {
