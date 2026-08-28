@@ -941,6 +941,55 @@ class TestScreenshot:
 
 
 @pytest.mark.unit
+class TestValidateDesign:
+    """Tests for validate_design tool."""
+
+    def test_validate_design_success(self, mock_context):
+        """Validation passes when AEDT reports no errors."""
+        from ansys.aedt.mcp.tools import validate_design
+
+        mock_app = MagicMock()
+        mock_app.project_name = "Project1"
+        mock_app.design_name = "Design1"
+        mock_app.validate_simple.return_value = True
+
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
+            result = validate_design(mock_context, project_name="Project1", design_name="Design1")
+
+        assert "Design validation passed." in result
+        assert "Project: Project1" in result
+        assert "Design: Design1" in result
+
+    def test_validate_design_failure_returns_log(self, mock_context):
+        """Validation failure should return AEDT validation details."""
+        from ansys.aedt.mcp.tools import validate_design
+
+        mock_app = MagicMock()
+        mock_app.project_name = "Project1"
+        mock_app.design_name = "Design1"
+
+        def write_validation_log(log_file):
+            Path(log_file).write_text("Error: Missing boundary condition", encoding="utf-8")
+            return 0
+
+        mock_app.validate_simple.side_effect = write_validation_log
+
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
+            result = validate_design(mock_context)
+
+        assert "Design validation failed." in result
+        assert "Details:" in result
+        assert "Error: Missing boundary condition" in result
+
+    def test_validate_design_no_connection(self, mock_context_no_desktop):
+        """Validation should require an AEDT connection."""
+        from ansys.aedt.mcp.tools import validate_design
+
+        result = validate_design(mock_context_no_desktop)
+        assert "No AEDT connection" in result
+
+
+@pytest.mark.unit
 class TestAnalyzeDesign:
     """Tests for analyze_design tool."""
 
@@ -951,6 +1000,7 @@ class TestAnalyzeDesign:
         mock_app = MagicMock()
         mock_app.project_name = "Project1"
         mock_app.design_name = "Design1"
+        mock_app.validate_simple.return_value = 1
         mock_app.analyze.return_value = True
 
         with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app) as mock_get_app:
@@ -994,6 +1044,27 @@ class TestAnalyzeDesign:
         assert "Design: Design1" in result
         assert "Setup: Setup1" in result
         assert "Mode: batch" in result
+        mock_app.validate_simple.assert_called_once()
+
+    def test_analyze_design_stops_when_validation_fails(self, mock_context):
+        """Test validation failures are reported without starting analysis."""
+        from ansys.aedt.mcp.tools import analyze_design
+
+        mock_app = MagicMock()
+        mock_app.project_name = "Project1"
+        mock_app.design_name = "Design1"
+
+        def write_validation_log(log_file):
+            Path(log_file).write_text("Error: Missing boundary condition", encoding="utf-8")
+            return 0
+
+        mock_app.validate_simple.side_effect = write_validation_log
+
+        with patch("ansys.aedt.core.get_pyaedt_app", return_value=mock_app):
+            result = analyze_design(mock_context, setup_name="Setup1")
+
+        mock_app.analyze.assert_not_called()
+        assert result == "Error: Missing boundary condition"
 
     def test_analyze_design_can_run_desktop_analyze_all(self, mock_context):
         """Test explicit desktop-wide analysis path."""
@@ -1187,6 +1258,7 @@ async def test_tools_registered():
         "open_project",
         "save_project",
         "create_design",
+        "validate_design",
         "analyze_design",
         "export_results",
         "export_config",
@@ -1851,6 +1923,7 @@ class TestRequiresAEDTVisibility:
             "open_project",
             "save_project",
             "create_design",
+            "validate_design",
             "analyze_design",
             "export_results",
             "screenshot",
