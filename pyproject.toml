@@ -48,8 +48,8 @@ dependencies = [
   "ansys-tools-visualization-interface",
   "pyvista[io]>=0.38.0,<0.49",
   "matplotlib>=3.11.1",
-  "vtk>=9.0,<9.7",
-  "typer==0.26.8",
+  "vtk>=9.0,<9.8",
+  "typer==0.27.1",
   "pillow"
 ]
 
