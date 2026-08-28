@@ -10,6 +10,7 @@ from typing import Any
 PACKAGE_NAME = "ansys-aedt-mcp"
 APP_DIRECTORY_NAME = ".pyaedt_mcp"
 SERVER_MODE_FLAG = "--server"
+REPOSITORY_URL = "https://github.com/ansys/pyaedt-mcp.git"
 
 
 def hidden_window_options() -> dict[str, Any]:
@@ -55,11 +56,14 @@ def setup_environment(
     app_directory: Path,
     runtime_dir: Path,
     version: str | None = None,
+    branch: str | None = None,
     upgrade: bool = False,
 ) -> Path:
     """Create the venv and install or update the requested MCP package version."""
+    if version is not None and branch is not None:
+        raise ValueError("Specify either a package version or a Git branch, not both")
     python_executable, mcp_executable = command_paths(app_directory)
-    if mcp_executable.is_file() and version is None and not upgrade:
+    if mcp_executable.is_file() and version is None and branch is None and not upgrade:
         return mcp_executable
 
     embedded_python = runtime_dir / "python" / "python.exe"
@@ -84,6 +88,8 @@ def setup_environment(
             **hidden_window_options(),
         )
     package = f"{PACKAGE_NAME}=={version}" if version else PACKAGE_NAME
+    if branch:
+        package = f"{PACKAGE_NAME} @ git+{REPOSITORY_URL}@{branch}"
     install_command = [
         str(uv_executable),
         "pip",

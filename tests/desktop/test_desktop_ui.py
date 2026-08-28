@@ -76,6 +76,7 @@ def test_control_panel_starts_in_system_theme_mode(monkeypatch, tmp_path, deskto
     assert page.theme.color_scheme.on_surface == "#171D1D"
     assert not page.window.resizable
     assert page.window.icon == str(desktop_ui.app_icon_path())
+    assert page.window.icon.endswith("pyaedt_mcp_icon.ico")
     assert panel.theme_button.icon == ft.Icons.DARK_MODE
 
 
@@ -104,7 +105,7 @@ def test_installed_mcp_shows_update_and_enables_start_button(monkeypatch, tmp_pa
     assert panel.install_button.disabled
     assert panel.update_button.visible
     assert not panel.start_button.disabled
-    assert panel.start_button.content == "Start HTTP"
+    assert panel.start_button.content == "Start Server"
 
 
 def test_running_server_uses_red_stop_button(monkeypatch, tmp_path, desktop_ui):
@@ -113,7 +114,7 @@ def test_running_server_uses_red_stop_button(monkeypatch, tmp_path, desktop_ui):
 
     panel._set_server_button_running(True)
 
-    assert panel.start_button.content == "Stop HTTP"
+    assert panel.start_button.content == "Stop Server"
     assert panel.start_button.icon == ft.Icons.STOP
     assert panel.start_button.bgcolor == ft.Colors.RED
 
@@ -163,6 +164,13 @@ def test_available_package_versions_filters_empty_releases(monkeypatch, desktop_
     assert desktop_ui.available_package_versions() == ["0.2.0", "0.1.0"]
 
 
+def test_available_branches_returns_sorted_branch_names(monkeypatch, desktop_ui):
+    response = io.StringIO(json.dumps([{"name": "main"}, {"name": "feat/desktop-manager"}]))
+    monkeypatch.setattr(desktop_ui, "urlopen", lambda *_args, **_kwargs: response)
+
+    assert desktop_ui.available_branches() == ["feat/desktop-manager", "main"]
+
+
 def test_control_panel_loads_versions_on_open(monkeypatch, desktop_ui):
     calls = []
     monkeypatch.setattr(
@@ -203,6 +211,16 @@ def test_profile_controls_include_custom_directories_and_transport(
         "opencode",
     }
     assert panel.profiles["copilot"].label == "Copilot CLI / VS Code"
+    assert panel.install_source.value == "release"
+    assert not panel.branch_picker.visible
+    assert panel.profile_directories["copilot"].value.endswith(".copilot\\mcp-config.json")
+    assert panel.profile_directories["claude_desktop"].value.endswith(
+        "Claude\\claude_desktop_config.json"
+    )
+    assert panel.profile_directories["claude_code"].value.endswith(".claude.json")
+    assert panel.profile_directories["cursor"].value.endswith(".cursor\\mcp.json")
+    assert panel.profile_directories["codex"].value.endswith(".codex\\config.toml")
+    assert panel.profile_directories["opencode"].value.endswith("opencode\\opencode.json")
 
 
 def test_profile_controls_use_one_row_per_agent(monkeypatch, tmp_path, desktop_ui):
@@ -211,25 +229,86 @@ def test_profile_controls_use_one_row_per_agent(monkeypatch, tmp_path, desktop_u
     profile_controls = panel._agents_tab().controls[0].content.controls[1].controls
 
     assert len(profile_controls) == 8
-    assert profile_controls[1].controls[0].width == 200
+    assert profile_controls[1].controls[0].width == 230
     assert profile_controls[1].controls[1] is panel.profile_directories["copilot"]
     assert profile_controls[6].controls[1] is panel.profile_directories["opencode"]
 
 
-def test_server_settings_keep_checkbox_rows_within_the_fixed_window(
-    monkeypatch, tmp_path, desktop_ui
-):
+def test_advanced_settings_are_shared_in_a_top_level_tab(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+    tabs = page.controls[0].controls[1]
+    tab_view = tabs.content.controls[1]
+    advanced_tab = tab_view.controls[1]
+    connection_settings = advanced_tab.controls[0].content.controls[1]
+    advanced_settings = advanced_tab.controls[1].content.controls[1]
+
+    assert page.window.width == 660
+    assert page.window.min_width == 620
+    assert tabs.length == 3
+    assert connection_settings.tight
+    assert advanced_settings.tight
+    assert connection_settings.controls[0].controls[0] is panel.machine
+    assert advanced_settings.controls[0].controls[0].controls[0] is panel.connect
+    assert advanced_settings.controls[1].controls[0].controls[0] is panel.include_context
+    assert advanced_settings.controls[2].controls[0] is panel.debug
+
+
+def test_branch_source_requires_a_selection_before_install(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+    panel.install_source.value = "branch"
+
+    panel.install(None)
+
+    assert panel.status.value == "Choose a Git branch to install"
+
+
+def test_stdio_profiles_use_the_installed_mcp_command(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path / "AppData"))
+    app_directory = tmp_path / "installed-mcp"
+    _, command = desktop_ui.command_paths(app_directory)
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    panel.profile_directories["copilot"].value = str(tmp_path / "mcp-config.json")
+    panel.connect.value = True
+    panel.graphical.value = True
+    panel.include_context.value = True
+    panel.dynamic_tools.value = True
+    for profile, checkbox in panel.profiles.items():
+        checkbox.value = profile == "copilot"
+    paths = []
+    monkeypatch.setattr(desktop_ui, "application_directory", lambda: app_directory)
+    monkeypatch.setattr(panel, "_run_background", lambda action, _complete: paths.extend(action()))
+
+    panel.install_profiles(None)
+
+    profile = json.loads(paths[0].read_text())["mcpServers"]["pyaedt-mcp"]
+    assert profile["command"] == str(command)
+    assert profile["args"] == [
+        "--connect",
+        "--machine",
+        "localhost",
+        "--port",
+        "50051",
+        "--graphical",
+        "--include-context",
+        "--dynamic-tool-discovery",
+    ]
+    assert "--server" not in profile["args"]
+    assert "--http-port" not in profile["args"]
+
+
+def test_server_arguments_include_http_transport_options(monkeypatch, tmp_path, desktop_ui):
     monkeypatch.setenv("APPDATA", str(tmp_path))
     panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
-    server_tab = panel._server_tab()
-    server_section = server_tab.controls[1].content.controls[1]
-    settings_rows = server_section.controls
 
-    assert len(settings_rows) == 5
-    assert settings_rows[0].controls[0].expand
-    assert settings_rows[2].controls[0].controls[0] is panel.connect
-    assert settings_rows[3].controls[0].controls[0] is panel.include_context
-    assert settings_rows[4].controls[0].controls[0] is panel.debug
-    assert len(settings_rows[2].controls) == 2
-    assert len(settings_rows[3].controls) == 2
-    assert len(settings_rows[4].controls) == 1
+    assert panel._server_arguments()[:6] == [
+        "--transport",
+        "http",
+        "--http-host",
+        "127.0.0.1",
+        "--http-port",
+        "8080",
+    ]

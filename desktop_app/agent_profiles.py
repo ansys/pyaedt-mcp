@@ -10,7 +10,7 @@ HTTP_TRANSPORT = "http"
 
 def profile_command(executable: Path, server_arguments: list[str]) -> tuple[str, list[str]]:
     """Build the executable command used by MCP client configuration files."""
-    return str(executable), ["--server", *server_arguments]
+    return str(executable), server_arguments
 
 
 def _validate_transport(transport: str) -> None:

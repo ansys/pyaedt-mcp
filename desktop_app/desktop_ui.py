@@ -31,7 +31,9 @@ from PIL import Image
 import pystray
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/ansys-aedt-mcp/json"
-ICON_FILENAME = "pyaedt_mcp_icon.png"
+GITHUB_BRANCHES_URL = "https://api.github.com/repos/ansys/pyaedt-mcp/branches?per_page=100"
+WINDOW_ICON_FILENAME = "pyaedt_mcp_icon.ico"
+TRAY_ICON_FILENAME = "pyaedt_mcp_icon.png"
 
 
 def asset_directory() -> Path:
@@ -43,7 +45,12 @@ def asset_directory() -> Path:
 
 def app_icon_path() -> Path:
     """Return the bundled PyAEDT MCP application icon path."""
-    return asset_directory() / ICON_FILENAME
+    return asset_directory() / WINDOW_ICON_FILENAME
+
+
+def tray_icon_path() -> Path:
+    """Return the bundled PyAEDT MCP system tray icon path."""
+    return asset_directory() / TRAY_ICON_FILENAME
 
 
 def available_package_versions() -> list[str]:
@@ -52,6 +59,13 @@ def available_package_versions() -> list[str]:
         releases = json.load(response)["releases"]
     versions = [Version(version) for version, files in releases.items() if files]
     return [str(version) for version in sorted(versions, reverse=True)]
+
+
+def available_branches() -> list[str]:
+    """Return the repository branches available for installation."""
+    with urlopen(GITHUB_BRANCHES_URL, timeout=10) as response:  # nosec B310
+        branches = json.load(response)
+    return sorted(branch["name"] for branch in branches if isinstance(branch.get("name"), str))
 
 
 class McpControlPanel:
@@ -86,13 +100,25 @@ class McpControlPanel:
         home = Path.home()
         appdata = Path(os.environ.get("APPDATA", home / "AppData" / "Roaming"))
         self.profile_directories = {
-            "copilot": ft.TextField(value=str(home / ".copilot"), dense=True, expand=True),
-            "claude_desktop": ft.TextField(value=str(appdata / "Claude"), dense=True, expand=True),
-            "claude_code": ft.TextField(value=str(home), dense=True, expand=True),
-            "cursor": ft.TextField(value=str(home / ".cursor"), dense=True, expand=True),
-            "codex": ft.TextField(value=str(home / ".codex"), dense=True, expand=True),
+            "copilot": ft.TextField(
+                value=str(home / ".copilot" / "mcp-config.json"), dense=True, expand=True
+            ),
+            "claude_desktop": ft.TextField(
+                value=str(appdata / "Claude" / "claude_desktop_config.json"),
+                dense=True,
+                expand=True,
+            ),
+            "claude_code": ft.TextField(value=str(home / ".claude.json"), dense=True, expand=True),
+            "cursor": ft.TextField(
+                value=str(home / ".cursor" / "mcp.json"), dense=True, expand=True
+            ),
+            "codex": ft.TextField(
+                value=str(home / ".codex" / "config.toml"), dense=True, expand=True
+            ),
             "opencode": ft.TextField(
-                value=str(home / ".config" / "opencode"), dense=True, expand=True
+                value=str(home / ".config" / "opencode" / "opencode.json"),
+                dense=True,
+                expand=True,
             ),
         }
         self.profile_transport = ft.Dropdown(
@@ -120,13 +146,31 @@ class McpControlPanel:
             dense=True,
             expand=True,
         )
+        self.install_source = ft.Dropdown(
+            label="Install source",
+            value="release",
+            options=[
+                ft.DropdownOption(key="release", text="Release"),
+                ft.DropdownOption(key="branch", text="Git branch"),
+            ],
+            dense=True,
+            on_select=self._change_install_source,
+            width=170,
+        )
+        self.branch_picker = ft.Dropdown(
+            label="Git branch",
+            options=[],
+            dense=True,
+            expand=True,
+            visible=False,
+        )
         self.refresh_versions_button = ft.IconButton(
             ft.Icons.REFRESH,
             tooltip="Load published MCP versions",
             on_click=self.load_versions,
         )
         self.start_button = ft.FilledButton(
-            content="Start HTTP",
+            content="Start Server",
             icon=ft.Icons.PLAY_ARROW,
             disabled=True,
             on_click=self.toggle_server,
@@ -145,9 +189,9 @@ class McpControlPanel:
 
     def _configure_page(self) -> None:
         self.page.title = "PyAEDT MCP"
-        self.page.window.width = 540
+        self.page.window.width = 660
         self.page.window.height = 680
-        self.page.window.min_width = 500
+        self.page.window.min_width = 620
         self.page.window.min_height = 620
         self.page.window.resizable = False
         if app_icon_path().is_file():
@@ -195,8 +239,8 @@ class McpControlPanel:
                 "PyAEDT MCP",
                 pystray.Menu(
                     pystray.MenuItem("Open window", self._tray_open_window, default=True),
-                    pystray.MenuItem("Start HTTP server", self._tray_start_server),
-                    pystray.MenuItem("Stop HTTP server", self._tray_stop_server),
+                    pystray.MenuItem("Start Server", self._tray_start_server),
+                    pystray.MenuItem("Stop Server", self._tray_stop_server),
                     pystray.Menu.SEPARATOR,
                     pystray.MenuItem("Exit", self._tray_exit),
                 ),
@@ -206,7 +250,7 @@ class McpControlPanel:
 
     @staticmethod
     def _tray_image() -> Image.Image:
-        icon_path = app_icon_path()
+        icon_path = tray_icon_path()
         if icon_path.is_file():
             with Image.open(icon_path) as image:
                 return image.convert("RGBA").copy()
@@ -296,7 +340,7 @@ class McpControlPanel:
 
         return ft.Row(
             [
-                ft.Container(content=self._profile_option(profile, title, message), width=200),
+                ft.Container(content=self._profile_option(profile, title, message), width=230),
                 self.profile_directories[profile],
                 ft.IconButton(
                     ft.Icons.FOLDER_OPEN,
@@ -338,16 +382,24 @@ class McpControlPanel:
                         ]
                     ),
                     ft.Tabs(
-                        length=2,
+                        length=3,
                         expand=True,
                         content=ft.Column(
                             [
                                 ft.TabBar(
-                                    tabs=[ft.Tab(label="Server"), ft.Tab(label="Coding agents")]
+                                    tabs=[
+                                        ft.Tab(label="Server"),
+                                        ft.Tab(label="Advanced"),
+                                        ft.Tab(label="Coding agents"),
+                                    ]
                                 ),
                                 ft.TabBarView(
                                     expand=True,
-                                    controls=[self._server_tab(), self._agents_tab()],
+                                    controls=[
+                                        self._server_tab(),
+                                        self._advanced_tab(),
+                                        self._agents_tab(),
+                                    ],
                                 ),
                             ],
                             expand=True,
@@ -369,7 +421,9 @@ class McpControlPanel:
                             self.status,
                             ft.Row(
                                 [
+                                    self.install_source,
                                     self.version_picker,
+                                    self.branch_picker,
                                     self.refresh_versions_button,
                                     self._help_button(
                                         "MCP version",
@@ -391,81 +445,97 @@ class McpControlPanel:
                     ),
                 ),
                 self._section(
-                    "Server",
-                    ft.Column(
-                        [
-                            ft.Row(
-                                [
-                                    self._with_help(
-                                        self.machine,
-                                        "AEDT host",
-                                        "Host name or IP address of the AEDT session "
-                                        "to connect to.",
-                                        expand=True,
-                                    ),
-                                ]
-                            ),
-                            ft.Row(
-                                [
-                                    self._with_help(
-                                        self.port,
-                                        "gRPC port",
-                                        "AEDT's gRPC port. AEDT typically uses 50051.",
-                                    ),
-                                    self._with_help(
-                                        self.http_port,
-                                        "HTTP port",
-                                        "Local port for the optional HTTP MCP transport.",
-                                    ),
-                                ]
-                            ),
-                            ft.Row(
-                                [
-                                    self._with_help(
-                                        self.connect,
-                                        "Connect on start",
-                                        "Connect the MCP server to an existing AEDT "
-                                        "session on startup.",
-                                    ),
-                                    self._with_help(
-                                        self.graphical,
-                                        "Graphical AEDT",
-                                        "Start or connect to AEDT with its graphical "
-                                        "interface enabled.",
-                                    ),
-                                ]
-                            ),
-                            ft.Row(
-                                [
-                                    self._with_help(
-                                        self.include_context,
-                                        "Guidance tools",
-                                        "Expose MCP guidance tools that help an agent "
-                                        "use the server.",
-                                    ),
-                                    self._with_help(
-                                        self.dynamic_tools,
-                                        "Dynamic tools",
-                                        "Discover tools from the connected AEDT design as needed.",
-                                    ),
-                                ]
-                            ),
-                            ft.Row(
-                                [
-                                    self._with_help(
-                                        self.debug,
-                                        "Debug logging",
-                                        "Set the MCP server log level to DEBUG when "
-                                        "starting HTTP transport.",
-                                    ),
-                                ]
-                            ),
-                        ],
-                        spacing=12,
-                    ),
+                    "HTTP server",
+                    self._http_server_settings(),
                 ),
             ],
             scroll=ft.ScrollMode.AUTO,
+        )
+
+    def _http_server_settings(self) -> ft.Row:
+        return self._with_help(
+            self.http_port,
+            "HTTP port",
+            "Local port for the optional HTTP MCP transport.",
+        )
+
+    def _advanced_tab(self) -> ft.Column:
+        return ft.Column(
+            [
+                self._section(
+                    "AEDT connection",
+                    self._connection_settings(),
+                ),
+                self._section(
+                    "MCP options",
+                    self._advanced_settings(),
+                ),
+            ],
+            scroll=ft.ScrollMode.AUTO,
+        )
+
+    def _connection_settings(self) -> ft.Column:
+        return ft.Column(
+            [
+                self._with_help(
+                    self.machine,
+                    "AEDT host",
+                    "Host name or IP address of the AEDT session to connect to.",
+                    expand=True,
+                ),
+                ft.Row(
+                    [
+                        self._with_help(
+                            self.port,
+                            "gRPC port",
+                            "AEDT's gRPC port. AEDT typically uses 50051.",
+                        ),
+                    ]
+                ),
+            ],
+            spacing=12,
+            tight=True,
+        )
+
+    def _advanced_settings(self) -> ft.Column:
+        return ft.Column(
+            [
+                ft.Row(
+                    [
+                        self._with_help(
+                            self.connect,
+                            "Connect on start",
+                            "Connect the MCP server to an existing AEDT session on startup.",
+                        ),
+                        self._with_help(
+                            self.graphical,
+                            "Graphical AEDT",
+                            "Start or connect to AEDT with its graphical interface enabled.",
+                        ),
+                    ]
+                ),
+                ft.Row(
+                    [
+                        self._with_help(
+                            self.include_context,
+                            "Guidance tools",
+                            "Expose MCP guidance tools that help an agent use the server.",
+                        ),
+                        self._with_help(
+                            self.dynamic_tools,
+                            "Dynamic tools",
+                            "Discover tools from the connected AEDT design as needed.",
+                        ),
+                    ]
+                ),
+                self._with_help(
+                    self.debug,
+                    "Debug logging",
+                    "Set the MCP server log level to DEBUG when starting HTTP transport.",
+                ),
+            ],
+            spacing=12,
+            tight=True,
         )
 
     def _agents_tab(self) -> ft.Column:
@@ -539,19 +609,8 @@ class McpControlPanel:
         self.theme_button.icon = ft.Icons.LIGHT_MODE if is_dark else ft.Icons.DARK_MODE
         self.theme_button.tooltip = "Switch to light mode" if is_dark else "Switch to dark mode"
 
-    def _server_arguments(self, http: bool) -> list[str]:
+    def _mcp_arguments(self) -> list[str]:
         arguments = []
-        if http:
-            arguments.extend(
-                [
-                    "--transport",
-                    "http",
-                    "--http-host",
-                    "127.0.0.1",
-                    "--http-port",
-                    self.http_port.value.strip() or "8080",
-                ]
-            )
         if self.connect.value:
             arguments.extend(
                 [
@@ -570,10 +629,16 @@ class McpControlPanel:
             arguments.append("--dynamic-tool-discovery")
         return arguments
 
-    def _executable(self) -> Path:
-        if getattr(sys, "frozen", False):
-            return Path(sys.executable)
-        return Path(__file__).with_name("desktop_launcher.py")
+    def _server_arguments(self) -> list[str]:
+        return [
+            "--transport",
+            "http",
+            "--http-host",
+            "127.0.0.1",
+            "--http-port",
+            self.http_port.value.strip() or "8080",
+            *self._mcp_arguments(),
+        ]
 
     def refresh_status(self) -> None:
         app_directory = application_directory()
@@ -590,12 +655,23 @@ class McpControlPanel:
 
     def load_versions(self, _event) -> None:
         self.refresh_versions_button.disabled = True
-        self._run_background(available_package_versions, self._finish_loading_versions)
+        loader = (
+            available_branches
+            if self.install_source.value == "branch"
+            else available_package_versions
+        )
+        self._run_background(loader, self._finish_loading_versions)
 
     def _finish_loading_versions(self, versions, error: str | None) -> None:
         self.refresh_versions_button.disabled = False
         if error:
-            self.status.value = f"Could not load MCP versions: {error}"
+            self.status.value = f"Could not load install options: {error}"
+        elif self.install_source.value == "branch":
+            selected_branch = self.branch_picker.value
+            self.branch_picker.options = [
+                ft.DropdownOption(key=branch, text=branch) for branch in versions
+            ]
+            self.branch_picker.value = selected_branch if selected_branch in versions else None
         else:
             selected_version = self.version_picker.value
             self.version_picker.options = [ft.DropdownOption(key="latest", text="Latest available")]
@@ -605,6 +681,14 @@ class McpControlPanel:
             self.version_picker.value = (
                 selected_version if selected_version in ["latest", *versions] else "latest"
             )
+        self.page.update()
+
+    def _change_install_source(self, _event) -> None:
+        is_branch = self.install_source.value == "branch"
+        self.version_picker.visible = not is_branch
+        self.branch_picker.visible = is_branch
+        if is_branch and not self.branch_picker.options:
+            self.load_versions(None)
         self.page.update()
 
     def _run_background(self, action, complete) -> None:
@@ -622,17 +706,28 @@ class McpControlPanel:
         complete(result, error)
 
     def install(self, _event) -> None:
+        if self.install_source.value == "branch" and not self._selected_branch():
+            self.status.value = "Choose a Git branch to install"
+            self.page.update()
+            return
         self.status.value = "Installing MCP..."
         self.install_button.disabled = True
         self.page.update()
         self._run_background(
             lambda: setup_environment(
-                application_directory(), runtime_directory(), version=self._selected_version()
+                application_directory(),
+                runtime_directory(),
+                version=self._selected_version(),
+                branch=self._selected_branch(),
             ),
             self._finish_install,
         )
 
     def update(self, _event) -> None:
+        if self.install_source.value == "branch" and not self._selected_branch():
+            self.status.value = "Choose a Git branch to install"
+            self.page.update()
+            return
         self.status.value = "Updating MCP..."
         self.update_button.disabled = True
         self.page.update()
@@ -641,13 +736,19 @@ class McpControlPanel:
                 application_directory(),
                 runtime_directory(),
                 version=self._selected_version(),
+                branch=self._selected_branch(),
                 upgrade=True,
             ),
             self._finish_update,
         )
 
     def _selected_version(self) -> str | None:
+        if self.install_source.value == "branch":
+            return None
         return None if self.version_picker.value == "latest" else self.version_picker.value
+
+    def _selected_branch(self) -> str | None:
+        return self.branch_picker.value if self.install_source.value == "branch" else None
 
     def _finish_install(self, _result, error: str | None) -> None:
         self.status.value = f"Installation failed: {error}" if error else "MCP installed"
@@ -665,7 +766,7 @@ class McpControlPanel:
             self.start(event)
 
     def _set_server_button_running(self, running: bool) -> None:
-        self.start_button.content = "Stop HTTP" if running else "Start HTTP"
+        self.start_button.content = "Stop Server" if running else "Start Server"
         self.start_button.icon = ft.Icons.STOP if running else ft.Icons.PLAY_ARROW
         self.start_button.bgcolor = ft.Colors.RED if running else None
         self.start_button.color = ft.Colors.ON_ERROR if running else None
@@ -678,7 +779,7 @@ class McpControlPanel:
         if self.debug.value:
             environment["FASTMCP_LOG_LEVEL"] = "DEBUG"
         self.server_process = subprocess.Popen(  # nosec B603
-            [str(command), *self._server_arguments(http=True)],
+            [str(command), *self._server_arguments()],
             env=environment,
             **hidden_window_options(),
         )
@@ -695,8 +796,8 @@ class McpControlPanel:
         self.page.update()
 
     def install_profiles(self, _event) -> None:
-        server_arguments = self._server_arguments(http=False)
-        executable = self._executable()
+        server_arguments = self._mcp_arguments()
+        _, executable = command_paths(application_directory())
         transport = self.profile_transport.value or "stdio"
         http_url = f"http://127.0.0.1:{self.http_port.value.strip() or '8080'}/mcp"
         directories = {

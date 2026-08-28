@@ -129,6 +129,44 @@ def test_setup_environment_updates_selected_version(monkeypatch, tmp_path, deskt
     ]
 
 
+def test_setup_environment_installs_selected_branch(monkeypatch, tmp_path, desktop_launcher):
+    app_directory = tmp_path / ".pyaedt_mcp"
+    python_executable, mcp_executable = desktop_launcher.command_paths(app_directory)
+    python_executable.parent.mkdir(parents=True)
+    python_executable.touch()
+    mcp_executable.touch()
+    runtime_directory = tmp_path / "runtime"
+    embedded_python = runtime_directory / "python" / "python.exe"
+    uv_executable = runtime_directory / "uv" / "uv.exe"
+    embedded_python.parent.mkdir(parents=True)
+    uv_executable.parent.mkdir()
+    embedded_python.touch()
+    uv_executable.touch()
+    commands = []
+    monkeypatch.setattr(
+        desktop_launcher.subprocess,
+        "run",
+        lambda command, **kwargs: (
+            commands.append(command) or subprocess.CompletedProcess(command, 0)
+        ),
+    )
+
+    desktop_launcher.setup_environment(
+        app_directory, runtime_directory, branch="feat/desktop-manager", upgrade=True
+    )
+
+    assert commands[0][-1] == (
+        "ansys-aedt-mcp @ git+https://github.com/ansys/pyaedt-mcp.git@feat/desktop-manager"
+    )
+
+
+def test_setup_environment_rejects_version_and_branch(tmp_path, desktop_launcher):
+    with pytest.raises(ValueError, match="either a package version or a Git branch"):
+        desktop_launcher.setup_environment(
+            tmp_path / ".pyaedt_mcp", tmp_path / "runtime", version="1.2.3", branch="main"
+        )
+
+
 def test_main_forwards_arguments(monkeypatch, tmp_path, desktop_launcher):
     mcp_executable = tmp_path / "ansys-aedt-mcp.exe"
     monkeypatch.setattr(desktop_launcher, "application_directory", lambda: tmp_path)

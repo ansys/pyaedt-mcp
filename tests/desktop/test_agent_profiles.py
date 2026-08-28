@@ -50,7 +50,7 @@ def test_install_vscode_profile_preserves_existing_servers(tmp_path, agent_profi
     assert profile["servers"]["pyaedt-mcp"] == {
         "type": "stdio",
         "command": r"C:\Tools\PyAEDT_MCP.exe",
-        "args": ["--server", "--include-context"],
+        "args": ["--include-context"],
     }
 
 
@@ -64,9 +64,8 @@ def test_install_desktop_and_cursor_profiles(tmp_path, agent_profiles):
         tmp_path / "home" / ".cursor", executable, ["--connect"]
     )
 
-    assert json.loads(claude_path.read_text())["mcpServers"]["pyaedt-mcp"]["args"] == ["--server"]
+    assert json.loads(claude_path.read_text())["mcpServers"]["pyaedt-mcp"]["args"] == []
     assert json.loads(cursor_path.read_text())["mcpServers"]["pyaedt-mcp"]["args"] == [
-        "--server",
         "--connect",
     ]
 
@@ -83,12 +82,11 @@ def test_install_copilot_and_claude_code_user_profiles(tmp_path, agent_profiles)
     assert json.loads(copilot_path.read_text())["mcpServers"]["pyaedt-mcp"] == {
         "type": "local",
         "command": str(executable),
-        "args": ["--server", "--connect"],
+        "args": ["--connect"],
         "tools": ["*"],
     }
     assert claude_path == tmp_path / ".claude.json"
     assert json.loads(claude_path.read_text())["mcpServers"]["pyaedt-mcp"]["args"] == [
-        "--server",
         "--graphical",
     ]
 
@@ -106,7 +104,7 @@ def test_install_codex_profile_replaces_existing_server(tmp_path, agent_profiles
 
     content = path.read_text()
     assert 'command = "old.exe"' not in content
-    assert 'args = ["--server", "--dynamic-tool-discovery"]' in content
+    assert 'args = ["--dynamic-tool-discovery"]' in content
     assert "[features]\nfoo = true" in content
 
 
@@ -134,7 +132,7 @@ def test_install_http_and_opencode_profiles_in_custom_folders(tmp_path, agent_pr
     assert "mcpServers" not in opencode_profile
     assert opencode_profile["mcp"]["pyaedt-mcp"] == {
         "type": "local",
-        "command": [str(executable), "--server", "--connect"],
+        "command": [str(executable), "--connect"],
     }
 
 
