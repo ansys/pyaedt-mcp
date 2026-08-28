@@ -1,4 +1,4 @@
-name: Build Windows MCP Executable
+name: Build Windows MCP Installer
 
 on:
   release:
@@ -12,8 +12,8 @@ concurrency:
 permissions: {}
 
 jobs:
-  build-windows-executable:
-    name: Build and upload Windows executable
+  build-windows-installer:
+    name: Build and upload Windows installer
     runs-on: windows-latest
     permissions:
       contents: write # Needed to upload the Windows executable to the release
@@ -40,9 +40,19 @@ jobs:
         shell: pwsh
         run: uv run --no-sync flet pack .\desktop_app\desktop_launcher.py --name PyAEDT_MCP --icon .\desktop_app\assets\pyaedt_mcp_icon.ico --add-data .\desktop_app\.desktop-runtime:runtime --add-data .\desktop_app\assets:assets --yes
 
-      - name: Upload executable to release
+      - name: Install NSIS
+        shell: pwsh
+        run: choco install nsis -y
+
+      - name: Build installer
+        shell: pwsh
+        env:
+          PRODUCT_VERSION: ${{ github.event.release.tag_name }}
+        run: .\scripts\build_windows_installer.ps1 -SkipRuntimeStaging -SkipExecutableBuild -Version $env:PRODUCT_VERSION.TrimStart('v')
+
+      - name: Upload installer to release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload $env:TAG .\dist\PyAEDT_MCP.exe --clobber
+        run: gh release upload $env:TAG .\dist\PyAEDT-MCP-Installer-windows.exe --clobber

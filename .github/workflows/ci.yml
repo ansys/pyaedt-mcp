@@ -161,7 +161,7 @@ jobs:
           group-dependencies-name: tests
 
   desktop-app:
-    name: "Build Windows desktop app"
+    name: "Build Windows desktop installer"
     runs-on: windows-latest
     permissions:
       contents: read
@@ -188,11 +188,19 @@ jobs:
         shell: pwsh
         run: uv run --no-sync flet pack .\desktop_app\desktop_launcher.py --name PyAEDT_MCP --icon .\desktop_app\assets\pyaedt_mcp_icon.ico --add-data .\desktop_app\.desktop-runtime:runtime --add-data .\desktop_app\assets:assets --yes
 
-      - name: "Upload desktop executable"
+      - name: "Install NSIS"
+        shell: pwsh
+        run: choco install nsis -y
+
+      - name: "Build desktop installer"
+        shell: pwsh
+        run: .\scripts\build_windows_installer.ps1 -SkipRuntimeStaging -SkipExecutableBuild
+
+      - name: "Upload desktop installer"
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
-          name: PyAEDT_MCP-windows
-          path: dist/PyAEDT_MCP.exe
+          name: PyAEDT_MCP-Installer-windows
+          path: dist/PyAEDT-MCP-Installer-windows.exe
 
   system-tests-tools-linux:
     name: "System tests (tools, linux)"
