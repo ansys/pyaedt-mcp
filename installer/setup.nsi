@@ -11,11 +11,10 @@
 
 Unicode True
 Name "${PRODUCT_NAME}"
-OutFile "dist\PyAEDT-MCP-Installer-windows.exe"
+OutFile "..\dist\PyAEDT-MCP-Installer-windows.exe"
 InstallDir "$PROGRAMFILES64\ANSYS Inc\${PRODUCT_NAME}"
 RequestExecutionLevel admin
 BrandingText "${PRODUCT_PUBLISHER}"
-Icon "desktop_app\assets\pyaedt_mcp_icon.ico"
 
 !include "MUI2.nsh"
 
@@ -27,7 +26,7 @@ Icon "desktop_app\assets\pyaedt_mcp_icon.ico"
 !define MUI_FINISHPAGE_SHOWREADME_FUNCTION "CreateDesktopShortcut"
 
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "LICENSE"
+!insertmacro MUI_PAGE_LICENSE "..\LICENSE"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -42,7 +41,7 @@ FunctionEnd
 
 Section "${PRODUCT_NAME}" SEC01
   SetOutPath "$INSTDIR"
-  File "dist\${PRODUCT_EXECUTABLE}"
+  File "..\dist\${PRODUCT_EXECUTABLE}"
 
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"

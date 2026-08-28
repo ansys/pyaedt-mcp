@@ -253,7 +253,7 @@ class McpControlPanel:
         icon_path = tray_icon_path()
         if icon_path.is_file():
             with Image.open(icon_path) as image:
-                return image.convert("RGBA").copy()
+                return image.convert("RGBA").resize((256, 256))
         return Image.new("RGBA", (64, 64), "#007A78")
 
     def _on_window_event(self, event) -> None:

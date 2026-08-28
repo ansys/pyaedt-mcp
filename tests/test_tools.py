@@ -1544,7 +1544,9 @@ class TestToolErrorBranches:
             patch("ansys.aedt.core.Hfss", return_value=app_instance),
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
         ):
-            result = await launch_aedt(mock_context_no_desktop, application="Hfss")
+            result = await launch_aedt(
+                mock_context_no_desktop, application="Hfss", confirm_new_session=True
+            )
 
         assert "Failed to launch AEDT" in result
         assert "Unable to resolve AEDT handle" in result
@@ -1672,7 +1674,9 @@ class TestLaunchAEDTExtended:
             patch("ansys.aedt.core.Hfss", return_value=mock_app_instance),
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
         ):
-            result = await launch_aedt(mock_context_no_desktop, application="Hfss")
+            result = await launch_aedt(
+                mock_context_no_desktop, application="Hfss", confirm_new_session=True
+            )
 
         assert "Successfully launched Hfss" in result
 
@@ -1685,7 +1689,9 @@ class TestLaunchAEDTExtended:
             patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
             patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
         ):
-            result = await launch_aedt(mock_context_no_desktop, application="InvalidApp")  # type: ignore
+            result = await launch_aedt(
+                mock_context_no_desktop, application="InvalidApp", confirm_new_session=True
+            )  # type: ignore
 
         assert "Unsupported application type" in result
 
@@ -1814,7 +1820,7 @@ class TestRequiresAEDTVisibility:
             fake_desktop.is_grpc_api = True
             mock_desktop_cls.return_value = fake_desktop
 
-            await launch_aedt(mock_context_no_desktop)
+            await launch_aedt(mock_context_no_desktop, confirm_new_session=True)
             mock_context_no_desktop.enable_components.assert_called_once_with(
                 tags={"requires_aedt"}
             )
