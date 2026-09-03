@@ -624,6 +624,36 @@ class TestGetPyAEDTLogs:
         assert data["returned_lines"] == 1
         assert "ERROR solver recovered" in data["logs"]
 
+    def test_gets_native_messages_for_active_design(self, mock_context, tmp_path):
+        """Test native AEDT messages use the active application's project and design."""
+        from ansys.aedt.mcp.tools import get_pyaedt_logs
+
+        log_file = tmp_path / "pyaedt_test.log"
+        log_file.write_text("INFO startup\n", encoding="utf-8")
+        aedt_app = MagicMock(project_name="Project1", design_name="Design1")
+        aedt_app.odesktop.GetMessages.side_effect = [
+            ["Info message"],
+            ["Error message"],
+        ]
+
+        with (
+            patch("ansys.aedt.core.get_pyaedt_app", return_value=aedt_app),
+            patch("ansys.aedt.mcp.tools._resolve_pyaedt_log_file", return_value=str(log_file)),
+        ):
+            result = get_pyaedt_logs(mock_context)
+
+        data = json.loads(result)
+        assert data["native_messages"] == {
+            "project": "Project1",
+            "design": "Design1",
+            "info_messages": ["Info message"],
+            "error_messages": ["Error message"],
+        }
+        assert aedt_app.odesktop.GetMessages.call_args_list == [
+            (("Project1", "Design1", 0),),
+            (("Project1", "Design1", 2),),
+        ]
+
 
 @pytest.mark.unit
 class TestOpenProject:
