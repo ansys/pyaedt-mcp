@@ -64,11 +64,21 @@ doc = [
   "sphinxcontrib-video==0.4.2",
 ]
 tests = [
+  "flet>=0.28",
+  "pystray>=0.19.5",
   "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
   "pytest-cov==7.1.0",
   "pytest-mock==3.15.1",
   "pytest-timeout==2.4.0",
+]
+desktop = [
+  "flet>=0.28",
+  "flet-cli>=0.28",
+  "packaging",
+  "pillow",
+  "pystray>=0.19.5",
+  "pyinstaller>=6.0",
 ]
 
 [project.urls]

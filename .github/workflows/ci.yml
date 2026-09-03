@@ -141,9 +141,66 @@ jobs:
         uses: ansys/actions/tests-pytest@3ad3b285bd9b67045477dafc7f9865a3aa39f692 #v11.0.6
         with:
           python-version: ${{ matrix.python-version }}
-          pytest-extra-args: '${{ env.PYTEST_ARGUMENTS }} tests --ignore=tests/integration'
+          pytest-extra-args: '${{ env.PYTEST_ARGUMENTS }} tests --ignore=tests/desktop --ignore=tests/integration'
           pytest-markers: '-m "not integration and not system"'
           group-dependencies-name: tests
+
+  desktop-unit-tests:
+    name: "Desktop unit tests"
+    runs-on: windows-latest
+    needs: [smoke-tests]
+    permissions:
+      contents: read # Needed to checkout the code
+    steps:
+      - name: "Run desktop unit tests"
+        uses: ansys/actions/tests-pytest@7e89e00c5619374a1da8c2e876309d8b15ff0559 #v11.0.3
+        with:
+          python-version: ${{ env.TESTS_PYTHON_VERSION }}
+          pytest-extra-args: '${{ env.PYTEST_ARGUMENTS }} tests/desktop'
+          pytest-markers: '-m "not integration and not system"'
+          group-dependencies-name: tests
+
+  desktop-app:
+    name: "Build Windows desktop installer"
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "Set up uv"
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
+        with:
+          enable-cache: false
+
+      - name: "Install build dependencies"
+        shell: pwsh
+        run: uv sync --only-group desktop --no-install-project
+
+      - name: "Stage embedded runtime"
+        shell: pwsh
+        run: uv run --no-sync .\desktop_app\stage_desktop_runtime.py
+
+      - name: "Build desktop executable"
+        shell: pwsh
+        run: uv run --no-sync flet pack .\desktop_app\desktop_launcher.py --name PyAEDT_MCP --icon .\desktop_app\assets\pyaedt_mcp_icon.ico --add-data .\desktop_app\.desktop-runtime:runtime --add-data .\desktop_app\assets:assets --yes
+
+      - name: "Install NSIS"
+        shell: pwsh
+        run: choco install nsis -y
+
+      - name: "Build desktop installer"
+        shell: pwsh
+        run: .\scripts\build_windows_installer.ps1 -SkipRuntimeStaging -SkipExecutableBuild
+
+      - name: "Upload desktop installer"
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: PyAEDT_MCP-Installer-windows
+          path: dist/PyAEDT-MCP-Installer-windows.exe
 
   system-tests-tools-linux:
     name: "System tests (tools, linux)"
