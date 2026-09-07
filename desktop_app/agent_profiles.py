@@ -67,6 +67,30 @@ def _write_json_profile(path: Path, container_key: str, profile: dict) -> Path:
     return path
 
 
+def install_profile_from_template(template_path: Path) -> Path:
+    """Install an MCP profile defined by a JSON configuration template."""
+    template = _read_json(template_path)
+    configured_path = template.get("path")
+    profiles = template.get("mcps")
+    if not isinstance(configured_path, str) or not configured_path:
+        raise RuntimeError(f"{template_path} must define a non-empty path")
+    if not isinstance(profiles, dict) or not all(
+        isinstance(profile, dict) for profile in profiles.values()
+    ):
+        raise RuntimeError(f"{template_path} must define an mcps object")
+    path = Path(configured_path).expanduser()
+    if not path.is_absolute():
+        path = template_path.parent / path
+    data = _read_json(path)
+    existing_profiles = data.setdefault("mcps", {})
+    if not isinstance(existing_profiles, dict):
+        raise RuntimeError(f"{path} has an invalid 'mcps' section")
+    existing_profiles.update(profiles)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 def install_vscode_profile(workspace: Path, executable: Path, server_arguments: list[str]) -> Path:
     """Install the profile in a workspace's VS Code/Copilot configuration."""
     command, arguments = profile_command(executable, server_arguments)

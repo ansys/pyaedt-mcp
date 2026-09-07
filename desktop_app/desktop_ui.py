@@ -4,6 +4,8 @@ import asyncio
 import json
 import os
 from pathlib import Path
+import re
+import shutil
 import subprocess  # nosec B404
 import sys
 import threading
@@ -16,6 +18,7 @@ from agent_profiles import (
     install_copilot_cli_profile,
     install_cursor_profile,
     install_opencode_profile,
+    install_profile_from_template,
 )
 from desktop_launcher import (
     application_directory,
@@ -34,6 +37,11 @@ PYPI_PACKAGE_URL = "https://pypi.org/pypi/ansys-aedt-mcp/json"
 GITHUB_BRANCHES_URL = "https://api.github.com/repos/ansys/pyaedt-mcp/branches?per_page=100"
 WINDOW_ICON_FILENAME = "pyaedt_mcp_icon.ico"
 TRAY_ICON_FILENAME = "pyaedt_mcp_icon.png"
+UNICODE_ESCAPE_PATTERN = re.compile(r"\\(?:u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})")
+ISSUES_URL = "https://github.com/ansys/pyaedt-mcp/issues"
+DESKTOP_APP_DOCUMENTATION_URL = (
+    "https://aedt-mcp.docs.pyansys.com/version/stable/getting_started/desktop_app.html"
+)
 
 
 def asset_directory() -> Path:
@@ -68,6 +76,19 @@ def available_branches() -> list[str]:
     return sorted(branch["name"] for branch in branches if isinstance(branch.get("name"), str))
 
 
+def installed_coding_agents() -> dict[str, bool]:
+    """Return coding agents detected in the local user environment."""
+    local_appdata = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    return {
+        "copilot": shutil.which("copilot") is not None or shutil.which("code") is not None,
+        "claude_desktop": (local_appdata / "Programs" / "Claude" / "Claude.exe").is_file(),
+        "claude_code": shutil.which("claude") is not None,
+        "cursor": (local_appdata / "Programs" / "Cursor" / "Cursor.exe").is_file(),
+        "codex": shutil.which("codex") is not None,
+        "opencode": shutil.which("opencode") is not None,
+    }
+
+
 class McpControlPanel:
     """Display setup state, server settings, and coding-agent profile actions."""
 
@@ -84,18 +105,45 @@ class McpControlPanel:
         self.machine = ft.TextField(label="AEDT host", value="localhost", dense=True, expand=True)
         self.port = ft.TextField(label="gRPC port", value="50051", dense=True, width=105)
         self.http_port = ft.TextField(label="HTTP port", value="8080", dense=True, width=105)
+        self.server_log = ft.TextField(
+            value="",
+            multiline=True,
+            min_lines=9,
+            max_lines=9,
+            read_only=True,
+            expand=True,
+            bgcolor="#0B1210",
+            color="#D4E4D8",
+            border_color="#385347",
+            focused_border_color="#7BD9D4",
+            border_radius=4,
+            text_style=ft.TextStyle(font_family="Cascadia Mono", size=12),
+        )
+        self.copy_log_button = ft.IconButton(
+            ft.Icons.CONTENT_COPY,
+            tooltip="Copy all logs",
+            on_click=self.copy_server_log,
+        )
+        self.clear_log_button = ft.IconButton(
+            ft.Icons.DELETE_OUTLINE,
+            tooltip="Clear logs",
+            on_click=self.clear_server_log,
+        )
         self.connect = ft.Checkbox(label="Connect on start")
         self.graphical = ft.Checkbox(label="Graphical AEDT")
         self.include_context = ft.Checkbox(label="Guidance tools")
         self.dynamic_tools = ft.Checkbox(label="Dynamic tools")
         self.debug = ft.Checkbox(label="Debug logging")
+        detected_agents = installed_coding_agents()
         self.profiles = {
-            "copilot": ft.Checkbox(label="Copilot CLI / VS Code", value=True),
-            "claude_desktop": ft.Checkbox(label="Claude Desktop", value=True),
-            "claude_code": ft.Checkbox(label="Claude Code"),
-            "cursor": ft.Checkbox(label="Cursor"),
-            "codex": ft.Checkbox(label="Codex"),
-            "opencode": ft.Checkbox(label="OpenCode"),
+            "copilot": ft.Checkbox(label="Copilot CLI / VS Code", value=detected_agents["copilot"]),
+            "claude_desktop": ft.Checkbox(
+                label="Claude Desktop", value=detected_agents["claude_desktop"]
+            ),
+            "claude_code": ft.Checkbox(label="Claude Code", value=detected_agents["claude_code"]),
+            "cursor": ft.Checkbox(label="Cursor", value=detected_agents["cursor"]),
+            "codex": ft.Checkbox(label="Codex", value=detected_agents["codex"]),
+            "opencode": ft.Checkbox(label="OpenCode", value=detected_agents["opencode"]),
         }
         home = Path.home()
         appdata = Path(os.environ.get("APPDATA", home / "AppData" / "Roaming"))
@@ -178,12 +226,22 @@ class McpControlPanel:
         self.profile_button = ft.OutlinedButton(
             "Install profiles", icon=ft.Icons.SETTINGS, on_click=self.install_profiles
         )
+        self.custom_profile_button = ft.OutlinedButton(
+            "Install custom profile",
+            icon=ft.Icons.UPLOAD_FILE,
+            on_click=self.install_custom_profile,
+        )
+        self.bug_report_button = ft.IconButton(
+            ft.Icons.BUG_REPORT,
+            tooltip="Report a bug",
+            on_click=self.submit_bug_report,
+        )
         self.theme_button = ft.IconButton(on_click=self._toggle_theme)
         self._configure_page()
         if isinstance(self.page, ft.Page):
             self._configure_tray()
         self._build()
-        self.refresh_status()
+        self.refresh_status(show_setup_guide=True)
         if load_versions:
             self.load_versions(None)
 
@@ -298,11 +356,17 @@ class McpControlPanel:
     def _tray_exit(self, _icon, _item) -> None:
         self.page.run_task(self._exit_application)
 
-    def _section(self, title: str, content: ft.Control) -> ft.Container:
+    def _section(
+        self, title: str, content: ft.Control, *, header_actions: list[ft.Control] | None = None
+    ) -> ft.Container:
+        header = ft.Text(title, size=15, weight=ft.FontWeight.W_600)
+        if header_actions:
+            header = ft.Row(
+                [header, ft.Container(expand=True), *header_actions],
+                spacing=0,
+            )
         return ft.Container(
-            content=ft.Column(
-                [ft.Text(title, size=15, weight=ft.FontWeight.W_600), content], spacing=8
-            ),
+            content=ft.Column([header, content], spacing=8),
             bgcolor=ft.Colors.SURFACE,
             border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
             border_radius=6,
@@ -323,6 +387,31 @@ class McpControlPanel:
             title=ft.Text(title),
             content=ft.Text(message),
             actions=[ft.TextButton("Close", on_click=lambda _event: self.page.pop_dialog())],
+        )
+        self.page.show_dialog(dialog)
+
+    async def open_desktop_app_documentation(self, _event) -> None:
+        await self.page.launch_url(DESKTOP_APP_DOCUMENTATION_URL)
+
+    def _show_setup_guide(self) -> None:
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Set up PyAEDT MCP"),
+            content=ft.Column(
+                [
+                    ft.Text("No managed MCP environment was found."),
+                    ft.Text("1. Select an install source and MCP version on the Server tab."),
+                    ft.Text("2. Select Install MCP, then start the HTTP server when needed."),
+                    ft.Text("3. Open Coding agents to install your selected client profiles."),
+                    ft.Text("Server output appears in the Server log window."),
+                ],
+                tight=True,
+                spacing=8,
+            ),
+            actions=[
+                ft.TextButton("View documentation", on_click=self.open_desktop_app_documentation),
+                ft.TextButton("Close", on_click=lambda _event: self.page.pop_dialog()),
+            ],
         )
         self.page.show_dialog(dialog)
 
@@ -361,6 +450,24 @@ class McpControlPanel:
             self.profile_directories[profile].value = selected_directory
             self.page.update()
 
+    async def install_custom_profile(self, _event) -> None:
+        """Install a profile defined by a user-selected JSON template."""
+        selected_files = await self.folder_picker.pick_files(
+            dialog_title="Choose custom profile template",
+            file_type=ft.FilePickerFileType.CUSTOM,
+            allowed_extensions=["json"],
+            allow_multiple=False,
+        )
+        if not selected_files:
+            return
+        self.custom_profile_button.disabled = True
+        self.status.value = "Installing custom profile..."
+        self.page.update()
+        template_path = Path(selected_files[0].path)
+        self._run_background(
+            lambda: [install_profile_from_template(template_path)], self._finish_custom_profile
+        )
+
     def _build(self) -> None:
         self.page.add(
             ft.Column(
@@ -378,6 +485,7 @@ class McpControlPanel:
                                 spacing=2,
                                 expand=True,
                             ),
+                            self.bug_report_button,
                             self.theme_button,
                         ]
                     ),
@@ -445,18 +553,12 @@ class McpControlPanel:
                     ),
                 ),
                 self._section(
-                    "HTTP server",
-                    self._http_server_settings(),
+                    "Server log",
+                    self.server_log,
+                    header_actions=[self.copy_log_button, self.clear_log_button],
                 ),
             ],
             scroll=ft.ScrollMode.AUTO,
-        )
-
-    def _http_server_settings(self) -> ft.Row:
-        return self._with_help(
-            self.http_port,
-            "HTTP port",
-            "Local port for the optional HTTP MCP transport.",
         )
 
     def _advanced_tab(self) -> ft.Column:
@@ -485,6 +587,11 @@ class McpControlPanel:
                 ),
                 ft.Row(
                     [
+                        self._with_help(
+                            self.http_port,
+                            "HTTP port",
+                            "Local port for the optional HTTP MCP transport.",
+                        ),
                         self._with_help(
                             self.port,
                             "gRPC port",
@@ -588,7 +695,7 @@ class McpControlPanel:
                                 "OpenCode",
                                 "Enter a folder or a JSON file path.",
                             ),
-                            self.profile_button,
+                            ft.Row([self.profile_button, self.custom_profile_button]),
                         ],
                         spacing=4,
                     ),
@@ -603,6 +710,9 @@ class McpControlPanel:
         )
         self._update_theme_button()
         self.page.update()
+
+    async def submit_bug_report(self, _event) -> None:
+        await self.page.launch_url(ISSUES_URL)
 
     def _update_theme_button(self) -> None:
         is_dark = self.page.theme_mode == ft.ThemeMode.DARK
@@ -640,7 +750,7 @@ class McpControlPanel:
             *self._mcp_arguments(),
         ]
 
-    def refresh_status(self) -> None:
+    def refresh_status(self, *, show_setup_guide: bool = False) -> None:
         app_directory = application_directory()
         _, command = command_paths(app_directory)
         installed = command.is_file()
@@ -652,6 +762,8 @@ class McpControlPanel:
             self._set_server_button_running(False)
             self.start_button.disabled = not installed
         self.page.update()
+        if show_setup_guide and not installed:
+            self._show_setup_guide()
 
     def load_versions(self, _event) -> None:
         self.refresh_versions_button.disabled = True
@@ -771,6 +883,33 @@ class McpControlPanel:
         self.start_button.bgcolor = ft.Colors.RED if running else None
         self.start_button.color = ft.Colors.ON_ERROR if running else None
 
+    def _append_server_log(self, message: str) -> None:
+        self.server_log.value += self._decode_unicode_escapes(message)
+        self.page.update()
+
+    @staticmethod
+    def _decode_unicode_escapes(message: str) -> str:
+        return UNICODE_ESCAPE_PATTERN.sub(
+            lambda match: chr(int(match.group()[2:], 16)),
+            message,
+        )
+
+    async def copy_server_log(self, _event) -> None:
+        await self.page.clipboard.set(self.server_log.value)
+
+    def clear_server_log(self, _event) -> None:
+        self.server_log.value = ""
+        self.page.update()
+
+    async def _append_server_log_async(self, message: str) -> None:
+        self._append_server_log(message)
+
+    def _read_server_output(self, process: subprocess.Popen) -> None:
+        if process.stdout is None:
+            return
+        for line in process.stdout:
+            self.page.run_task(self._append_server_log_async, line)
+
     def start(self, _event) -> None:
         if self.server_process is not None and self.server_process.poll() is None:
             return
@@ -778,11 +917,21 @@ class McpControlPanel:
         environment = os.environ.copy()
         if self.debug.value:
             environment["FASTMCP_LOG_LEVEL"] = "DEBUG"
+        self.server_log.value = ""
         self.server_process = subprocess.Popen(  # nosec B603
             [str(command), *self._server_arguments()],
             env=environment,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
             **hidden_window_options(),
         )
+        threading.Thread(
+            target=self._read_server_output,
+            args=(self.server_process,),
+            daemon=True,
+        ).start()
         self.status.value = f"HTTP server running on port {self.http_port.value.strip() or '8080'}"
         self._set_server_button_running(True)
         self.page.update()
@@ -856,6 +1005,14 @@ class McpControlPanel:
             self.status.value = f"Profile installation failed: {error}"
         else:
             self.status.value = f"Installed {len(paths)} profile(s)"
+        self.page.update()
+
+    def _finish_custom_profile(self, paths, error: str | None) -> None:
+        self.custom_profile_button.disabled = False
+        if error:
+            self.status.value = f"Custom profile installation failed: {error}"
+        else:
+            self.status.value = f"Installed {len(paths)} custom profile(s)"
         self.page.update()
 
 

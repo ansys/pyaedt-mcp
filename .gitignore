@@ -123,3 +123,5 @@ temp/
 *.bak
 *batch.log
 desktop_app/.desktop-runtime/
+configs/*
+!configs/test.json

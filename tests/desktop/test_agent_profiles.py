@@ -136,6 +136,25 @@ def test_install_http_and_opencode_profiles_in_custom_folders(tmp_path, agent_pr
     }
 
 
+def test_install_template_profile_merges_into_existing_config(tmp_path, agent_profiles):
+    template_path = tmp_path / "test.json"
+    template_path.write_text((Path(__file__).parents[2] / "configs" / "test.json").read_text())
+    config_path = tmp_path / "mcp.json"
+    config_path.write_text(
+        json.dumps({"mcps": {"other": {"type": "remote", "url": "http://localhost"}}})
+    )
+
+    path = agent_profiles.install_profile_from_template(template_path)
+
+    config = json.loads(path.read_text())
+    assert path == config_path
+    assert config["mcps"]["other"]["url"] == "http://localhost"
+    assert config["mcps"]["pyaedt-mcp-desktop"] == {
+        "type": "remote",
+        "url": "http://127.0.0.1:8080/mcp",
+    }
+
+
 def test_install_profile_uses_an_explicit_configuration_filename(tmp_path, agent_profiles):
     executable = tmp_path / "PyAEDT_MCP.exe"
     configuration_file = tmp_path / "profiles" / "custom-mcp.json"

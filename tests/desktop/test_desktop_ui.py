@@ -21,7 +21,7 @@ import io
 import json
 from pathlib import Path
 import sys
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import flet as ft
 import pytest
@@ -92,6 +92,22 @@ def test_theme_toggle_switches_from_system_to_light_mode(monkeypatch, tmp_path, 
     assert page.update_count > 0
 
 
+@pytest.mark.asyncio
+async def test_bug_report_button_opens_the_project_issue_tracker(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+    page.launch_url = AsyncMock()
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+    header = page.controls[0].controls[0]
+
+    await panel.submit_bug_report(None)
+
+    assert header.controls[1] is panel.bug_report_button
+    assert header.controls[2] is panel.theme_button
+    assert panel.bug_report_button.tooltip == "Report a bug"
+    page.launch_url.assert_awaited_once_with("https://github.com/ansys/pyaedt-mcp/issues")
+
+
 def test_installed_mcp_shows_update_and_enables_start_button(monkeypatch, tmp_path, desktop_ui):
     monkeypatch.setenv("APPDATA", str(tmp_path))
     _, command = desktop_ui.command_paths(tmp_path / ".pyaedt_mcp")
@@ -106,6 +122,45 @@ def test_installed_mcp_shows_update_and_enables_start_button(monkeypatch, tmp_pa
     assert panel.update_button.visible
     assert not panel.start_button.disabled
     assert panel.start_button.content == "Start Server"
+
+
+def test_missing_mcp_environment_shows_the_setup_guide(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+
+    desktop_ui.McpControlPanel(page, load_versions=False)
+
+    assert page.dialog.title.value == "Set up PyAEDT MCP"
+    assert page.dialog.content.controls[0].value == "No managed MCP environment was found."
+    assert (
+        page.dialog.content.controls[-1].value == "Server output appears in the Server log window."
+    )
+
+
+@pytest.mark.asyncio
+async def test_setup_guide_opens_the_desktop_app_documentation(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+    page.launch_url = AsyncMock()
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+
+    await panel.open_desktop_app_documentation(None)
+
+    assert page.dialog.actions[0].content == "View documentation"
+    page.launch_url.assert_awaited_once_with(
+        "https://aedt-mcp.docs.pyansys.com/version/stable/getting_started/desktop_app.html"
+    )
+
+
+def test_status_refresh_does_not_repeat_the_setup_guide(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+    page.dialog = None
+
+    panel.refresh_status()
+
+    assert page.dialog is None
 
 
 def test_running_server_uses_red_stop_button(monkeypatch, tmp_path, desktop_ui):
@@ -223,6 +278,57 @@ def test_profile_controls_include_custom_directories_and_transport(
     assert panel.profile_directories["opencode"].value.endswith("opencode\\opencode.json")
 
 
+def test_detected_coding_agents_are_preselected_at_startup(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path / "AppData"))
+    monkeypatch.setattr(
+        desktop_ui,
+        "installed_coding_agents",
+        lambda: {
+            "copilot": True,
+            "claude_desktop": False,
+            "claude_code": True,
+            "cursor": False,
+            "codex": True,
+            "opencode": False,
+        },
+    )
+
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+
+    assert {name for name, checkbox in panel.profiles.items() if checkbox.value} == {
+        "copilot",
+        "claude_code",
+        "codex",
+    }
+
+
+def test_coding_agent_detection_checks_cli_and_desktop_locations(monkeypatch, tmp_path, desktop_ui):
+    local_appdata = tmp_path / "AppData" / "Local"
+    (local_appdata / "Programs" / "Claude").mkdir(parents=True)
+    (local_appdata / "Programs" / "Claude" / "Claude.exe").touch()
+    (local_appdata / "Programs" / "Cursor").mkdir(parents=True)
+    (local_appdata / "Programs" / "Cursor" / "Cursor.exe").touch()
+    monkeypatch.setenv("LOCALAPPDATA", str(local_appdata))
+    monkeypatch.setattr(
+        desktop_ui.shutil,
+        "which",
+        lambda command: (
+            "C:/tools/agent.exe" if command in {"copilot", "claude", "opencode"} else None
+        ),
+    )
+
+    detected_agents = desktop_ui.installed_coding_agents()
+
+    assert detected_agents == {
+        "copilot": True,
+        "claude_desktop": True,
+        "claude_code": True,
+        "cursor": True,
+        "codex": False,
+        "opencode": True,
+    }
+
+
 def test_profile_controls_use_one_row_per_agent(monkeypatch, tmp_path, desktop_ui):
     monkeypatch.setenv("APPDATA", str(tmp_path / "AppData"))
     panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
@@ -232,6 +338,34 @@ def test_profile_controls_use_one_row_per_agent(monkeypatch, tmp_path, desktop_u
     assert profile_controls[1].controls[0].width == 230
     assert profile_controls[1].controls[1] is panel.profile_directories["copilot"]
     assert profile_controls[6].controls[1] is panel.profile_directories["opencode"]
+    assert profile_controls[7].controls == [panel.profile_button, panel.custom_profile_button]
+
+
+async def test_install_custom_profile_uses_selected_json_template(
+    monkeypatch, tmp_path, desktop_ui
+):
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    template_path = tmp_path / "custom-profile.json"
+    template_path.write_text(
+        json.dumps(
+            {
+                "path": str(tmp_path / "mcp.json"),
+                "mcps": {"custom-server": {"type": "remote", "url": "http://localhost"}},
+            }
+        )
+    )
+    monkeypatch.setattr(
+        panel.folder_picker,
+        "pick_files",
+        AsyncMock(return_value=[Mock(path=str(template_path))]),
+    )
+    paths = []
+    monkeypatch.setattr(panel, "_run_background", lambda action, _complete: paths.extend(action()))
+
+    await panel.install_custom_profile(None)
+
+    assert paths == [tmp_path / "mcp.json"]
+    assert json.loads(paths[0].read_text())["mcps"]["custom-server"]["url"] == "http://localhost"
 
 
 def test_advanced_settings_are_shared_in_a_top_level_tab(monkeypatch, tmp_path, desktop_ui):
@@ -250,6 +384,9 @@ def test_advanced_settings_are_shared_in_a_top_level_tab(monkeypatch, tmp_path, 
     assert connection_settings.tight
     assert advanced_settings.tight
     assert connection_settings.controls[0].controls[0] is panel.machine
+    connection_ports = connection_settings.controls[1].controls
+    assert connection_ports[0].controls[0] is panel.http_port
+    assert connection_ports[1].controls[0] is panel.port
     assert advanced_settings.controls[0].controls[0].controls[0] is panel.connect
     assert advanced_settings.controls[1].controls[0].controls[0] is panel.include_context
     assert advanced_settings.controls[2].controls[0] is panel.debug
@@ -312,3 +449,55 @@ def test_server_arguments_include_http_transport_options(monkeypatch, tmp_path, 
         "--http-port",
         "8080",
     ]
+
+
+def test_server_tab_contains_a_read_only_log_window(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    server_log_section = panel._server_tab().controls[1]
+    server_log_header = server_log_section.content.controls[0]
+
+    assert server_log_header.controls[0].value == "Server log"
+    assert server_log_section.content.controls[1] is panel.server_log
+    assert panel.server_log.read_only
+    assert panel.server_log.multiline
+    assert panel.server_log.bgcolor == "#0B1210"
+    assert panel.server_log.text_style.font_family == "Cascadia Mono"
+    assert server_log_header.controls[2] is panel.copy_log_button
+    assert server_log_header.controls[3] is panel.clear_log_button
+
+
+def test_server_output_is_appended_to_the_log(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+
+    panel._append_server_log("Server \\u2588 started \\U0001f389\n")
+    panel._append_server_log("Ready\n")
+
+    assert panel.server_log.value == "Server █ started 🎉\nReady\n"
+    assert page.update_count > 0
+
+
+def test_log_unicode_decoding_preserves_windows_paths(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+
+    log_line = panel._decode_unicode_escapes(r"C:\Users\demo \u2588")
+
+    assert log_line == "C:\\Users\\demo █"
+
+
+@pytest.mark.asyncio
+async def test_server_log_copy_and_clear_actions(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+    page.clipboard = Mock(set=AsyncMock())
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+    panel.server_log.value = "Server started\n"
+
+    await panel.copy_server_log(None)
+    panel.clear_server_log(None)
+
+    page.clipboard.set.assert_awaited_once_with("Server started\n")
+    assert panel.server_log.value == ""
