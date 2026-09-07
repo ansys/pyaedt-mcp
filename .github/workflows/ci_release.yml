@@ -40,6 +40,32 @@ jobs:
           bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}
           bot-email: ${{ secrets.PYANSYS_CI_BOT_EMAIL }}
 
+  changes:
+    name: "Check changed files"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Needed to checkout the code
+    outputs:
+      code-changed: ${{ steps.changed-files.outputs.code-changed }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: "Check for code changes"
+        id: changed-files
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.before }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$GITHUB_REF" == refs/tags/* ]] || git diff --name-only "$BASE_SHA" "$GITHUB_SHA" | grep -qv '^doc/'; then
+            echo "code-changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code-changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   code-style:
     name: "Code style checks"
     runs-on: ubuntu-latest
@@ -94,7 +120,8 @@ jobs:
   smoke-tests:
     name: "Build and smoke tests"
     runs-on: ${{ matrix.os }}
-    needs: [code-style]
+    needs: [code-style, changes]
+    if: needs.changes.outputs.code-changed == 'true'
     permissions:
       contents: read # Needed to checkout the code
     strategy:
@@ -196,7 +223,8 @@ jobs:
 
   package:
     name: "Package library"
-    needs: [test, build-docs]
+    needs: [changes, test, build-docs]
+    if: always() && needs.build-docs.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       attestations: write # Required to upload provenance attestations
