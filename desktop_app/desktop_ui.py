@@ -210,7 +210,7 @@ class McpControlPanel:
         self.profile_folder_buttons: dict[str, ft.IconButton] = {}
         self.profile_transport = ft.Dropdown(
             label="Profile transport",
-            value="stdio",
+            value="http",
             options=[
                 ft.DropdownOption(key="stdio", text="Stdio"),
                 ft.DropdownOption(key="http", text="HTTP"),
@@ -296,6 +296,7 @@ class McpControlPanel:
         self.page.window.min_width = 620
         self.page.window.min_height = 620
         self.page.window.resizable = False
+        self.page.window.visible = True
         if app_icon_path().is_file():
             self.page.window.icon = str(app_icon_path())
         self.page.window.prevent_close = True
@@ -1087,5 +1088,9 @@ class McpControlPanel:
 
 def launch_gui() -> int:
     """Run the Flet desktop control panel."""
-    ft.run(lambda page: McpControlPanel(page), assets_dir=str(asset_directory()))
+    ft.run(
+        lambda page: McpControlPanel(page),
+        assets_dir=str(asset_directory()),
+        view=ft.AppView.FLET_APP_HIDDEN,
+    )
     return 0

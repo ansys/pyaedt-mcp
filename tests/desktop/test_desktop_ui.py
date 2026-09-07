@@ -75,9 +75,19 @@ def test_control_panel_starts_in_system_theme_mode(monkeypatch, tmp_path, deskto
     assert page.theme_mode == ft.ThemeMode.SYSTEM
     assert page.theme.color_scheme.on_surface == "#171D1D"
     assert not page.window.resizable
+    assert page.window.visible
     assert page.window.icon == str(desktop_ui.app_icon_path())
     assert page.window.icon.endswith("pyaedt_mcp_icon.ico")
     assert panel.theme_button.icon == ft.Icons.DARK_MODE
+
+
+def test_launch_gui_starts_the_native_view_hidden(monkeypatch, desktop_ui):
+    run = Mock()
+    monkeypatch.setattr(desktop_ui.ft, "run", run)
+
+    assert desktop_ui.launch_gui() == 0
+
+    assert run.call_args.kwargs["view"] == ft.AppView.FLET_APP_HIDDEN
 
 
 def test_theme_toggle_switches_from_system_to_light_mode(monkeypatch, tmp_path, desktop_ui):
@@ -256,7 +266,7 @@ def test_profile_controls_include_custom_directories_and_transport(
     monkeypatch.setenv("APPDATA", str(tmp_path / "AppData"))
     panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
 
-    assert panel.profile_transport.value == "stdio"
+    assert panel.profile_transport.value == "http"
     assert set(panel.profile_directories) == {
         "copilot",
         "claude_desktop",
@@ -462,6 +472,7 @@ def test_stdio_profiles_use_the_installed_mcp_command(monkeypatch, tmp_path, des
     _, command = desktop_ui.command_paths(app_directory)
     panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
     panel.profile_directories["copilot"].value = str(tmp_path / "mcp-config.json")
+    panel.profile_transport.value = "stdio"
     panel.connect.value = True
     panel.graphical.value = True
     panel.include_context.value = True
