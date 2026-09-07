@@ -268,14 +268,17 @@ def test_profile_controls_include_custom_directories_and_transport(
     assert panel.profiles["copilot"].label == "Copilot CLI / VS Code"
     assert panel.install_source.value == "release"
     assert not panel.branch_picker.visible
-    assert panel.profile_directories["copilot"].value.endswith(".copilot\\mcp-config.json")
-    assert panel.profile_directories["claude_desktop"].value.endswith(
-        "Claude\\claude_desktop_config.json"
+    home = Path.home()
+    assert Path(panel.profile_directories["copilot"].value) == home / ".copilot" / "mcp-config.json"
+    assert Path(panel.profile_directories["claude_desktop"].value) == (
+        tmp_path / "AppData" / "Claude" / "claude_desktop_config.json"
     )
-    assert panel.profile_directories["claude_code"].value.endswith(".claude.json")
-    assert panel.profile_directories["cursor"].value.endswith(".cursor\\mcp.json")
-    assert panel.profile_directories["codex"].value.endswith(".codex\\config.toml")
-    assert panel.profile_directories["opencode"].value.endswith("opencode\\opencode.json")
+    assert Path(panel.profile_directories["claude_code"].value) == home / ".claude.json"
+    assert Path(panel.profile_directories["cursor"].value) == home / ".cursor" / "mcp.json"
+    assert Path(panel.profile_directories["codex"].value) == home / ".codex" / "config.toml"
+    assert Path(panel.profile_directories["opencode"].value) == (
+        home / ".config" / "opencode" / "opencode.json"
+    )
 
 
 def test_detected_coding_agents_are_preselected_at_startup(monkeypatch, tmp_path, desktop_ui):
