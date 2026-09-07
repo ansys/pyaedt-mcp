@@ -75,6 +75,31 @@ jobs:
           echo "::warning::PyAnsys CI bot is not allowed to trigger this workflow in pre-commit-ci bot's PR. Please review carefully the changes before running the workflow manually."
           exit 1
 
+  changes:
+    name: "Check changed files"
+    needs: [block-pyansys-ci-bot]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Needed to checkout the code
+    outputs:
+      code-changed: ${{ steps.changed-files.outputs.code-changed }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: "Check for code changes"
+        id: changed-files
+        shell: bash
+        run: |
+          if git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" | grep -qv '^doc/'; then
+            echo "code-changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code-changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   code-style:
     name: "Code style checks"
     needs: [block-pyansys-ci-bot]
@@ -147,7 +172,8 @@ jobs:
   smoke-tests:
     name: "Build and smoke tests"
     runs-on: ${{ matrix.os }}
-    needs: [code-style]
+    needs: [code-style, changes]
+    if: needs.changes.outputs.code-changed == 'true'
     permissions:
       contents: read # Needed to checkout the code
     strategy:
