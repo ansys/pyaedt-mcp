@@ -303,6 +303,56 @@ def test_detected_coding_agents_are_preselected_at_startup(monkeypatch, tmp_path
         "claude_code",
         "codex",
     }
+    assert panel.profiles["claude_desktop"].disabled
+    assert panel.profiles["cursor"].disabled
+    assert panel.profile_directories["claude_desktop"].disabled
+    assert panel.profile_directories["cursor"].disabled
+
+
+def test_refresh_coding_agents_updates_profile_availability(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path / "AppData"))
+    page = FakePage()
+    profiles = ("copilot", "claude_desktop", "claude_code", "cursor", "codex", "opencode")
+    monkeypatch.setattr(
+        desktop_ui, "installed_coding_agents", lambda: dict.fromkeys(profiles, False)
+    )
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+    panel._agents_tab()
+    monkeypatch.setattr(
+        desktop_ui, "installed_coding_agents", lambda: dict.fromkeys(profiles, True)
+    )
+
+    panel.refresh_coding_agents(None)
+
+    assert all(checkbox.value and not checkbox.disabled for checkbox in panel.profiles.values())
+    assert all(not field.disabled for field in panel.profile_directories.values())
+    assert all(not button.disabled for button in panel.profile_folder_buttons.values())
+    assert panel.status.value == "Coding-agent availability refreshed"
+
+
+@pytest.mark.asyncio
+async def test_profile_folder_picker_uses_an_existing_parent_directory(
+    monkeypatch, tmp_path, desktop_ui
+):
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    panel.profile_directories["copilot"].value = str(tmp_path / "missing" / "mcp-config.json")
+    get_directory_path = AsyncMock(return_value=None)
+    monkeypatch.setattr(panel.folder_picker, "get_directory_path", get_directory_path)
+
+    await panel._choose_profile_folder("copilot")
+
+    assert get_directory_path.call_args.kwargs["initial_directory"] == str(tmp_path)
+
+
+def test_profile_installation_shows_confirmation_snackbar(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path / "AppData"))
+    page = FakePage()
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+
+    panel._finish_profiles([tmp_path / "mcp.json"], None)
+
+    assert isinstance(page.dialog, ft.SnackBar)
+    assert page.dialog.content.value == "Installed 1 coding-agent profile(s)"
 
 
 def test_coding_agent_detection_checks_cli_and_desktop_locations(monkeypatch, tmp_path, desktop_ui):

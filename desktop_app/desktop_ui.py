@@ -134,41 +134,80 @@ class McpControlPanel:
         self.include_context = ft.Checkbox(label="Guidance tools")
         self.dynamic_tools = ft.Checkbox(label="Dynamic tools")
         self.debug = ft.Checkbox(label="Debug logging")
-        detected_agents = installed_coding_agents()
+        self.detected_agents = installed_coding_agents()
         self.profiles = {
-            "copilot": ft.Checkbox(label="Copilot CLI / VS Code", value=detected_agents["copilot"]),
-            "claude_desktop": ft.Checkbox(
-                label="Claude Desktop", value=detected_agents["claude_desktop"]
+            "copilot": ft.Checkbox(
+                label="Copilot CLI / VS Code",
+                value=self.detected_agents["copilot"],
+                disabled=not self.detected_agents["copilot"],
             ),
-            "claude_code": ft.Checkbox(label="Claude Code", value=detected_agents["claude_code"]),
-            "cursor": ft.Checkbox(label="Cursor", value=detected_agents["cursor"]),
-            "codex": ft.Checkbox(label="Codex", value=detected_agents["codex"]),
-            "opencode": ft.Checkbox(label="OpenCode", value=detected_agents["opencode"]),
+            "claude_desktop": ft.Checkbox(
+                label="Claude Desktop",
+                value=self.detected_agents["claude_desktop"],
+                disabled=not self.detected_agents["claude_desktop"],
+            ),
+            "claude_code": ft.Checkbox(
+                label="Claude Code",
+                value=self.detected_agents["claude_code"],
+                disabled=not self.detected_agents["claude_code"],
+            ),
+            "cursor": ft.Checkbox(
+                label="Cursor",
+                value=self.detected_agents["cursor"],
+                disabled=not self.detected_agents["cursor"],
+            ),
+            "codex": ft.Checkbox(
+                label="Codex",
+                value=self.detected_agents["codex"],
+                disabled=not self.detected_agents["codex"],
+            ),
+            "opencode": ft.Checkbox(
+                label="OpenCode",
+                value=self.detected_agents["opencode"],
+                disabled=not self.detected_agents["opencode"],
+            ),
         }
         home = Path.home()
         appdata = Path(os.environ.get("APPDATA", home / "AppData" / "Roaming"))
         self.profile_directories = {
             "copilot": ft.TextField(
-                value=str(home / ".copilot" / "mcp-config.json"), dense=True, expand=True
+                value=str(home / ".copilot" / "mcp-config.json"),
+                dense=True,
+                disabled=not self.detected_agents["copilot"],
+                expand=True,
             ),
             "claude_desktop": ft.TextField(
                 value=str(appdata / "Claude" / "claude_desktop_config.json"),
                 dense=True,
+                disabled=not self.detected_agents["claude_desktop"],
                 expand=True,
             ),
-            "claude_code": ft.TextField(value=str(home / ".claude.json"), dense=True, expand=True),
+            "claude_code": ft.TextField(
+                value=str(home / ".claude.json"),
+                dense=True,
+                disabled=not self.detected_agents["claude_code"],
+                expand=True,
+            ),
             "cursor": ft.TextField(
-                value=str(home / ".cursor" / "mcp.json"), dense=True, expand=True
+                value=str(home / ".cursor" / "mcp.json"),
+                dense=True,
+                disabled=not self.detected_agents["cursor"],
+                expand=True,
             ),
             "codex": ft.TextField(
-                value=str(home / ".codex" / "config.toml"), dense=True, expand=True
+                value=str(home / ".codex" / "config.toml"),
+                dense=True,
+                disabled=not self.detected_agents["codex"],
+                expand=True,
             ),
             "opencode": ft.TextField(
                 value=str(home / ".config" / "opencode" / "opencode.json"),
                 dense=True,
+                disabled=not self.detected_agents["opencode"],
                 expand=True,
             ),
         }
+        self.profile_folder_buttons: dict[str, ft.IconButton] = {}
         self.profile_transport = ft.Dropdown(
             label="Profile transport",
             value="stdio",
@@ -225,6 +264,11 @@ class McpControlPanel:
         )
         self.profile_button = ft.OutlinedButton(
             "Install profiles", icon=ft.Icons.SETTINGS, on_click=self.install_profiles
+        )
+        self.refresh_profiles_button = ft.IconButton(
+            ft.Icons.REFRESH,
+            tooltip="Refresh coding-agent availability",
+            on_click=self.refresh_coding_agents,
         )
         self.custom_profile_button = ft.OutlinedButton(
             "Install custom profile",
@@ -431,24 +475,30 @@ class McpControlPanel:
         async def choose_folder(_event) -> None:
             await self._choose_profile_folder(profile)
 
+        folder_button = ft.IconButton(
+            ft.Icons.FOLDER_OPEN,
+            tooltip="Choose configuration folder",
+            on_click=choose_folder,
+            disabled=not self.detected_agents[profile],
+        )
+        self.profile_folder_buttons[profile] = folder_button
         return ft.Row(
             [
                 ft.Container(content=self._profile_option(profile, title, message), width=230),
                 self.profile_directories[profile],
-                ft.IconButton(
-                    ft.Icons.FOLDER_OPEN,
-                    tooltip="Choose configuration folder",
-                    on_click=choose_folder,
-                ),
+                folder_button,
             ],
             spacing=4,
         )
 
     async def _choose_profile_folder(self, profile: str) -> None:
         current_path = Path(self.profile_directories[profile].value)
+        initial_directory = current_path.parent if current_path.suffix else current_path
+        while not initial_directory.is_dir() and initial_directory != initial_directory.parent:
+            initial_directory = initial_directory.parent
         selected_directory = await self.folder_picker.get_directory_path(
             dialog_title=f"Choose {self.profiles[profile].label} configuration folder",
-            initial_directory=str(current_path.parent if current_path.suffix else current_path),
+            initial_directory=str(initial_directory),
         )
         if selected_directory:
             self.profile_directories[profile].value = selected_directory
@@ -703,6 +753,7 @@ class McpControlPanel:
                         ],
                         spacing=4,
                     ),
+                    header_actions=[self.refresh_profiles_button],
                 )
             ],
             scroll=ft.ScrollMode.AUTO,
@@ -768,6 +819,17 @@ class McpControlPanel:
         self.page.update()
         if show_setup_guide and not installed:
             self._show_setup_guide()
+
+    def refresh_coding_agents(self, _event) -> None:
+        self.detected_agents = installed_coding_agents()
+        for profile, checkbox in self.profiles.items():
+            checkbox.disabled = not self.detected_agents[profile]
+            checkbox.value = self.detected_agents[profile]
+            self.profile_directories[profile].disabled = not self.detected_agents[profile]
+            if folder_button := self.profile_folder_buttons.get(profile):
+                folder_button.disabled = not self.detected_agents[profile]
+        self.status.value = "Coding-agent availability refreshed"
+        self.page.update()
 
     def load_versions(self, _event) -> None:
         self.refresh_versions_button.disabled = True
@@ -1009,6 +1071,9 @@ class McpControlPanel:
             self.status.value = f"Profile installation failed: {error}"
         else:
             self.status.value = f"Installed {len(paths)} profile(s)"
+            self.page.show_dialog(
+                ft.SnackBar(content=ft.Text(f"Installed {len(paths)} coding-agent profile(s)"))
+            )
         self.page.update()
 
     def _finish_custom_profile(self, paths, error: str | None) -> None:

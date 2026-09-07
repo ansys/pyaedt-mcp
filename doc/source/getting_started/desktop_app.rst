@@ -30,12 +30,9 @@ HTTP transport. The **Server log** window displays standard output and errors
 from the MCP server that the desktop app launches. Use it to confirm startup,
 inspect debug output, and diagnose a server that exits unexpectedly.
 
-Screenshot placeholder
-^^^^^^^^^^^^^^^^^^^^^^
-
-``Server tab with installation controls and server log``
-
-Add the image at ``doc/source/_static/images/desktop_app/server-tab.png``.
+.. image:: ../_static/images/desktop_app/server-tab.png
+	:alt: PyAEDT MCP desktop app Server tab
+	:align: center
 
 System tray
 -----------
@@ -44,30 +41,53 @@ System tray
 
 	Closing the application window keeps PyAEDT MCP running in the Windows
 	system tray. To exit the desktop app completely, right-click the PyAEDT MCP
-	tray icon and select **Exit**. The tray menu also provides actions to open
-	the window and start or stop the HTTP server.
+	tray icon and select **Exit**.
 
-Screenshot placeholder
-^^^^^^^^^^^^^^^^^^^^^^
+The tray menu provides the following actions:
 
-``PyAEDT MCP system-tray icon and context menu``
+* **Open window** restores the control panel after it has been hidden.
+* **Start Server** starts the local HTTP server with the current settings on
+  the **Advanced** tab.
+* **Stop Server** stops the HTTP server that was started by the desktop app.
+* **Exit** stops the local HTTP server, removes the tray icon, and closes the
+  desktop app.
 
-Add the image at ``doc/source/_static/images/desktop_app/system-tray-menu.png``.
+Settings are retained while the window is hidden. Closing the window does not
+stop a running server; use **Stop Server** or **Exit** from the tray menu when
+the server is no longer needed.
+
+.. image:: ../_static/images/desktop_app/system-tray-menu.png
+	:alt: PyAEDT MCP system tray menu
+	:align: center
 
 Advanced tab
 ------------
 
-Use **AEDT connection** to supply the HTTP port and the gRPC port for an AEDT
-session. Select **Connect on start** to connect PyAEDT MCP to that session when
-the HTTP server starts. The remaining controls configure graphical AEDT,
-guidance tools, dynamic tool discovery, and debug logging.
+The desktop app starts the server with ``--transport http`` and
+``--http-host 127.0.0.1``. Use **AEDT connection** and **MCP options** to
+configure the remaining server arguments:
 
-Screenshot placeholder
-^^^^^^^^^^^^^^^^^^^^^^
+* **HTTP port** sets ``--http-port``. The default is ``8080``.
+* **AEDT host** and **gRPC port** provide the values for ``--machine`` and
+	``--port`` when **Connect on start** is selected.
+* **Connect on start** adds ``--connect``. The server then connects to the
+	configured AEDT session at startup and locks that connection for its
+	lifetime.
+* **Graphical AEDT** adds ``--graphical``. Leave it unselected to use the
+	default non-graphical AEDT mode.
+* **Guidance tools** adds ``--include-context`` to register the optional AEDT
+	and PyAEDT workflow guidance tools.
+* **Dynamic tools** adds ``--dynamic-tool-discovery`` to hide AEDT-only tools
+	until the server has an AEDT connection.
+* **Debug logging** sets ``FASTMCP_LOG_LEVEL=DEBUG`` for the server process.
 
-``Advanced tab with HTTP and gRPC connection ports``
+For the full list of command-line server options, including ``--version`` and
+the HTTP CORS settings that are not exposed by the desktop app, see
+:ref:`Advanced configuration <ref_ide_configuration>`.
 
-Add the image at ``doc/source/_static/images/desktop_app/advanced-tab.png``.
+.. image:: ../_static/images/desktop_app/advanced-tab.png
+	:alt: PyAEDT MCP desktop app Advanced tab
+	:align: center
 
 Coding agents tab
 -----------------
@@ -77,9 +97,6 @@ the profile transport, and confirm the configuration file path for each agent.
 Select **Install profiles** to write the selected configuration files. Use
 **HTTP** only after starting the local HTTP server.
 
-Screenshot placeholder
-^^^^^^^^^^^^^^^^^^^^^^
-
-``Coding agents tab with selected profiles and HTTP transport``
-
-Add the image at ``doc/source/_static/images/desktop_app/coding-agents-tab.png``.
+.. image:: ../_static/images/desktop_app/coding-agents-tab.png
+	:alt: PyAEDT MCP desktop app Coding agents tab
+	:align: center
