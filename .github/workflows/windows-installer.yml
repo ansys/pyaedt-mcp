@@ -1,22 +1,26 @@
 name: Build Windows MCP Installer
 
 on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, ready_for_review]
   release:
     types:
       - published
 
 concurrency:
-  group: release-windows-installer-${{ github.event.release.id }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.release.id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions: {}
 
 jobs:
   build-windows-installer:
-    name: Build and upload Windows installer
+    name: Build Windows installer
     runs-on: windows-latest
     permissions:
-      contents: write # Needed to upload the Windows executable to the release
+      contents: write # Needed to upload the Windows installer to a release
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,17 +44,27 @@ jobs:
         shell: pwsh
         run: uv run --no-sync flet pack .\desktop_app\desktop_launcher.py --name PyAEDT_MCP --icon .\desktop_app\assets\pyaedt_mcp_icon.ico --add-data .\desktop_app\.desktop-runtime:runtime --add-data .\desktop_app\assets:assets --yes
 
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: PyAEDT_MCP-windows
+          path: dist/PyAEDT_MCP.exe
+          if-no-files-found: error
+
       - name: Install NSIS
+        if: github.event_name == 'release'
         shell: pwsh
         run: choco install nsis -y
 
       - name: Build installer
+        if: github.event_name == 'release'
         shell: pwsh
         env:
           PRODUCT_VERSION: ${{ github.event.release.tag_name }}
         run: .\scripts\build_windows_installer.ps1 -SkipRuntimeStaging -SkipExecutableBuild -Version $env:PRODUCT_VERSION.TrimStart('v')
 
       - name: Upload installer to release
+        if: github.event_name == 'release'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

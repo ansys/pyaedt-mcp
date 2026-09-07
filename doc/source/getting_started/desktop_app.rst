@@ -11,7 +11,11 @@ First launch
 ------------
 
 When the managed environment has not been installed, the app opens a setup
-guide. On the **Server** tab, choose an install source and MCP version, then
+guide. We refer as managed environment the virtual environment that the PyAEDT
+MCP desktop app creates for installing and running the managed MCP environment.
+By default, this environment will be available in `%APPDATA%\\.pyaedt_mcp`.
+
+On the **Server** tab, choose an install source and MCP version, then
 select **Install MCP**. After installation, the app enables **Start Server**.
 
 Use the **Update MCP** button to update an existing managed environment. Choose
