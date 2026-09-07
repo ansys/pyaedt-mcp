@@ -57,8 +57,10 @@ jobs:
       - name: "Check for code changes"
         id: changed-files
         shell: bash
+        env:
+          BASE_SHA: ${{ github.event.before }}
         run: |
-          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.ref }}" == refs/tags/* ]] || git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -qv '^doc/'; then
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$GITHUB_REF" == refs/tags/* ]] || git diff --name-only "$BASE_SHA" "$GITHUB_SHA" | grep -qv '^doc/'; then
             echo "code-changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "code-changed=false" >> "$GITHUB_OUTPUT"

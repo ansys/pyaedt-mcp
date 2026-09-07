@@ -93,8 +93,10 @@ jobs:
       - name: "Check for code changes"
         id: changed-files
         shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          if git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" | grep -qv '^doc/'; then
+          if git diff --name-only "$BASE_SHA" "$GITHUB_SHA" | grep -qv '^doc/'; then
             echo "code-changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "code-changed=false" >> "$GITHUB_OUTPUT"
