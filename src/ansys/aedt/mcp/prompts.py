@@ -52,7 +52,8 @@ you can plan workflows before connecting.
    between `launch_aedt` and `connect_to_aedt`.)
 - `launch_aedt`: Start a new AEDT session.
 - `connect_to_aedt`: Connect to an already-running AEDT instance.
-- `get_pyaedt_logs`: Read the local PyAEDT log file.
+- `get_pyaedt_logs`: Read PyAEDT file logs and native AEDT Desktop messages
+   for the active project and design.
 
 **Also visible from startup, but callable only after AEDT is connected:**
 
@@ -89,10 +90,13 @@ you can plan workflows before connecting.
 5. When the user asks to build, modify, or troubleshoot a specific design,
    call `validate_design` programmatically after design changes and before
    calling `analyze_design`.
-6. Before code intended for `run_python_code`, include
+6. Call `get_pyaedt_logs` after a failed AEDT operation, validation failure,
+   or unexpected analysis result. Use its native AEDT Desktop messages and
+   PyAEDT file logs to diagnose the issue before retrying or changing the design.
+7. Before code intended for `run_python_code`, include
    `from ansys.aedt.core import settings`, set `settings.release_on_exception = False`
    and `settings.pyedb_use_grpc = True`.
-7. Use the correct PyAEDT app class for the solver: `Hfss`, `Maxwell3d`, `Maxwell2d`,
+8. Use the correct PyAEDT app class for the solver: `Hfss`, `Maxwell3d`, `Maxwell2d`,
    `Icepak`, `Circuit`, `Q3d`, `Q2d`, `TwinBuilder`, `Mechanical`, `Emit`, `RMXprt`,
    `Hfss3dLayout`.
 """
@@ -119,7 +123,8 @@ call depends on whether an AEDT session is connected.
    between `launch_aedt` and `connect_to_aedt`.)
 - `launch_aedt`: Start a new AEDT session.
 - `connect_to_aedt`: Connect to an already-running AEDT instance.
-- `get_pyaedt_logs`: Read the local PyAEDT log file.
+- `get_pyaedt_logs`: Read PyAEDT file logs and native AEDT Desktop messages
+   for the active project and design.
 
 **Unlocked automatically once `launch_aedt` or `connect_to_aedt` succeeds:**
 
@@ -161,10 +166,13 @@ call depends on whether an AEDT session is connected.
 5. When the user asks to build, modify, or troubleshoot a specific design,
    call `validate_design` programmatically after design changes and before
    calling `analyze_design`.
-6. Before code intended for `run_python_code`, include
+6. Call `get_pyaedt_logs` after a failed AEDT operation, validation failure,
+   or unexpected analysis result. Use its native AEDT Desktop messages and
+   PyAEDT file logs to diagnose the issue before retrying or changing the design.
+7. Before code intended for `run_python_code`, include
    `from ansys.aedt.core import settings`, set `settings.release_on_exception = False`
    and `settings.pyedb_use_grpc = True`.
-7. Use the correct PyAEDT app class for the solver: `Hfss`, `Maxwell3d`, `Maxwell2d`,
+8. Use the correct PyAEDT app class for the solver: `Hfss`, `Maxwell3d`, `Maxwell2d`,
    `Icepak`, `Circuit`, `Q3d`, `Q2d`, `TwinBuilder`, `Mechanical`, `Emit`, `RMXprt`,
    `Hfss3dLayout`.
 """

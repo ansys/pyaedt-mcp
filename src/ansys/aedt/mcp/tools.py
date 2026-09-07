@@ -228,6 +228,21 @@ def _resolve_pyaedt_log_file() -> str | None:
     return None
 
 
+def _get_native_aedt_messages(desktop: Any) -> dict[str, Any]:
+    """Return native AEDT info and error messages for the active design."""
+    from ansys.aedt.core import get_pyaedt_app
+
+    aedt_app = get_pyaedt_app(desktop=desktop)
+    project_name = aedt_app.project_name
+    design_name = aedt_app.design_name
+    return {
+        "project": project_name,
+        "design": design_name,
+        "info_messages": list(aedt_app.odesktop.GetMessages(project_name, design_name, 0)),
+        "error_messages": list(aedt_app.odesktop.GetMessages(project_name, design_name, 2)),
+    }
+
+
 # AEDT Application types supported
 AEDTAppType = Literal[
     "Hfss",
@@ -338,11 +353,12 @@ def get_pyaedt_logs(
     contains: str | None = None,
     max_chars: int = 40000,
 ) -> str:
-    """Return recent entries from the PyAEDT global logger.
+    """Return recent PyAEDT file logs and native AEDT Desktop messages.
 
     This tool reads the active PyAEDT global log file and returns a tail view
-    of the log contents. Optionally filter lines using a case-insensitive
-    substring.
+    of its contents. When AEDT is connected, it also retrieves native info and
+    error messages for the active project and design. Optionally filter file
+    log lines using a case-insensitive substring.
 
     Parameters
     ----------
@@ -353,15 +369,14 @@ def get_pyaedt_logs(
     contains : str, default: None
         Case-insensitive substring used to filter log lines.
     max_chars : int, default: 40000
-        Hard cap for returned log text length.
+        Hard cap for returned file-log text length.
 
     Returns
     -------
     str
-        JSON string with log metadata and selected log text.
+        JSON string with file-log metadata, selected file-log text, and native
+        AEDT messages when an active AEDT design is available.
     """
-    del ctx  # tool does not require an active AEDT connection
-
     if tail_lines <= 0:
         return "Invalid parameter: tail_lines must be greater than 0."
     if max_chars <= 0:
@@ -372,39 +387,59 @@ def get_pyaedt_logs(
 
     try:
         log_file = _resolve_pyaedt_log_file()
-        if log_file is None:
-            return (
+        payload: dict[str, Any] = {
+            "log_file": log_file,
+            "contains": contains,
+            "total_lines": 0,
+            "matched_lines": 0,
+            "returned_lines": 0,
+            "tail_lines_requested": tail_lines,
+            "max_chars_requested": max_chars,
+            "truncated": False,
+            "logs": "",
+            "native_messages": None,
+        }
+
+        if log_file is not None:
+            with Path(log_file).open("r", encoding="utf-8", errors="replace") as file_handle:
+                all_lines = file_handle.readlines()
+
+            filtered_lines = all_lines
+            if contains:
+                filter_token = contains.lower()
+                filtered_lines = [line for line in all_lines if filter_token in line.lower()]
+
+            selected_lines = filtered_lines[-safe_tail_lines:]
+            log_text = "".join(selected_lines)
+
+            if len(log_text) > safe_max_chars:
+                log_text = log_text[-safe_max_chars:]
+                payload["truncated"] = True
+
+            payload.update(
+                {
+                    "total_lines": len(all_lines),
+                    "matched_lines": len(filtered_lines),
+                    "returned_lines": len(selected_lines),
+                    "logs": log_text,
+                }
+            )
+        else:
+            payload["file_log_error"] = (
                 "PyAEDT global log file could not be resolved. "
                 "Run a PyAEDT operation first to initialize the logger."
             )
 
-        with Path(log_file).open("r", encoding="utf-8", errors="replace") as file_handle:
-            all_lines = file_handle.readlines()
+        desktop = ctx.request_context.lifespan_context.desktop
+        if desktop is not None:
+            try:
+                payload["native_messages"] = _get_native_aedt_messages(desktop)
+            except Exception as exc:
+                payload["native_messages_error"] = f"Error reading native AEDT messages: {exc}"
 
-        filtered_lines = all_lines
-        if contains:
-            filter_token = contains.lower()
-            filtered_lines = [line for line in all_lines if filter_token in line.lower()]
+        if log_file is None and desktop is None:
+            return payload["file_log_error"]
 
-        selected_lines = filtered_lines[-safe_tail_lines:]
-        log_text = "".join(selected_lines)
-
-        truncated = False
-        if len(log_text) > safe_max_chars:
-            log_text = log_text[-safe_max_chars:]
-            truncated = True
-
-        payload = {
-            "log_file": log_file,
-            "contains": contains,
-            "total_lines": len(all_lines),
-            "matched_lines": len(filtered_lines),
-            "returned_lines": len(selected_lines),
-            "tail_lines_requested": tail_lines,
-            "max_chars_requested": max_chars,
-            "truncated": truncated,
-            "logs": log_text,
-        }
         return json.dumps(payload, indent=2)
 
     except Exception as e:
