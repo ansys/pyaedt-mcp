@@ -39,8 +39,9 @@ def desktop_launcher():
 def test_application_directory_uses_appdata(monkeypatch, desktop_launcher):
     monkeypatch.setenv("APPDATA", r"C:\Users\example\AppData\Roaming")
 
-    assert desktop_launcher.application_directory() == Path(
-        r"C:\Users\example\AppData\Roaming\.pyaedt_mcp"
+    assert (
+        desktop_launcher.application_directory()
+        == Path(r"C:\Users\example\AppData\Roaming") / ".pyaedt_mcp"
     )
 
 
@@ -74,8 +75,11 @@ def test_setup_environment_creates_venv_and_installs_package(
     assert commands[1][0][1:3] == ["pip", "install"]
     assert commands[1][0][-1] == "ansys-aedt-mcp"
     assert commands[0][1]["env"]["UV_NO_MANAGED_PYTHON"] == "1"
-    assert commands[0][1]["creationflags"] == desktop_launcher.subprocess.CREATE_NO_WINDOW
-    assert commands[1][1]["creationflags"] == desktop_launcher.subprocess.CREATE_NO_WINDOW
+    assert commands[0][1]["check"] is True
+    assert commands[1][1]["check"] is True
+    for key, value in desktop_launcher.hidden_window_options().items():
+        assert commands[0][1][key] == value
+        assert commands[1][1][key] == value
 
 
 def test_setup_environment_reuses_existing_command(monkeypatch, tmp_path, desktop_launcher):

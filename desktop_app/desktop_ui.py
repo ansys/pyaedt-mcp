@@ -9,6 +9,7 @@ import shutil
 import subprocess  # nosec B404
 import sys
 import threading
+from typing import Any
 from urllib.request import urlopen
 
 from agent_profiles import (
@@ -31,7 +32,6 @@ from desktop_launcher import (
 import flet as ft
 from packaging.version import Version
 from PIL import Image
-import pystray
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/ansys-aedt-mcp/json"
 GITHUB_BRANCHES_URL = "https://api.github.com/repos/ansys/pyaedt-mcp/branches?per_page=100"
@@ -92,13 +92,13 @@ def installed_coding_agents() -> dict[str, bool]:
 class McpControlPanel:
     """Display setup state, server settings, and coding-agent profile actions."""
 
-    _active_tray_icon: pystray.Icon | None = None
+    _active_tray_icon: Any = None
     _tray_lock = threading.Lock()
 
     def __init__(self, page: ft.Page, *, load_versions: bool = True) -> None:
         self.page = page
         self.server_process: subprocess.Popen | None = None
-        self.tray_icon: pystray.Icon | None = None
+        self.tray_icon: Any = None
         self.status = ft.Text(
             "Checking the local environment...", color=ft.Colors.ON_SURFACE_VARIANT
         )
@@ -287,6 +287,10 @@ class McpControlPanel:
         self._update_theme_button()
 
     def _configure_tray(self) -> None:
+        if os.name != "nt":
+            return
+        import pystray
+
         with self._tray_lock:
             active_tray_icon = type(self)._active_tray_icon
             if active_tray_icon is not None:
