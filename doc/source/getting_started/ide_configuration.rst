@@ -69,9 +69,19 @@ Transport configurations
          uv pip install .
          .venv/bin/ansys-aedt-mcp --transport http --http-host 127.0.0.1 --http-port 8080
 
-      Or run the server directly with ``uvx`` without cloning the repository:
+      Or run the server directly with ``uvx`` without cloning the repository.
 
-      .. code-block:: console
+      **Windows PowerShell**
+
+      .. code-block:: powershell
+
+         uvx --index-strategy unsafe-best-match `
+           --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp `
+           --transport http --http-host 127.0.0.1 --http-port 8080
+
+      **macOS or Linux**
+
+      .. code-block:: bash
 
          uvx --index-strategy unsafe-best-match \
            --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp \
