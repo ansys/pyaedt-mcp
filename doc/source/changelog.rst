@@ -9,6 +9,89 @@ This section contains the release notes for PyAEDT-MCP.
 
 .. towncrier release notes start
 
+`0.2.0 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.2.0>`_ - September 08, 2026
+=======================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Added
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Added desktop manager
+          - `#89 <https://github.com/ansys/pyaedt-mcp/pull/89>`_
+
+        * - Added validation check
+          - `#91 <https://github.com/ansys/pyaedt-mcp/pull/91>`_
+
+        * - Add desktop app logs to the tool
+          - `#98 <https://github.com/ansys/pyaedt-mcp/pull/98>`_
+
+
+  .. tab-item:: Fixed
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Improved screenshot tool
+          - `#88 <https://github.com/ansys/pyaedt-mcp/pull/88>`_
+
+
+  .. tab-item:: Documentation
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Improved docs
+          - `#96 <https://github.com/ansys/pyaedt-mcp/pull/96>`_
+
+
+  .. tab-item:: Dependencies
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Bump the pre-commit group with 2 updates
+          - `#92 <https://github.com/ansys/pyaedt-mcp/pull/92>`_
+
+        * - Bump the pip-deps group with 2 updates
+          - `#93 <https://github.com/ansys/pyaedt-mcp/pull/93>`_
+
+        * - Bump astral-sh/setup-uv from 10.0.0 to 10.0.1 in the actions group
+          - `#94 <https://github.com/ansys/pyaedt-mcp/pull/94>`_
+
+        * - Bump sphinx-autodoc-typehints from 3.13.2 to 3.13.4 in the pip-deps group
+          - `#101 <https://github.com/ansys/pyaedt-mcp/pull/101>`_
+
+        * - Bump https://github.com/astral-sh/ruff-pre-commit from v0.16.3 to 0.16.4 in the pre-commit group
+          - `#102 <https://github.com/ansys/pyaedt-mcp/pull/102>`_
+
+        * - Bump the actions group with 15 updates
+          - `#103 <https://github.com/ansys/pyaedt-mcp/pull/103>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update CHANGELOG for v0.1.4
+          - `#86 <https://github.com/ansys/pyaedt-mcp/pull/86>`_
+
+        * - Improvements and separate workflows
+          - `#105 <https://github.com/ansys/pyaedt-mcp/pull/105>`_
+
+        * - Skip tests if only docs were modified
+          - `#106 <https://github.com/ansys/pyaedt-mcp/pull/106>`_
+
+
 `0.1.4 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.1.4>`_ - August 20, 2026
 ====================================================================================
 
