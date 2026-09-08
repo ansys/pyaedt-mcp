@@ -17,14 +17,22 @@ AEDT workflow.
 
         Install PyAEDT-MCP.
 
+    .. grid-item-card:: :fa:`desktop`  Desktop app
+        :link: desktop_app
+        :link-type: doc
+
+        Install, run, and configure PyAEDT-MCP from the Windows desktop app.
+
     .. grid-item-card:: :fa:`cogs`  IDE and client configuration
         :link: ide_configuration
         :link-type: doc
 
         Configure your IDE and client to use PyAEDT-MCP.
 
+
 .. toctree::
    :hidden:
 
    installation
+   desktop_app
    ide_configuration
