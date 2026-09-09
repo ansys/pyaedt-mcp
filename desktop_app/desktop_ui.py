@@ -168,19 +168,13 @@ class McpControlPanel:
         self.machine = ft.TextField(label="AEDT host", value="localhost", dense=True, expand=True)
         self.port = ft.TextField(label="gRPC port", value="50051", dense=True, width=105)
         self.http_port = ft.TextField(label="HTTP port", value="8080", dense=True, width=105)
-        self.server_log = ft.TextField(
-            value="",
-            multiline=True,
-            min_lines=12,
-            max_lines=12,
-            read_only=True,
+        self.server_log_text = ""
+        self.server_log = ft.ListView(
+            spacing=0,
+            padding=8,
+            auto_scroll=False,
+            build_controls_on_demand=False,
             expand=True,
-            bgcolor="#0B1210",
-            color="#D4E4D8",
-            border_color="#385347",
-            focused_border_color="#7BD9D4",
-            border_radius=4,
-            text_style=ft.TextStyle(font_family="Cascadia Mono", size=12),
         )
         self.server_log_expanded = False
         self.server_log_container: ft.Container | None = None
@@ -672,6 +666,10 @@ class McpControlPanel:
             content=self.server_log,
             visible=False,  # Start collapsed
             padding=ft.Padding(left=0, top=8, right=0, bottom=0),
+            height=220,
+            bgcolor="#0B1210",
+            border=ft.Border.all(1, "#385347"),
+            border_radius=4,
         )
 
         self.log_expand_icon = ft.Icon(
@@ -1227,8 +1225,17 @@ class McpControlPanel:
         """Process a log message synchronously (no page.update - caller handles that)."""
         decoded_message = self._decode_unicode_escapes(message)
 
-        # Always add to full log (for copy/debug purposes)
-        self.server_log.value += decoded_message
+        # Keep the text buffer for copying while rendering each update in a scrollable list.
+        self.server_log_text += decoded_message
+        self.server_log.controls.append(
+            ft.Text(
+                decoded_message.rstrip("\n"),
+                color="#D4E4D8",
+                font_family="Cascadia Mono",
+                size=12,
+                selectable=True,
+            )
+        )
 
         # Check for Uvicorn ready (non-MCP format)
         if SERVER_READY_PATTERN.search(decoded_message):
@@ -1277,15 +1284,17 @@ class McpControlPanel:
         )
 
     async def copy_server_log(self, _event) -> None:
-        await self.page.clipboard.set(self.server_log.value)
+        await self.page.clipboard.set(self.server_log_text)
 
     def scroll_to_latest_log(self, _event) -> None:
-        latest_offset = len(self.server_log.value)
-        self.server_log.selection = ft.TextSelection(latest_offset, latest_offset)
-        self.page.run_task(self.server_log.focus)
+        self.page.run_task(self._scroll_to_latest_log)
+
+    async def _scroll_to_latest_log(self) -> None:
+        await self.server_log.scroll_to(offset=-1)
 
     def clear_server_log(self, _event) -> None:
-        self.server_log.value = ""
+        self.server_log_text = ""
+        self.server_log.controls.clear()
         self._mcp_message_buffer = ""
         # Reset activity but keep current state
         self._current_activity = None
@@ -1310,7 +1319,8 @@ class McpControlPanel:
         environment = os.environ.copy()
         if self.debug.value:
             environment["FASTMCP_LOG_LEVEL"] = "DEBUG"
-        self.server_log.value = ""
+        self.server_log_text = ""
+        self.server_log.controls.clear()
         self._mcp_message_buffer = ""
         self._aedt_port = None
         self._aedt_connected = False

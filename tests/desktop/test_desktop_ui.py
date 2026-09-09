@@ -524,10 +524,10 @@ def test_server_tab_contains_a_read_only_log_window(monkeypatch, tmp_path, deskt
 
     assert log_header.content.controls[1].value == "Server log"
     assert panel.server_log_container.content is panel.server_log
-    assert panel.server_log.read_only
-    assert panel.server_log.multiline
-    assert panel.server_log.bgcolor == "#0B1210"
-    assert panel.server_log.text_style.font_family == "Cascadia Mono"
+    assert isinstance(panel.server_log, ft.ListView)
+    assert panel.server_log.auto_scroll is False
+    assert panel.server_log.build_controls_on_demand is False
+    assert panel.server_log_container.bgcolor == "#0B1210"
     assert log_header.content.controls[4] is panel.copy_log_button
     assert log_header.content.controls[5] is panel.latest_log_button
     assert log_header.content.controls[6] is panel.clear_log_button
@@ -541,7 +541,8 @@ def test_server_output_is_appended_to_the_log(monkeypatch, tmp_path, desktop_ui)
     panel._append_server_log_sync("Server \\u2588 started \\U0001f389\n")
     panel._append_server_log_sync("Ready\n")
 
-    assert panel.server_log.value == "Server █ started 🎉\nReady\n"
+    assert panel.server_log_text == "Server █ started 🎉\nReady\n"
+    assert [entry.value for entry in panel.server_log.controls] == ["Server █ started 🎉", "Ready"]
 
 
 def test_log_unicode_decoding_preserves_windows_paths(monkeypatch, tmp_path, desktop_ui):
@@ -559,13 +560,14 @@ async def test_server_log_copy_and_clear_actions(monkeypatch, tmp_path, desktop_
     page = FakePage()
     page.clipboard = Mock(set=AsyncMock())
     panel = desktop_ui.McpControlPanel(page, load_versions=False)
-    panel.server_log.value = "Server started\n"
+    panel._append_server_log_sync("Server started\n")
 
     await panel.copy_server_log(None)
     panel.clear_server_log(None)
 
     page.clipboard.set.assert_awaited_once_with("Server started\n")
-    assert panel.server_log.value == ""
+    assert panel.server_log_text == ""
+    assert panel.server_log.controls == []
 
 
 def test_server_log_scroll_to_latest_action(monkeypatch, tmp_path, desktop_ui):
@@ -573,13 +575,21 @@ def test_server_log_scroll_to_latest_action(monkeypatch, tmp_path, desktop_ui):
     page = FakePage()
     page.run_task = Mock()
     panel = desktop_ui.McpControlPanel(page, load_versions=False)
-    panel.server_log.value = "First entry\nLatest entry\n"
 
     panel.scroll_to_latest_log(None)
 
-    assert panel.server_log.selection.base_offset == len(panel.server_log.value)
-    assert panel.server_log.selection.extent_offset == len(panel.server_log.value)
-    page.run_task.assert_called_once_with(panel.server_log.focus)
+    page.run_task.assert_called_once_with(panel._scroll_to_latest_log)
+
+
+@pytest.mark.asyncio
+async def test_server_log_scrolls_to_latest_entry(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    panel.server_log.scroll_to = AsyncMock()
+
+    await panel._scroll_to_latest_log()
+
+    panel.server_log.scroll_to.assert_awaited_once_with(offset=-1)
 
 
 def test_extract_activity_from_mcp_info_message(monkeypatch, tmp_path, desktop_ui):
