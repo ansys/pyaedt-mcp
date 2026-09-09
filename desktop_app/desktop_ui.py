@@ -1,6 +1,7 @@
 """Small Flet control panel for the PyAEDT MCP Windows executable."""
 
 import asyncio
+from enum import Enum
 import json
 import os
 from pathlib import Path
@@ -42,6 +43,51 @@ ISSUES_URL = "https://github.com/ansys/pyaedt-mcp/issues"
 DESKTOP_APP_DOCUMENTATION_URL = (
     "https://aedt-mcp.docs.pyansys.com/version/stable/getting_started/desktop_app.html"
 )
+
+
+class ServerState(Enum):
+    """Server status states for the traffic light indicator."""
+
+    STOPPED = "stopped"
+    STARTING = "starting"
+    READY = "ready"
+    ERROR = "error"
+
+
+# Minimal patterns for server state detection (not tool-specific)
+# Pattern to detect server is ready (Uvicorn started)
+SERVER_READY_PATTERN = re.compile(r"Uvicorn running on|Application startup complete", re.IGNORECASE)
+
+# Pattern to detect start of MCP log message: [09/09/26 11:34:33]
+MCP_LOG_START_PATTERN = re.compile(r"^\s*\[\d{2}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}\]")
+
+# Pattern to detect MCP log continuation (indented line with actual content)
+MCP_CONTINUATION_PATTERN = re.compile(r"^\s+[A-Za-z]")
+
+# Pattern to detect lines to IGNORE (Autopilot tool reads, other log formats)
+IGNORE_LINE_PATTERN = re.compile(
+    r"tools\.py:\d+|"  # Autopilot reading tools.py
+    r"Called the \w+ tool|"  # Autopilot tool call messages (anywhere in line)
+    r"^<path>|^<type>|^<content>|^\d+:|^\(Showing lines|^</|"  # Tool output XML/content
+    r"^PyAEDT |"  # PyAEDT logs
+    r"^INFO:|^WARNING:|^ERROR:|^DEBUG:|"  # Other log prefixes
+    r"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}|"  # Timestamp format logs
+    r"^INFO\s+\d+\.\d+\.\d+\.\d+|"  # HTTP request logs
+)
+
+# Pattern to detect errors from MCP log format: [09/09/26 11:34:33] ERROR ...
+MCP_ERROR_PATTERN = re.compile(r"\[\d{2}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}\]\s+ERROR\s+(.+)")
+
+# Pattern to extract INFO messages from MCP log format: [09/09/26 11:34:33] INFO ...
+MCP_INFO_PATTERN = re.compile(r"\[\d{2}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}\]\s+INFO\s+(.+)")
+
+# Pattern to detect AEDT connection success
+AEDT_CONNECTED_PATTERN = re.compile(
+    r"Connected to AEDT|Successfully connected to AEDT", re.IGNORECASE
+)
+
+# Pattern to extract AEDT port from log
+AEDT_PORT_PATTERN = re.compile(r"(?:port|localhost:)\s*(\d{4,5})", re.IGNORECASE)
 
 
 def asset_directory() -> Path:
@@ -99,8 +145,25 @@ class McpControlPanel:
         self.page = page
         self.server_process: subprocess.Popen | None = None
         self.tray_icon: Any = None
+        self._server_state = ServerState.STOPPED
+        self._aedt_port: str | None = None
+        self._aedt_connected: bool = False
+        self._current_activity: str | None = None
+        self._mcp_message_buffer: str = ""  # Buffer for multi-line MCP messages
         self.status = ft.Text(
             "Checking the local environment...", color=ft.Colors.ON_SURFACE_VARIANT
+        )
+        # Server status indicator (traffic light)
+        self.server_status_indicator = ft.Container(
+            width=12,
+            height=12,
+            border_radius=6,
+            bgcolor=ft.Colors.GREY_500,
+        )
+        self.server_status_text = ft.Text(
+            "Server stopped",
+            color=ft.Colors.ON_SURFACE_VARIANT,
+            size=13,
         )
         self.machine = ft.TextField(label="AEDT host", value="localhost", dense=True, expand=True)
         self.port = ft.TextField(label="gRPC port", value="50051", dense=True, width=105)
@@ -108,8 +171,8 @@ class McpControlPanel:
         self.server_log = ft.TextField(
             value="",
             multiline=True,
-            min_lines=9,
-            max_lines=9,
+            min_lines=12,
+            max_lines=12,
             read_only=True,
             expand=True,
             bgcolor="#0B1210",
@@ -119,15 +182,21 @@ class McpControlPanel:
             border_radius=4,
             text_style=ft.TextStyle(font_family="Cascadia Mono", size=12),
         )
+        self.server_log_expanded = False
+        self.server_log_container: ft.Container | None = None
+        self.log_expand_icon: ft.Icon | None = None
+        self.log_header_subtitle: ft.Text | None = None
         self.copy_log_button = ft.IconButton(
             ft.Icons.CONTENT_COPY,
             tooltip="Copy all logs",
             on_click=self.copy_server_log,
+            icon_size=18,
         )
         self.clear_log_button = ft.IconButton(
             ft.Icons.DELETE_OUTLINE,
             tooltip="Clear logs",
             on_click=self.clear_server_log,
+            icon_size=18,
         )
         self.connect = ft.Checkbox(label="Connect on start")
         self.graphical = ft.Checkbox(label="Graphical AEDT")
@@ -575,6 +644,74 @@ class McpControlPanel:
         )
 
     def _server_tab(self) -> ft.Column:
+        # Server status row with traffic light indicator
+        server_status_row = ft.Container(
+            content=ft.Row(
+                [
+                    self.server_status_indicator,
+                    self.server_status_text,
+                ],
+                spacing=10,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            bgcolor=ft.Colors.SURFACE_CONTAINER_LOWEST,
+            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+            border_radius=6,
+            padding=ft.Padding(left=12, top=8, right=12, bottom=8),
+            margin=ft.Margin(left=0, top=0, right=0, bottom=8),
+        )
+
+        # Collapsible server log section
+        self.server_log_container = ft.Container(
+            content=self.server_log,
+            visible=False,  # Start collapsed
+            padding=ft.Padding(left=0, top=8, right=0, bottom=0),
+        )
+
+        self.log_expand_icon = ft.Icon(
+            ft.Icons.EXPAND_MORE,
+            size=20,
+            color=ft.Colors.ON_SURFACE_VARIANT,
+        )
+
+        log_header = ft.Container(
+            content=ft.Row(
+                [
+                    self.log_expand_icon,
+                    ft.Text("Server log", size=14, weight=ft.FontWeight.W_500),
+                    ft.Text(
+                        " • Click to expand",
+                        size=11,
+                        color=ft.Colors.ON_SURFACE_VARIANT,
+                        ref=ft.Ref[ft.Text](),
+                    ),
+                    ft.Container(expand=True),
+                    self.copy_log_button,
+                    self.clear_log_button,
+                ],
+                spacing=4,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            on_click=self._toggle_log_panel,
+            ink=True,
+            padding=ft.Padding(left=8, top=8, right=8, bottom=8),
+            border_radius=4,
+        )
+        self.log_header_subtitle = log_header.content.controls[2]
+
+        server_log_section = ft.Container(
+            content=ft.Column(
+                [
+                    log_header,
+                    self.server_log_container,
+                ],
+                spacing=0,
+            ),
+            bgcolor=ft.Colors.SURFACE,
+            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+            border_radius=6,
+        )
+
         return ft.Column(
             [
                 self._section(
@@ -582,6 +719,7 @@ class McpControlPanel:
                     ft.Column(
                         [
                             self.status,
+                            server_status_row,
                             ft.Row(
                                 [
                                     self.install_source,
@@ -607,14 +745,32 @@ class McpControlPanel:
                         spacing=12,
                     ),
                 ),
-                self._section(
-                    "Server log",
-                    self.server_log,
-                    header_actions=[self.copy_log_button, self.clear_log_button],
-                ),
+                server_log_section,
             ],
             scroll=ft.ScrollMode.AUTO,
         )
+
+    def _toggle_log_panel(self, _event) -> None:
+        """Toggle the server log panel visibility."""
+        if (
+            self.server_log_container is None
+            or self.log_expand_icon is None
+            or self.log_header_subtitle is None
+        ):
+            return  # UI not yet initialized
+        self.server_log_expanded = not self.server_log_expanded
+        self.server_log_container.visible = self.server_log_expanded
+        self.log_expand_icon.icon = (
+            ft.Icons.EXPAND_LESS if self.server_log_expanded else ft.Icons.EXPAND_MORE
+        )
+        self.log_header_subtitle.value = (
+            " • Click to collapse" if self.server_log_expanded else " • Click to expand"
+        )
+        self.page.update()
+
+    def _on_log_panel_change(self, e) -> None:
+        """Handle expansion panel state change (legacy, kept for compatibility)."""
+        pass
 
     def _advanced_tab(self) -> ft.Column:
         return ft.Column(
@@ -950,9 +1106,161 @@ class McpControlPanel:
         self.start_button.bgcolor = ft.Colors.RED if running else None
         self.start_button.color = ft.Colors.ON_ERROR if running else None
 
-    def _append_server_log(self, message: str) -> None:
-        self.server_log.value += self._decode_unicode_escapes(message)
-        self.page.update()
+    def _update_server_state(self, state: ServerState, message: str | None = None) -> None:
+        """Update the traffic light indicator and status message."""
+        self._server_state = state
+        colors = {
+            ServerState.STOPPED: ft.Colors.GREY_500,
+            ServerState.STARTING: ft.Colors.AMBER_500,
+            ServerState.READY: ft.Colors.GREEN_500,
+            ServerState.ERROR: ft.Colors.RED_500,
+        }
+        self.server_status_indicator.bgcolor = colors.get(state, ft.Colors.GREY_500)
+
+        if message:
+            self.server_status_text.value = message
+        else:
+            default_messages = {
+                ServerState.STOPPED: "Server stopped",
+                ServerState.STARTING: "Starting server...",
+                ServerState.READY: self._build_ready_message(),
+                ServerState.ERROR: "Server error",
+            }
+            self.server_status_text.value = default_messages.get(state, "Unknown state")
+
+        # Update text color based on state
+        text_colors = {
+            ServerState.STOPPED: ft.Colors.ON_SURFACE_VARIANT,
+            ServerState.STARTING: ft.Colors.AMBER_700,
+            ServerState.READY: ft.Colors.GREEN_700,
+            ServerState.ERROR: ft.Colors.RED_700,
+        }
+        self.server_status_text.color = text_colors.get(state, ft.Colors.ON_SURFACE_VARIANT)
+
+    def _build_ready_message(self) -> str:
+        """Build the ready status message with URL, tool count, and AEDT connection."""
+        port = self.http_port.value.strip() or "8080"
+        parts = [f"Ready • http://127.0.0.1:{port}"]
+        if self._aedt_connected and self._aedt_port:
+            parts.append(f"AEDT:{self._aedt_port}")
+        elif self._aedt_connected:
+            parts.append("AEDT connected")
+        if self._current_activity:
+            parts.append(self._current_activity)
+        return " • ".join(parts)
+
+    def _extract_activity(self, message: str) -> str | None:
+        """Extract activity from MCP log format: [timestamp] INFO message."""
+        match = MCP_INFO_PATTERN.search(message)
+        if not match:
+            return None
+
+        activity = match.group(1)
+
+        # Normalize whitespace (replace newlines and multiple spaces with single space)
+        activity = " ".join(activity.split())
+
+        # Remove file references like "transport.py:363" anywhere in the string
+        activity = re.sub(r"\s*\S+\.py:\d+\s*", " ", activity)
+
+        # Clean up any double spaces and strip
+        activity = " ".join(activity.split()).strip()
+
+        if not activity:
+            return None
+
+        # Truncate long messages
+        if len(activity) > 50:
+            activity = activity[:47] + "..."
+
+        return activity
+
+    def _process_log_message(self, message: str) -> None:
+        """Process a log message to update server state and activity."""
+        # Check for MCP ERROR format (highest priority)
+        if MCP_ERROR_PATTERN.search(message):
+            error_match = MCP_ERROR_PATTERN.search(message)
+            error_msg = error_match.group(1).strip() if error_match else "Error"
+            if len(error_msg) > 45:
+                error_msg = error_msg[:42] + "..."
+            self._current_activity = error_msg
+            self._update_server_state(ServerState.ERROR, error_msg)
+            return
+
+        # Check for AEDT connection (from MCP INFO messages)
+        if AEDT_CONNECTED_PATTERN.search(message):
+            port_match = AEDT_PORT_PATTERN.search(message)
+            if port_match:
+                self._aedt_port = port_match.group(1)
+            self._aedt_connected = True
+            self._current_activity = None  # Clear activity on successful connection
+            if self._server_state == ServerState.READY:
+                self._update_server_state(ServerState.READY)
+            return
+
+        # Check for server ready (Uvicorn started)
+        if SERVER_READY_PATTERN.search(message):
+            if self._server_state != ServerState.ERROR:
+                self._current_activity = None
+                self._update_server_state(ServerState.READY)
+            return
+
+        # Extract activity only from MCP INFO messages
+        activity = self._extract_activity(message)
+        if activity:
+            self._current_activity = activity
+            # Always update to show the activity, regardless of state
+            if self._server_state == ServerState.READY:
+                # Rebuild the ready message which includes _current_activity
+                self._update_server_state(ServerState.READY)
+            elif self._server_state in (ServerState.STOPPED, ServerState.STARTING):
+                self._update_server_state(ServerState.STARTING, activity)
+
+    def _append_server_log_sync(self, message: str) -> None:
+        """Process a log message synchronously (no page.update - caller handles that)."""
+        decoded_message = self._decode_unicode_escapes(message)
+
+        # Always add to full log (for copy/debug purposes)
+        self.server_log.value += decoded_message
+
+        # Check for Uvicorn ready (non-MCP format)
+        if SERVER_READY_PATTERN.search(decoded_message):
+            self._flush_mcp_buffer()
+            self._process_log_message(decoded_message)
+            return
+
+        line = decoded_message.rstrip()
+        line_stripped = line.strip()
+
+        # FIRST: Check if this is a new MCP log message [timestamp] - these are NEVER ignored
+        if MCP_LOG_START_PATTERN.match(line):
+            # Process previous buffered message first
+            self._flush_mcp_buffer()
+            # Start new buffer
+            self._mcp_message_buffer = line
+            return
+
+        # SECOND: Check if this is a continuation of MCP message (indented with text)
+        if self._mcp_message_buffer and MCP_CONTINUATION_PATTERN.match(decoded_message):
+            # This is a continuation line - append to buffer
+            self._mcp_message_buffer += " " + line_stripped
+            return
+
+        # THIRD: For all other lines, check if they should be ignored
+        # But first flush the buffer since the MCP message is complete
+        if IGNORE_LINE_PATTERN.search(line_stripped):
+            self._flush_mcp_buffer()
+            return
+
+        # Any other line - flush buffer if we have one
+        if self._mcp_message_buffer:
+            self._flush_mcp_buffer()
+
+    def _flush_mcp_buffer(self) -> None:
+        """Process and clear the MCP message buffer."""
+        if self._mcp_message_buffer:
+            self._process_log_message(self._mcp_message_buffer)
+            self._mcp_message_buffer = ""
 
     @staticmethod
     def _decode_unicode_escapes(message: str) -> str:
@@ -966,10 +1274,16 @@ class McpControlPanel:
 
     def clear_server_log(self, _event) -> None:
         self.server_log.value = ""
+        self._mcp_message_buffer = ""
+        # Reset activity but keep current state
+        self._current_activity = None
+        if self._server_state == ServerState.READY:
+            self._update_server_state(ServerState.READY)  # Refresh message
         self.page.update()
 
     async def _append_server_log_async(self, message: str) -> None:
-        self._append_server_log(message)
+        self._append_server_log_sync(message)
+        self.page.update()
 
     def _read_server_output(self, process: subprocess.Popen) -> None:
         if process.stdout is None:
@@ -985,6 +1299,11 @@ class McpControlPanel:
         if self.debug.value:
             environment["FASTMCP_LOG_LEVEL"] = "DEBUG"
         self.server_log.value = ""
+        self._mcp_message_buffer = ""
+        self._aedt_port = None
+        self._aedt_connected = False
+        self._current_activity = None
+        self._update_server_state(ServerState.STARTING, "Starting HTTP server...")
         self.server_process = subprocess.Popen(  # nosec B603
             [str(command), *self._server_arguments()],
             env=environment,
@@ -992,6 +1311,8 @@ class McpControlPanel:
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
+            encoding="utf-8",
+            errors="replace",
             **hidden_window_options(),
         )
         threading.Thread(
@@ -1007,6 +1328,10 @@ class McpControlPanel:
         if self.server_process is not None and self.server_process.poll() is None:
             self.server_process.terminate()
         self.server_process = None
+        self._aedt_port = None
+        self._aedt_connected = False
+        self._current_activity = None
+        self._update_server_state(ServerState.STOPPED)
         self.status.value = "HTTP server stopped"
         self._set_server_button_running(False)
         self.page.update()

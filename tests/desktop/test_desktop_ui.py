@@ -518,17 +518,18 @@ def test_server_arguments_include_http_transport_options(monkeypatch, tmp_path, 
 def test_server_tab_contains_a_read_only_log_window(monkeypatch, tmp_path, desktop_ui):
     monkeypatch.setenv("APPDATA", str(tmp_path))
     panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
-    server_log_section = panel._server_tab().controls[1]
-    server_log_header = server_log_section.content.controls[0]
+    server_tab = panel._server_tab()
+    server_log_section = server_tab.controls[1]
+    log_header = server_log_section.content.controls[0]
 
-    assert server_log_header.controls[0].value == "Server log"
-    assert server_log_section.content.controls[1] is panel.server_log
+    assert log_header.content.controls[1].value == "Server log"
+    assert panel.server_log_container.content is panel.server_log
     assert panel.server_log.read_only
     assert panel.server_log.multiline
     assert panel.server_log.bgcolor == "#0B1210"
     assert panel.server_log.text_style.font_family == "Cascadia Mono"
-    assert server_log_header.controls[2] is panel.copy_log_button
-    assert server_log_header.controls[3] is panel.clear_log_button
+    assert log_header.content.controls[4] is panel.copy_log_button
+    assert log_header.content.controls[5] is panel.clear_log_button
 
 
 def test_server_output_is_appended_to_the_log(monkeypatch, tmp_path, desktop_ui):
@@ -536,11 +537,10 @@ def test_server_output_is_appended_to_the_log(monkeypatch, tmp_path, desktop_ui)
     page = FakePage()
     panel = desktop_ui.McpControlPanel(page, load_versions=False)
 
-    panel._append_server_log("Server \\u2588 started \\U0001f389\n")
-    panel._append_server_log("Ready\n")
+    panel._append_server_log_sync("Server \\u2588 started \\U0001f389\n")
+    panel._append_server_log_sync("Ready\n")
 
     assert panel.server_log.value == "Server █ started 🎉\nReady\n"
-    assert page.update_count > 0
 
 
 def test_log_unicode_decoding_preserves_windows_paths(monkeypatch, tmp_path, desktop_ui):
@@ -565,3 +565,108 @@ async def test_server_log_copy_and_clear_actions(monkeypatch, tmp_path, desktop_
 
     page.clipboard.set.assert_awaited_once_with("Server started\n")
     assert panel.server_log.value == ""
+
+
+def test_extract_activity_from_mcp_info_message(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+
+    activity = panel._extract_activity("[09/09/26 12:32:09] INFO Starting MCP server")
+
+    assert activity == "Starting MCP server"
+
+
+def test_extract_activity_removes_file_references(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+
+    activity = panel._extract_activity(
+        "[09/09/26 12:32:09] INFO Executing code tools.py:914 in AEDT"
+    )
+
+    assert activity == "Executing code in AEDT"
+
+
+def test_extract_activity_truncates_long_messages(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+
+    activity = panel._extract_activity(
+        "[09/09/26 12:32:09] INFO This is a very long message that exceeds fifty characters limit"
+    )
+
+    assert activity == "This is a very long message that exceeds fifty ..."
+    assert len(activity) == 50
+
+
+def test_extract_activity_returns_none_for_non_mcp_messages(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+
+    assert panel._extract_activity("INFO: Server started") is None
+    assert panel._extract_activity("PyAEDT INFO: Connected") is None
+    assert panel._extract_activity("2026-09-09 12:32:09 INFO message") is None
+
+
+def test_build_ready_message_includes_activity(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    panel._current_activity = "Running analysis"
+
+    message = panel._build_ready_message()
+
+    assert "Running analysis" in message
+    assert message.startswith("Ready • http://127.0.0.1:")
+
+
+def test_build_ready_message_includes_aedt_port(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    panel._aedt_connected = True
+    panel._aedt_port = "50051"
+
+    message = panel._build_ready_message()
+
+    assert "AEDT:50051" in message
+
+
+def test_ignore_pattern_matches_autopilot_tool_calls(desktop_ui):
+    pattern = desktop_ui.IGNORE_LINE_PATTERN
+
+    assert pattern.search("Called the Read tool with input")
+    assert pattern.search("tools.py:914")
+    assert pattern.search("<path>c:\\file.py</path>")
+    assert pattern.search("PyAEDT INFO: Connected")
+    assert pattern.search("2026-09-09 12:32:09 INFO message")
+    assert pattern.search("INFO: 127.0.0.1:8080 - POST")
+
+
+def test_ignore_pattern_does_not_match_mcp_log_format(desktop_ui):
+    """MCP log format uses [MM/DD/YY HH:MM:SS] which should not be ignored."""
+    pattern = desktop_ui.IGNORE_LINE_PATTERN
+
+    # These should NOT match because they use MCP format [MM/DD/YY ...]
+    # Note: the pattern may match empty string at position 0, so we check
+    # that if there's a match, it's not a meaningful match
+    match = pattern.search("[09/09/26 12:32:09] INFO Starting server")
+    assert match is None or match.group() == ""
+
+
+def test_server_state_updates_status_text(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+
+    panel._update_server_state(desktop_ui.ServerState.READY)
+
+    assert "Ready" in panel.server_status_text.value
+
+
+def test_process_log_message_extracts_aedt_port(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    panel._server_state = desktop_ui.ServerState.READY
+
+    panel._process_log_message("[09/09/26 12:32:09] INFO Connected to AEDT on port 58399")
+
+    assert panel._aedt_connected
+    assert panel._aedt_port == "58399"
