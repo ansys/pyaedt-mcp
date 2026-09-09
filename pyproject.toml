@@ -49,15 +49,15 @@ dependencies = [
   "pyvista[io]>=0.38.0,<0.49",
   "matplotlib>=3.11.1",
   "vtk>=9.0,<9.8",
-  "typer==0.27.1",
+  "typer==0.27.2",
   "pillow"
 ]
 
 [dependency-groups]
 doc = [
-  "ansys-sphinx-theme[autoapi,changelog]==1.10.0",
+  "ansys-sphinx-theme[autoapi,changelog]==1.11.0",
   "numpydoc==1.10.0",
-  "sphinx-autodoc-typehints==3.13.4",
+  "sphinx-autodoc-typehints==3.13.5",
   "sphinx-copybutton==0.5.2",
   "sphinx-design==0.7.0",
   "sphinx-notfound-page==1.1.0",
