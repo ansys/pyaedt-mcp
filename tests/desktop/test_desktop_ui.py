@@ -529,7 +529,8 @@ def test_server_tab_contains_a_read_only_log_window(monkeypatch, tmp_path, deskt
     assert panel.server_log.bgcolor == "#0B1210"
     assert panel.server_log.text_style.font_family == "Cascadia Mono"
     assert log_header.content.controls[4] is panel.copy_log_button
-    assert log_header.content.controls[5] is panel.clear_log_button
+    assert log_header.content.controls[5] is panel.latest_log_button
+    assert log_header.content.controls[6] is panel.clear_log_button
 
 
 def test_server_output_is_appended_to_the_log(monkeypatch, tmp_path, desktop_ui):
@@ -565,6 +566,20 @@ async def test_server_log_copy_and_clear_actions(monkeypatch, tmp_path, desktop_
 
     page.clipboard.set.assert_awaited_once_with("Server started\n")
     assert panel.server_log.value == ""
+
+
+def test_server_log_scroll_to_latest_action(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+    page.run_task = Mock()
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+    panel.server_log.value = "First entry\nLatest entry\n"
+
+    panel.scroll_to_latest_log(None)
+
+    assert panel.server_log.selection.base_offset == len(panel.server_log.value)
+    assert panel.server_log.selection.extent_offset == len(panel.server_log.value)
+    page.run_task.assert_called_once_with(panel.server_log.focus)
 
 
 def test_extract_activity_from_mcp_info_message(monkeypatch, tmp_path, desktop_ui):

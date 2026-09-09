@@ -192,6 +192,12 @@ class McpControlPanel:
             on_click=self.copy_server_log,
             icon_size=18,
         )
+        self.latest_log_button = ft.IconButton(
+            ft.Icons.ARROW_DOWNWARD,
+            tooltip="Scroll to latest log entry",
+            on_click=self.scroll_to_latest_log,
+            icon_size=18,
+        )
         self.clear_log_button = ft.IconButton(
             ft.Icons.DELETE_OUTLINE,
             tooltip="Clear logs",
@@ -687,6 +693,7 @@ class McpControlPanel:
                     ),
                     ft.Container(expand=True),
                     self.copy_log_button,
+                    self.latest_log_button,
                     self.clear_log_button,
                 ],
                 spacing=4,
@@ -1271,6 +1278,11 @@ class McpControlPanel:
 
     async def copy_server_log(self, _event) -> None:
         await self.page.clipboard.set(self.server_log.value)
+
+    def scroll_to_latest_log(self, _event) -> None:
+        latest_offset = len(self.server_log.value)
+        self.server_log.selection = ft.TextSelection(latest_offset, latest_offset)
+        self.page.run_task(self.server_log.focus)
 
     def clear_server_log(self, _event) -> None:
         self.server_log.value = ""
