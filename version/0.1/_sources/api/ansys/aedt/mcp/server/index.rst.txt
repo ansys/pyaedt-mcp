@@ -1,0 +1,161 @@
+
+
+
+
+
+
+The ``server.py`` module
+========================
+
+.. py:module:: ansys.aedt.mcp.server
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.. py:currentmodule:: server
+.. tab-set::
+
+
+
+
+    .. tab-item:: Classes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.server.PyAEDTAppContext`
+            - Application context with typed dependencies and CLI options.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.server.PyAEDTMCP`
+            - FastMCP server for managing AEDT instances.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.server.SessionContext`
+            - Session context for storing CLI options.
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~launcher`
+            - Entry point for the MCP server.
+
+
+
+    .. tab-item:: Attributes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~logger`
+            - 
+
+
+          * - :py:obj:`~app`
+            - 
+
+
+          * - :py:obj:`~session`
+            - 
+
+
+
+
+
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-cod-symbol_class"></span> PyAEDTAppContext</api/ansys/aedt/mcp/server/PyAEDTAppContext>
+    <span class="nf nf-cod-symbol_class"></span> PyAEDTMCP</api/ansys/aedt/mcp/server/PyAEDTMCP>
+    <span class="nf nf-cod-symbol_class"></span> SessionContext</api/ansys/aedt/mcp/server/SessionContext>
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Lifespan and CLI entry for PyAEDT-MCP with startup options.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: launcher(argv: list[str] | None = None) -> None
+
+   
+   Entry point for the MCP server.
+
+
+   :Parameters:
+
+       **argv** : :class:`python:list`\[:class:`python:str`] | :data:`python:None`
+           Optional list of arguments for testing. If ``None``, ``"sys.argv[1:]"`` is used.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: logger
+
+.. py:data:: app
+
+.. py:data:: session
+
+
+

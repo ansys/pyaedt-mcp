@@ -1,0 +1,459 @@
+
+
+
+
+
+
+The ``contexts.py`` module
+==========================
+
+.. py:module:: ansys.aedt.mcp.contexts
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: contexts
+.. tab-set::
+
+
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~get_guidelines_for_workflow_overview`
+            - Get general AEDT simulation workflow guidelines.
+
+
+          * - :py:obj:`~get_guidelines_for_hfss`
+            - Get HFSS-specific workflow guidelines.
+
+
+          * - :py:obj:`~get_guidelines_for_maxwell`
+            - Get Maxwell 2D/3D workflow guidelines.
+
+
+          * - :py:obj:`~get_guidelines_for_icepak`
+            - Get Icepak thermal analysis guidelines.
+
+
+          * - :py:obj:`~get_guidelines_for_circuit`
+            - Get Circuit simulation guidelines.
+
+
+          * - :py:obj:`~get_guidelines_for_geometry`
+            - Get geometry creation guidelines for AEDT.
+
+
+          * - :py:obj:`~get_guidelines_for_mesh`
+            - Get mesh setup guidelines for AEDT.
+
+
+          * - :py:obj:`~get_guidelines_for_boundaries`
+            - Get boundary and excitation guidelines for AEDT.
+
+
+          * - :py:obj:`~get_guidelines_for_postprocessing`
+            - Get postprocessing guidelines for AEDT.
+
+
+          * - :py:obj:`~get_guidelines_for_parametric`
+            - Get parametric analysis and optimization guidelines for AEDT.
+
+
+          * - :py:obj:`~get_guidelines_for`
+            - Get PyAEDT/AEDT simulation guidelines for a specific topic.
+
+
+
+    .. tab-item:: Attributes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~GuidelinesContent`
+            - 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Context tools for PyAEDT-MCP.
+
+This module defines MCP tools that provide context and guidance for
+PyAEDT and Ansys Electronics Desktop (AEDT) workflows. These tools return
+context information that can be accessed by the LLM to get help with various
+aspects of electromagnetic and thermal simulations.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: get_guidelines_for_workflow_overview() -> str
+
+   
+   Get general AEDT simulation workflow guidelines.
+
+   Use this tool when explaining or generating PyAEDT or AEDT workflows.
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Overview of the general simulation process for all AEDT analysis types.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_guidelines_for_hfss() -> str
+
+   
+   Get HFSS-specific workflow guidelines.
+
+   Use this tool when explaining or generating HFSS simulations.
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Guidelines for HFSS high-frequency electromagnetic simulations.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_guidelines_for_maxwell() -> str
+
+   
+   Get Maxwell 2D/3D workflow guidelines.
+
+   Use this tool when explaining or generating Maxwell simulations.
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Guidelines for Maxwell electromagnetic simulations.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_guidelines_for_icepak() -> str
+
+   
+   Get Icepak thermal analysis guidelines.
+
+   Use this tool when explaining or generating Icepak thermal simulations.
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Guidelines for Icepak thermal management simulations.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_guidelines_for_circuit() -> str
+
+   
+   Get Circuit simulation guidelines.
+
+   Use this tool when explaining or generating Circuit simulations.
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Guidelines for Circuit and system-level simulations.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_guidelines_for_geometry() -> str
+
+   
+   Get geometry creation guidelines for AEDT.
+
+   Use this tool when explaining or generating geometry operations.
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Guidelines for creating and manipulating geometry in AEDT.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_guidelines_for_mesh() -> str
+
+   
+   Get mesh setup guidelines for AEDT.
+
+   Use this tool when explaining or generating mesh operations.
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Guidelines for mesh settings and operations in AEDT.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_guidelines_for_boundaries() -> str
+
+   
+   Get boundary and excitation guidelines for AEDT.
+
+   Use this tool when explaining or generating boundary conditions.
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Guidelines for boundary conditions and excitations in AEDT.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_guidelines_for_postprocessing() -> str
+
+   
+   Get postprocessing guidelines for AEDT.
+
+   Use this tool when explaining or generating postprocessing operations.
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Guidelines for postprocessing and results export in AEDT.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_guidelines_for_parametric() -> str
+
+   
+   Get parametric analysis and optimization guidelines for AEDT.
+
+   Use this tool when explaining or generating parametric studies.
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Guidelines for parametric sweeps and optimization in AEDT.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_guidelines_for(content: GuidelinesContent) -> str
+
+   
+   Get PyAEDT/AEDT simulation guidelines for a specific topic.
+
+   Use this tool before writing PyAEDT or Ansys AEDT scripting code to
+   retrieve the relevant guidelines for the workflow step or solver you are
+   about to use. Call it once per topic needed. You should call it before
+   every code-generation task.
+
+   :Parameters:
+
+       **content** : :class:`python:str`
+           Guideline topic to retrieve. Options follow:
+           
+           - ``"workflow"``: PyAEDT workflow overview
+           - ``"hfss"``: HFSS (high-frequency electromagnetics)
+           - ``"maxwell"``: Maxwell (low-frequency electromagnetics)
+           - ``"icepak"``: Icepak (electronics thermal)
+           - ``"circuit"``: Circuit / Twin Builder
+           - ``"geometry"``: Geometry creation and modeling
+           - ``"mesh"``: Mesh operations and refinement
+           - ``"boundaries"``: Boundary conditions and excitations
+           - ``"postprocessing"``: Reports, fields, and visualization
+           - ``"parametric"``: Parametric sweeps and optimization
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Guideline text for the requested topic.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: GuidelinesContent
+
+
+
