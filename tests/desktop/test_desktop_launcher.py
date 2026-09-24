@@ -21,13 +21,16 @@ from pathlib import Path
 import subprocess
 import sys
 import types
+import zipfile
 
 import pytest
 
 
 @pytest.fixture(scope="module")
 def desktop_launcher():
-    script_path = Path(__file__).parents[2] / "desktop_app" / "desktop_launcher.py"
+    desktop_app_directory = Path(__file__).parents[2] / "desktop_app"
+    sys.path.insert(0, str(desktop_app_directory))
+    script_path = desktop_app_directory / "desktop_launcher.py"
     spec = importlib.util.spec_from_file_location("desktop_launcher", script_path)
     if spec is None or spec.loader is None:
         raise RuntimeError("Could not load the desktop launcher script")
@@ -162,6 +165,58 @@ def test_setup_environment_installs_selected_branch(monkeypatch, tmp_path, deskt
     assert commands[0][-1] == (
         "ansys-aedt-mcp @ git+https://github.com/ansys/pyaedt-mcp.git@feat/desktop-manager"
     )
+
+
+def test_setup_environment_installs_from_a_local_wheelhouse(
+    monkeypatch, tmp_path, desktop_launcher
+):
+    app_directory = tmp_path / ".pyaedt_mcp"
+    python_executable, mcp_executable = desktop_launcher.command_paths(app_directory)
+    python_executable.parent.mkdir(parents=True)
+    python_executable.touch()
+    runtime_directory = tmp_path / "runtime"
+    (runtime_directory / "python").mkdir(parents=True)
+    (runtime_directory / "uv").mkdir()
+    (runtime_directory / "python" / "python.exe").touch()
+    uv_executable = runtime_directory / "uv" / "uv.exe"
+    uv_executable.touch()
+    wheelhouse = tmp_path / "ansys_aedt_mcp-wheelhouse-windows-3.13.zip"
+    with zipfile.ZipFile(wheelhouse, "w") as archive:
+        archive.writestr("placeholder.whl", "")
+    commands = []
+
+    def fake_run(command, **kwargs):
+        commands.append(command)
+        if command[1:3] == ["pip", "install"]:
+            mcp_executable.touch()
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(desktop_launcher.subprocess, "run", fake_run)
+
+    desktop_launcher.setup_environment(app_directory, runtime_directory, wheelhouse=str(wheelhouse))
+
+    assert commands == [
+        [
+            str(uv_executable),
+            "pip",
+            "install",
+            "--python",
+            str(python_executable),
+            "--index-strategy",
+            "unsafe-best-match",
+            "--no-index",
+            "--find-links",
+            str(app_directory / "wheelhouse" / wheelhouse.stem),
+            "ansys-aedt-mcp",
+        ]
+    ]
+
+
+def test_validate_wheelhouse_rejects_another_python_version(tmp_path, desktop_launcher):
+    wheelhouse = tmp_path / "ansys_aedt_mcp-wheelhouse-windows-3.12.zip"
+
+    with pytest.raises(RuntimeError, match="Python 3.13 wheelhouse"):
+        desktop_launcher.validate_wheelhouse(wheelhouse)
 
 
 def test_setup_environment_rejects_version_and_branch(tmp_path, desktop_launcher):

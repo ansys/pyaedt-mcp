@@ -61,6 +61,7 @@ desktop = [
   "pillow",
   "pystray>=0.19.5",
   "pyinstaller>=6.0",
+  "pyyaml",
 ]
 doc = [
   "ansys-sphinx-theme[autoapi,changelog]==1.11.0",

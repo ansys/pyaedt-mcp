@@ -17,6 +17,11 @@ By default, this environment will be available in `%APPDATA%\\.pyaedt_mcp`.
 
 On the **Server** tab, choose an install source and MCP version, then
 select **Install MCP**. After installation, the app enables **Start Server**.
+Offline installation prompts for a wheelhouse ZIP for each install or update, without
+querying package indexes. The app verifies that the ZIP targets its bundled Python 3.13
+runtime before installation. Enable or disable this mode in the **Installation** section
+of the **Settings** tab; the choice is retained in ``%APPDATA%\\.pyaedt_mcp\\settings.yaml``.
+Git branch installation requires online mode.
 
 Use the **Update MCP** button to update an existing managed environment. Choose
 **Git branch** as the install source when testing a repository branch instead
