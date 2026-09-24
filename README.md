@@ -28,9 +28,9 @@ Supported AEDT applications include HFSS, Maxwell 2D/3D, Q2D, Q3D, Icepak, Circu
 
 ### Run without cloning
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/) first.
-It includes `uvx`, which downloads and runs PyAEDT-MCP without cloning the
-repository.
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and
+[Git](https://git-scm.com/downloads) first. Git is required because `uvx`
+downloads and runs PyAEDT-MCP directly from this repository without cloning it.
 
 ```bash
 uvx --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp
@@ -75,6 +75,7 @@ pre-commit install
 ## Requirements
 
 - Python 3.12 or later
+- [Git](https://git-scm.com/downloads) to install or run PyAEDT-MCP directly from this repository with `uv`
 - AEDT 2022 R2 or later for gRPC workflows
 - A local AEDT installation or a reachable remote AEDT gRPC endpoint
 
