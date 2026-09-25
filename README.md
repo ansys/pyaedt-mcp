@@ -28,9 +28,9 @@ Supported AEDT applications include HFSS, Maxwell 2D/3D, Q2D, Q3D, Icepak, Circu
 
 ### Run without cloning
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/) first.
-It includes `uvx`, which downloads and runs PyAEDT-MCP without cloning the
-repository.
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and
+[Git](https://git-scm.com/downloads) first. Git is required because `uvx`
+downloads and runs PyAEDT-MCP directly from this repository without cloning it.
 
 ```bash
 uvx --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp
@@ -50,7 +50,13 @@ uv pip install git+https://github.com/ansys/pyaedt-mcp.git
 
 ### Windows installer
 
-Windows releases include `PyAEDT-MCP-Installer-windows.exe`. It installs the desktop manager into `C:\Program Files\ANSYS Inc\PyAEDT MCP`, adds a Start Menu entry, and registers an uninstaller in Windows Installed Apps. On first use, the manager creates `%APPDATA%\.pyaedt_mcp\.venv` and uses its bundled CPython 3.13 and `uv` to install `ansys-aedt-mcp` from PyPI. An internet connection is required only for that initial installation.
+Windows releases include `PyAEDT-MCP-Installer-windows.exe`:
+
+- Installs the desktop manager into `C:\Program Files\ANSYS Inc\PyAEDT MCP`.
+- Adds a Start Menu entry and registers an uninstaller in Windows Installed Apps.
+- On first use, creates `%APPDATA%\.pyaedt_mcp\.venv` and uses bundled CPython 3.13 and `uv` to install `ansys-aedt-mcp` from PyPI.
+- Supports offline installation from the Settings tab. Each install or update prompts you to select a Python 3.13 wheelhouse ZIP and installs only from that archive, without querying package indexes.
+- Saves the offline installation selection in `%APPDATA%\.pyaedt_mcp\settings.yaml`.
 
 Opening the executable provides setup, HTTP server controls, AEDT options, and stdio or HTTP profiles for Copilot/VS Code, Claude, Cursor, Codex, and OpenCode.
 
@@ -75,6 +81,7 @@ pre-commit install
 ## Requirements
 
 - Python 3.12 or later
+- [Git](https://git-scm.com/downloads) to install or run PyAEDT-MCP directly from this repository with `uv`
 - AEDT 2022 R2 or later for gRPC workflows
 - A local AEDT installation or a reachable remote AEDT gRPC endpoint
 

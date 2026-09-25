@@ -10,9 +10,10 @@ and Codex.
 Prerequisite: install uv
 ------------------------
 
-Install uv, which includes ``uvx``, before using the ``uvx`` examples below.
-``uvx`` downloads and runs PyAEDT-MCP without cloning this repository. Follow
-the `uv installation instructions <https://docs.astral.sh/uv/getting-started/installation/>`_.
+Install uv, which includes ``uvx``, and `Git <https://git-scm.com/downloads>`_
+before using the ``uvx`` examples below. Git is required because ``uvx``
+downloads and runs PyAEDT-MCP directly from this repository. Follow the `uv
+installation instructions <https://docs.astral.sh/uv/getting-started/installation/>`_.
 
 For example, on Windows:
 
