@@ -9,6 +9,9 @@ This section contains the release notes for PyAEDT-MCP.
 
 .. towncrier release notes start
 
+`0.2.2 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.2.2>`_ - September 25, 2026
+=======================================================================================
+No significant changes.
 `0.2.1 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.2.1>`_ - September 10, 2026
 =======================================================================================
 
