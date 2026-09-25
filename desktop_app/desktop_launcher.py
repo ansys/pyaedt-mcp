@@ -6,11 +6,15 @@ import re
 import subprocess  # nosec B404
 import sys
 from typing import Any
+import zipfile
+
+from desktop_settings import load_settings
 
 PACKAGE_NAME = "ansys-aedt-mcp"
 APP_DIRECTORY_NAME = ".pyaedt_mcp"
 SERVER_MODE_FLAG = "--server"
 REPOSITORY_URL = "https://github.com/ansys/pyaedt-mcp.git"
+WHEELHOUSE_PYTHON_VERSION = "3.13"
 
 
 def hidden_window_options() -> dict[str, Any]:
@@ -52,16 +56,45 @@ def installed_version(app_directory: Path) -> str | None:
     return None
 
 
+def validate_wheelhouse(wheelhouse: Path) -> None:
+    """Ensure a selected wheelhouse ZIP matches the embedded Python version."""
+    version_match = re.search(r"-(\d+\.\d+)\.zip$", wheelhouse.name, re.IGNORECASE)
+    if wheelhouse.suffix.lower() != ".zip" or version_match is None:
+        raise RuntimeError("Select a wheelhouse ZIP named with its Python version")
+    if version_match.group(1) != WHEELHOUSE_PYTHON_VERSION:
+        raise RuntimeError(
+            f"Select a Python {WHEELHOUSE_PYTHON_VERSION} wheelhouse, not Python "
+            f"{version_match.group(1)}"
+        )
+
+
+def _wheelhouse_directory(app_directory: Path, wheelhouse: str) -> Path:
+    """Extract a selected wheelhouse ZIP into the managed application directory."""
+    source = Path(wheelhouse).expanduser()
+    if not source.is_file():
+        raise RuntimeError(f"Wheelhouse was not found: {source}")
+    validate_wheelhouse(source)
+    extracted = app_directory / "wheelhouse" / source.stem
+    if not extracted.is_dir():
+        extracted.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(source) as archive:
+            archive.extractall(extracted)
+    return extracted
+
+
 def setup_environment(
     app_directory: Path,
     runtime_dir: Path,
     version: str | None = None,
     branch: str | None = None,
     upgrade: bool = False,
+    wheelhouse: str | None = None,
 ) -> Path:
     """Create the venv and install or update the requested MCP package version."""
     if version is not None and branch is not None:
         raise ValueError("Specify either a package version or a Git branch, not both")
+    if wheelhouse and branch:
+        raise ValueError("Offline installation supports published releases, not Git branches")
     python_executable, mcp_executable = command_paths(app_directory)
     if mcp_executable.is_file() and version is None and branch is None and not upgrade:
         return mcp_executable
@@ -99,6 +132,10 @@ def setup_environment(
         "--index-strategy",
         "unsafe-best-match",
     ]
+    if wheelhouse:
+        install_command.extend(
+            ["--no-index", "--find-links", str(_wheelhouse_directory(app_directory, wheelhouse))]
+        )
     if upgrade:
         install_command.append("--upgrade")
     install_command.append(package)
@@ -122,7 +159,11 @@ def main(argv: list[str] | None = None) -> int:
         return launch_gui()
 
     try:
-        mcp_executable = setup_environment(application_directory(), runtime_directory())
+        app_directory = application_directory()
+        settings = load_settings(app_directory)
+        if settings["offline_install"] and not command_paths(app_directory)[1].is_file():
+            raise RuntimeError("Open the desktop manager and select a wheelhouse before starting")
+        mcp_executable = setup_environment(app_directory, runtime_directory())
     except (OSError, subprocess.CalledProcessError, RuntimeError) as error:
         print(f"PyAEDT MCP setup failed: {error}", file=sys.stderr)
         return 1

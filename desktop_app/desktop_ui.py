@@ -23,13 +23,16 @@ from agent_profiles import (
     install_profile_from_template,
 )
 from desktop_launcher import (
+    WHEELHOUSE_PYTHON_VERSION,
     application_directory,
     command_paths,
     hidden_window_options,
     installed_version,
     runtime_directory,
     setup_environment,
+    validate_wheelhouse,
 )
+from desktop_settings import load_settings, save_settings
 import flet as ft
 from packaging.version import Version
 from PIL import Image
@@ -143,6 +146,7 @@ class McpControlPanel:
 
     def __init__(self, page: ft.Page, *, load_versions: bool = True) -> None:
         self.page = page
+        self.installation_settings = load_settings(application_directory())
         self.server_process: subprocess.Popen | None = None
         self.tray_icon: Any = None
         self._server_state = ServerState.STOPPED
@@ -313,6 +317,11 @@ class McpControlPanel:
             on_select=self._change_install_source,
             width=170,
         )
+        self.offline_install = ft.Switch(
+            label="Offline installation",
+            value=bool(self.installation_settings["offline_install"]),
+            on_change=self._toggle_offline_install,
+        )
         self.branch_picker = ft.Dropdown(
             label="Git branch",
             options=[],
@@ -325,6 +334,20 @@ class McpControlPanel:
             tooltip="Load published MCP versions",
             on_click=self.load_versions,
         )
+        self.install_options = ft.Row(
+            [
+                self.install_source,
+                self.version_picker,
+                self.branch_picker,
+                self.refresh_versions_button,
+                self._help_button(
+                    "MCP version",
+                    "Choose the release to install or update. "
+                    "Published versions are loaded from PyPI when the app opens.",
+                ),
+            ]
+        )
+        self._update_install_options_visibility()
         self.start_button = ft.FilledButton(
             content="Start Server",
             icon=ft.Icons.PLAY_ARROW,
@@ -355,7 +378,7 @@ class McpControlPanel:
             self._configure_tray()
         self._build()
         self.refresh_status(show_setup_guide=True)
-        if load_versions:
+        if load_versions and not self.offline_install.value:
             self.load_versions(None)
 
     def _configure_page(self) -> None:
@@ -614,7 +637,7 @@ class McpControlPanel:
                         ]
                     ),
                     ft.Tabs(
-                        length=3,
+                        length=4,
                         expand=True,
                         content=ft.Column(
                             [
@@ -623,6 +646,7 @@ class McpControlPanel:
                                         ft.Tab(label="Server"),
                                         ft.Tab(label="Advanced"),
                                         ft.Tab(label="Coding agents"),
+                                        ft.Tab(label="Settings"),
                                     ]
                                 ),
                                 ft.TabBarView(
@@ -631,6 +655,7 @@ class McpControlPanel:
                                         self._server_tab(),
                                         self._advanced_tab(),
                                         self._agents_tab(),
+                                        self._settings_tab(),
                                     ],
                                 ),
                             ],
@@ -725,20 +750,7 @@ class McpControlPanel:
                         [
                             self.status,
                             server_status_row,
-                            ft.Row(
-                                [
-                                    self.install_source,
-                                    self.version_picker,
-                                    self.branch_picker,
-                                    self.refresh_versions_button,
-                                    self._help_button(
-                                        "MCP version",
-                                        "Choose the release to install or update. "
-                                        "Published versions are loaded from PyPI "
-                                        "when the app opens.",
-                                    ),
-                                ]
-                            ),
+                            self.install_options,
                             ft.Row(
                                 [
                                     self.install_button,
@@ -788,6 +800,17 @@ class McpControlPanel:
                     "MCP options",
                     self._advanced_settings(),
                 ),
+            ],
+            scroll=ft.ScrollMode.AUTO,
+        )
+
+    def _settings_tab(self) -> ft.Column:
+        return ft.Column(
+            [
+                self._section(
+                    "Installation",
+                    self._installation_settings(),
+                )
             ],
             scroll=ft.ScrollMode.AUTO,
         )
@@ -858,6 +881,20 @@ class McpControlPanel:
                 ),
             ],
             spacing=12,
+            tight=True,
+        )
+
+    def _installation_settings(self) -> ft.Column:
+        return ft.Column(
+            [
+                self._with_help(
+                    self.offline_install,
+                    "Offline installation",
+                    "Prompt for a Python-compatible wheelhouse ZIP when installing or updating. "
+                    "Git branches are unavailable in this mode.",
+                ),
+            ],
+            spacing=8,
             tight=True,
         )
 
@@ -994,6 +1031,8 @@ class McpControlPanel:
         self.page.update()
 
     def load_versions(self, _event) -> None:
+        if self.offline_install.value:
+            return
         self.refresh_versions_button.disabled = True
         loader = (
             available_branches
@@ -1024,12 +1063,36 @@ class McpControlPanel:
         self.page.update()
 
     def _change_install_source(self, _event) -> None:
+        if self.offline_install.value:
+            self.install_source.value = "release"
+            self.branch_picker.visible = False
+            return
         is_branch = self.install_source.value == "branch"
         self.version_picker.visible = not is_branch
         self.branch_picker.visible = is_branch
         if is_branch and not self.branch_picker.options:
             self.load_versions(None)
         self.page.update()
+
+    def _toggle_offline_install(self, _event) -> None:
+        offline_install = bool(self.offline_install.value)
+        if offline_install:
+            self.install_source.value = "release"
+            self._change_install_source(None)
+        try:
+            save_settings(application_directory(), offline_install=offline_install)
+        except OSError as error:
+            self.status.value = f"Could not save installation settings: {error}"
+        else:
+            self.installation_settings = load_settings(application_directory())
+            self.page.show_dialog(ft.SnackBar(content=ft.Text("Installation settings saved")))
+        self._update_install_options_visibility()
+        if not offline_install:
+            self.load_versions(None)
+        self.page.update()
+
+    def _update_install_options_visibility(self) -> None:
+        self.install_options.visible = not bool(self.offline_install.value)
 
     def _run_background(self, action, complete) -> None:
         def worker() -> None:
@@ -1045,10 +1108,17 @@ class McpControlPanel:
         await asyncio.sleep(0)
         complete(result, error)
 
-    def install(self, _event) -> None:
+    async def install(self, _event) -> None:
+        if self.offline_install.value and self.install_source.value == "branch":
+            self.status.value = "Offline installation supports published releases only"
+            self.page.update()
+            return
         if self.install_source.value == "branch" and not self._selected_branch():
             self.status.value = "Choose a Git branch to install"
             self.page.update()
+            return
+        wheelhouse = await self._select_wheelhouse()
+        if self.offline_install.value and wheelhouse is None:
             return
         self.status.value = "Installing MCP..."
         self.install_button.disabled = True
@@ -1059,14 +1129,22 @@ class McpControlPanel:
                 runtime_directory(),
                 version=self._selected_version(),
                 branch=self._selected_branch(),
+                wheelhouse=str(wheelhouse) if wheelhouse else None,
             ),
             self._finish_install,
         )
 
-    def update(self, _event) -> None:
+    async def update(self, _event) -> None:
+        if self.offline_install.value and self.install_source.value == "branch":
+            self.status.value = "Offline installation supports published releases only"
+            self.page.update()
+            return
         if self.install_source.value == "branch" and not self._selected_branch():
             self.status.value = "Choose a Git branch to install"
             self.page.update()
+            return
+        wheelhouse = await self._select_wheelhouse()
+        if self.offline_install.value and wheelhouse is None:
             return
         self.status.value = "Updating MCP..."
         self.update_button.disabled = True
@@ -1078,6 +1156,7 @@ class McpControlPanel:
                 version=self._selected_version(),
                 branch=self._selected_branch(),
                 upgrade=True,
+                wheelhouse=str(wheelhouse) if wheelhouse else None,
             ),
             self._finish_update,
         )
@@ -1089,6 +1168,28 @@ class McpControlPanel:
 
     def _selected_branch(self) -> str | None:
         return self.branch_picker.value if self.install_source.value == "branch" else None
+
+    async def _select_wheelhouse(self) -> Path | None:
+        if not self.offline_install.value:
+            return None
+        selected_files = await self.folder_picker.pick_files(
+            dialog_title=f"Choose Python {WHEELHOUSE_PYTHON_VERSION} wheelhouse",
+            file_type=ft.FilePickerFileType.CUSTOM,
+            allowed_extensions=["zip"],
+            allow_multiple=False,
+        )
+        if not selected_files:
+            self.status.value = "Choose a wheelhouse ZIP to continue"
+            self.page.update()
+            return None
+        wheelhouse = Path(selected_files[0].path)
+        try:
+            validate_wheelhouse(wheelhouse)
+        except RuntimeError as error:
+            self.status.value = str(error)
+            self.page.update()
+            return None
+        return wheelhouse
 
     def _finish_install(self, _result, error: str | None) -> None:
         self.status.value = f"Installation failed: {error}" if error else "MCP installed"
@@ -1110,6 +1211,8 @@ class McpControlPanel:
         self.start_button.icon = ft.Icons.STOP if running else ft.Icons.PLAY_ARROW
         self.start_button.bgcolor = ft.Colors.RED if running else None
         self.start_button.color = ft.Colors.ON_ERROR if running else None
+        _, command = command_paths(application_directory())
+        self.update_button.disabled = running or not command.is_file()
 
     def _update_server_state(self, state: ServerState, message: str | None = None) -> None:
         """Update the traffic light indicator and status message."""

@@ -130,6 +130,7 @@ def test_installed_mcp_shows_update_and_enables_start_button(monkeypatch, tmp_pa
 
     assert panel.install_button.disabled
     assert panel.update_button.visible
+    assert not panel.update_button.disabled
     assert not panel.start_button.disabled
     assert panel.start_button.content == "Start Server"
 
@@ -175,6 +176,9 @@ def test_status_refresh_does_not_repeat_the_setup_guide(monkeypatch, tmp_path, d
 
 def test_running_server_uses_red_stop_button(monkeypatch, tmp_path, desktop_ui):
     monkeypatch.setenv("APPDATA", str(tmp_path))
+    _, command = desktop_ui.command_paths(tmp_path / ".pyaedt_mcp")
+    command.parent.mkdir(parents=True)
+    command.touch()
     panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
 
     panel._set_server_button_running(True)
@@ -182,6 +186,11 @@ def test_running_server_uses_red_stop_button(monkeypatch, tmp_path, desktop_ui):
     assert panel.start_button.content == "Stop Server"
     assert panel.start_button.icon == ft.Icons.STOP
     assert panel.start_button.bgcolor == ft.Colors.RED
+    assert panel.update_button.disabled
+
+    panel._set_server_button_running(False)
+
+    assert not panel.update_button.disabled
 
 
 def test_tray_open_schedules_window_restore(monkeypatch, tmp_path, desktop_ui):
@@ -236,8 +245,9 @@ def test_available_branches_returns_sorted_branch_names(monkeypatch, desktop_ui)
     assert desktop_ui.available_branches() == ["feat/desktop-manager", "main"]
 
 
-def test_control_panel_loads_versions_on_open(monkeypatch, desktop_ui):
+def test_control_panel_loads_versions_on_open(monkeypatch, tmp_path, desktop_ui):
     calls = []
+    monkeypatch.setenv("APPDATA", str(tmp_path))
     monkeypatch.setattr(
         desktop_ui.McpControlPanel,
         "load_versions",
@@ -438,12 +448,13 @@ def test_advanced_settings_are_shared_in_a_top_level_tab(monkeypatch, tmp_path, 
     tabs = page.controls[0].controls[1]
     tab_view = tabs.content.controls[1]
     advanced_tab = tab_view.controls[1]
+    settings_tab = tab_view.controls[3]
     connection_settings = advanced_tab.controls[0].content.controls[1]
     advanced_settings = advanced_tab.controls[1].content.controls[1]
 
     assert page.window.width == 660
     assert page.window.min_width == 620
-    assert tabs.length == 3
+    assert tabs.length == 4
     assert connection_settings.tight
     assert advanced_settings.tight
     assert connection_settings.controls[0].controls[0] is panel.machine
@@ -453,15 +464,57 @@ def test_advanced_settings_are_shared_in_a_top_level_tab(monkeypatch, tmp_path, 
     assert advanced_settings.controls[0].controls[0].controls[0] is panel.connect
     assert advanced_settings.controls[1].controls[0].controls[0] is panel.include_context
     assert advanced_settings.controls[2].controls[0] is panel.debug
+    assert (
+        settings_tab.controls[0].content.controls[1].controls[0].controls[0]
+        is panel.offline_install
+    )
+    assert isinstance(panel.offline_install, ft.Switch)
+    assert panel.install_options.visible
 
 
-def test_branch_source_requires_a_selection_before_install(monkeypatch, tmp_path, desktop_ui):
+async def test_offline_installation_setting_is_persisted_and_passed_to_installer(
+    monkeypatch, tmp_path, desktop_ui
+):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+    initial_status = panel.status.value
+    wheelhouse = tmp_path / "ansys_aedt_mcp-wheelhouse-windows-3.13.zip"
+    wheelhouse.touch()
+    panel.offline_install.value = True
+    panel._toggle_offline_install(None)
+    assert isinstance(page.dialog, ft.SnackBar)
+    assert page.dialog.content.value == "Installation settings saved"
+    assert panel.status.value == initial_status
+    setup_calls = []
+    monkeypatch.setattr(
+        desktop_ui,
+        "setup_environment",
+        lambda *args, **kwargs: setup_calls.append((args, kwargs)),
+    )
+    monkeypatch.setattr(panel, "_run_background", lambda action, _complete: action())
+    monkeypatch.setattr(
+        panel.folder_picker,
+        "pick_files",
+        AsyncMock(return_value=[Mock(path=str(wheelhouse))]),
+    )
+
+    await panel.install(None)
+
+    assert desktop_ui.load_settings(tmp_path / ".pyaedt_mcp") == {
+        "offline_install": True,
+    }
+    assert setup_calls[0][1]["wheelhouse"] == str(wheelhouse)
+    assert not panel.install_options.visible
+
+
+async def test_branch_source_requires_a_selection_before_install(monkeypatch, tmp_path, desktop_ui):
     monkeypatch.setenv("APPDATA", str(tmp_path))
     page = FakePage()
     panel = desktop_ui.McpControlPanel(page, load_versions=False)
     panel.install_source.value = "branch"
 
-    panel.install(None)
+    await panel.install(None)
 
     assert panel.status.value == "Choose a Git branch to install"
 

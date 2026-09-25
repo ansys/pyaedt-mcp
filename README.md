@@ -50,7 +50,13 @@ uv pip install git+https://github.com/ansys/pyaedt-mcp.git
 
 ### Windows installer
 
-Windows releases include `PyAEDT-MCP-Installer-windows.exe`. It installs the desktop manager into `C:\Program Files\ANSYS Inc\PyAEDT MCP`, adds a Start Menu entry, and registers an uninstaller in Windows Installed Apps. On first use, the manager creates `%APPDATA%\.pyaedt_mcp\.venv` and uses its bundled CPython 3.13 and `uv` to install `ansys-aedt-mcp` from PyPI. An internet connection is required only for that initial installation.
+Windows releases include `PyAEDT-MCP-Installer-windows.exe`:
+
+- Installs the desktop manager into `C:\Program Files\ANSYS Inc\PyAEDT MCP`.
+- Adds a Start Menu entry and registers an uninstaller in Windows Installed Apps.
+- On first use, creates `%APPDATA%\.pyaedt_mcp\.venv` and uses bundled CPython 3.13 and `uv` to install `ansys-aedt-mcp` from PyPI.
+- Supports offline installation from the Settings tab. Each install or update prompts you to select a Python 3.13 wheelhouse ZIP and installs only from that archive, without querying package indexes.
+- Saves the offline installation selection in `%APPDATA%\.pyaedt_mcp\settings.yaml`.
 
 Opening the executable provides setup, HTTP server controls, AEDT options, and stdio or HTTP profiles for Copilot/VS Code, Claude, Cursor, Codex, and OpenCode.
 
