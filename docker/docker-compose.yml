@@ -22,13 +22,24 @@ services:
         PYANSYS_PYPI_INDEX_URL: ${PYANSYS_PYPI_INDEX_URL:-}
     container_name: pyaedt-mcp
     ports:
-      - "8080:8080" # HTTP transport port
+      # Published on loopback only: the HTTP transport has no authentication, so
+      # binding to 0.0.0.0 here would expose run_python_code (arbitrary code
+      # execution against the connected AEDT session) and file-reading/writing
+      # tools to the network. Only change this if the port is protected by a
+      # reverse proxy that performs TLS and authentication.
+      - "127.0.0.1:${HTTP_PORT:-8080}:8080"
     environment:
       - AEDT_MACHINE=${AEDT_MACHINE:-host.docker.internal}
       - AEDT_PORT=${AEDT_PORT:-50051}
       - AEDT_VERSION=${AEDT_VERSION:-2026.1}
       - AEDT_NON_GRAPHICAL=${AEDT_NON_GRAPHICAL:-true}
       - CONNECT_ON_STARTUP=${CONNECT_ON_STARTUP:-true}
+      # HTTP_HOST is the bind address *inside* the container. Leave it as 0.0.0.0
+      # so Docker's port publishing above can reach the process; the actual
+      # network exposure is controlled by the "ports" mapping, which defaults to
+      # publishing on 127.0.0.1 only.
+      - HTTP_HOST=${HTTP_HOST:-0.0.0.0}
+      - HTTP_PORT=${HTTP_PORT:-8080}
     extra_hosts:
       - "host.docker.internal:host-gateway" # For connecting to host AEDT
     restart: unless-stopped
@@ -60,5 +71,10 @@ networks:
 #   AEDT_PORT             - AEDT gRPC port (default: 50051)
 #   AEDT_VERSION          - AEDT version (default: 2026.1)
 #   CONNECT_ON_STARTUP    - Connect to AEDT on startup (default: true)
+#   HTTP_HOST             - Bind address inside the container (default: 0.0.0.0).
+#                           Actual network exposure is controlled by the "ports"
+#                           mapping above (defaults to 127.0.0.1 only), because
+#                           the HTTP transport has no authentication.
+#   HTTP_PORT             - HTTP server port, both inside the container and for
+#                           the published "ports" mapping (default: 8080)
 #   PYANSYS_PYPI_INDEX_URL - Private PyPI for ansys-common-mcp (build-time)
-#   AEDT_VERSION - AEDT version (default: 2026.1)

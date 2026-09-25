@@ -367,10 +367,18 @@ def launcher(argv: list[str] | None = None) -> None:
     if args.transport_type == "stdio":
         asyncio.run(app.run_stdio_async())
     elif args.transport_type == "http":
+        middleware = None
+        if cors_origins is not None:
+            from starlette.middleware import Middleware
+            from starlette.middleware.cors import CORSMiddleware
+
+            middleware = [Middleware(CORSMiddleware, allow_origins=cors_origins)]
+
         asyncio.run(
             app.run_http_async(
                 transport="http",  # Use streamable HTTP (default)
                 host=args.http_host,
                 port=args.http_port,
+                middleware=middleware,
             )
         )
