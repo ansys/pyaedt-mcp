@@ -9,6 +9,70 @@ This section contains the release notes for PyAEDT-MCP.
 
 .. towncrier release notes start
 
+`0.2.2 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.2.2>`_ - September 25, 2026
+=======================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Added
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Add wheelhouse offline installation support
+          - `#124 <https://github.com/ansys/pyaedt-mcp/pull/124>`_
+
+
+  .. tab-item:: Documentation
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update \`\`CONTRIBUTORS.md\`\` with the latest contributors
+          - `#115 <https://github.com/ansys/pyaedt-mcp/pull/115>`_
+
+        * - Added git to the instructions
+          - `#123 <https://github.com/ansys/pyaedt-mcp/pull/123>`_
+
+
+  .. tab-item:: Dependencies
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Bump https://github.com/astral-sh/ruff-pre-commit from v0.16.4 to 0.16.5 in the pre-commit group
+          - `#110 <https://github.com/ansys/pyaedt-mcp/pull/110>`_
+
+        * - Bump the pip-deps group with 3 updates
+          - `#111 <https://github.com/ansys/pyaedt-mcp/pull/111>`_
+
+        * - Bump the actions group with 17 updates
+          - `#112 <https://github.com/ansys/pyaedt-mcp/pull/112>`_
+
+        * - Bump https://github.com/astral-sh/ruff-pre-commit from v0.16.5 to 0.16.6 in the pre-commit group
+          - `#117 <https://github.com/ansys/pyaedt-mcp/pull/117>`_
+
+        * - Bump the pip-deps group across 1 directory with 3 updates
+          - `#121 <https://github.com/ansys/pyaedt-mcp/pull/121>`_
+
+        * - Bump astral-sh/setup-uv from 10.0.1 to 10.1.0 in the actions group
+          - `#122 <https://github.com/ansys/pyaedt-mcp/pull/122>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update CHANGELOG for v0.2.1
+          - `#113 <https://github.com/ansys/pyaedt-mcp/pull/113>`_
+
+
 `0.2.1 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.2.1>`_ - September 10, 2026
 =======================================================================================
 
