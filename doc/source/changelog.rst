@@ -9,6 +9,32 @@ This section contains the release notes for PyAEDT-MCP.
 
 .. towncrier release notes start
 
+`0.2.3 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.2.3>`_ - September 25, 2026
+=======================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Added
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Binding to localhost and security enhancements
+          - `#127 <https://github.com/ansys/pyaedt-mcp/pull/127>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update CHANGELOG for v0.2.2
+          - `#126 <https://github.com/ansys/pyaedt-mcp/pull/126>`_
+
+
 `0.2.2 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.2.2>`_ - September 25, 2026
 =======================================================================================
 
