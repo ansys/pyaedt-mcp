@@ -139,12 +139,20 @@ def setup_environment(
     if upgrade:
         install_command.append("--upgrade")
     install_command.append(package)
-    subprocess.run(  # nosec B603
-        install_command,
-        check=True,
-        env=environment,
-        **hidden_window_options(),
-    )
+    try:
+        subprocess.run(  # nosec B603
+            install_command,
+            check=True,
+            capture_output=True,
+            env=environment,
+            text=True,
+            **hidden_window_options(),
+        )
+    except subprocess.CalledProcessError as error:
+        detail = (error.stderr or error.stdout or "").strip()
+        if detail:
+            raise RuntimeError(f"Could not install {PACKAGE_NAME}: {detail}") from error
+        raise
     if not mcp_executable.is_file():
         raise RuntimeError(f"{PACKAGE_NAME} was installed but its console command was not found")
     return mcp_executable

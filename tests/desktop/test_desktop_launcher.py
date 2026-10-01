@@ -167,6 +167,31 @@ def test_setup_environment_installs_selected_branch(monkeypatch, tmp_path, deskt
     )
 
 
+def test_setup_environment_reports_uv_install_error(monkeypatch, tmp_path, desktop_launcher):
+    app_directory = tmp_path / ".pyaedt_mcp"
+    python_executable, mcp_executable = desktop_launcher.command_paths(app_directory)
+    python_executable.parent.mkdir(parents=True)
+    python_executable.touch()
+    mcp_executable.touch()
+    runtime_directory = tmp_path / "runtime"
+    embedded_python = runtime_directory / "python" / "python.exe"
+    uv_executable = runtime_directory / "uv" / "uv.exe"
+    embedded_python.parent.mkdir(parents=True)
+    uv_executable.parent.mkdir()
+    embedded_python.touch()
+    uv_executable.touch()
+
+    def fake_run(command, **_kwargs):
+        raise subprocess.CalledProcessError(1, command, stderr="Git executable not found")
+
+    monkeypatch.setattr(desktop_launcher.subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError, match="Could not install ansys-aedt-mcp: Git executable"):
+        desktop_launcher.setup_environment(
+            app_directory, runtime_directory, branch="main", upgrade=True
+        )
+
+
 def test_setup_environment_installs_from_a_local_wheelhouse(
     monkeypatch, tmp_path, desktop_launcher
 ):

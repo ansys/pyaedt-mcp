@@ -1,17 +1,14 @@
-name: Build Windows MCP Installer
+name: Build Windows MCP Executable
 
 on:
   pull_request:
     branches:
       - main
     types: [opened, synchronize, reopened, ready_for_review]
-  release:
-    types:
-      - published
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.release.id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions: {}
 
@@ -20,7 +17,7 @@ jobs:
     name: Build Windows installer
     runs-on: windows-latest
     permissions:
-      contents: write # Needed to upload the Windows installer to a release
+      contents: read
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -28,7 +25,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           enable-cache: false
 
@@ -50,23 +47,3 @@ jobs:
           name: PyAEDT_MCP-windows
           path: dist/PyAEDT_MCP.exe
           if-no-files-found: error
-
-      - name: Install NSIS
-        if: github.event_name == 'release'
-        shell: pwsh
-        run: choco install nsis -y
-
-      - name: Build installer
-        if: github.event_name == 'release'
-        shell: pwsh
-        env:
-          PRODUCT_VERSION: ${{ github.event.release.tag_name }}
-        run: .\scripts\build_windows_installer.ps1 -SkipRuntimeStaging -SkipExecutableBuild -Version $env:PRODUCT_VERSION.TrimStart('v')
-
-      - name: Upload installer to release
-        if: github.event_name == 'release'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload $env:TAG .\dist\PyAEDT-MCP-Installer-windows.exe --clobber
