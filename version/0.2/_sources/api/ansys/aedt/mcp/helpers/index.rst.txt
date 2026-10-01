@@ -1,0 +1,310 @@
+
+
+
+
+
+
+The ``helpers.py`` module
+=========================
+
+.. py:module:: ansys.aedt.mcp.helpers
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: helpers
+.. tab-set::
+
+
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~discover_available_aedt_sessions`
+            - Discover AEDT sessions currently running on the local system.
+
+
+          * - :py:obj:`~get_aedt_info`
+            - Get comprehensive information from an AEDT instance.
+
+
+          * - :py:obj:`~get_design_info`
+            - Get information about an AEDT application or design.
+
+
+          * - :py:obj:`~parse_aedt_version`
+            - Parse and normalize an AEDT version string.
+
+
+          * - :py:obj:`~get_design_type_map`
+            - Get a mapping from AEDT design-type strings to PyAEDT application classes.
+
+
+          * - :py:obj:`~resolve_design_app`
+            - Resolve and attach to the PyAEDT application for a target design.
+
+
+
+    .. tab-item:: Attributes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~logger`
+            - 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Helper functions for PyAEDT-MCP.
+
+This module provides utility functions for working with AEDT
+instances and extracting information from them.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: discover_available_aedt_sessions() -> list[dict[str, Any]]
+
+   
+   Discover AEDT sessions currently running on the local system.
+
+
+
+
+
+   :Returns:
+
+       :class:`python:list`\[:class:`python:dict`\[:class:`python:str`, :obj:`Any`]]
+           Session metadata similar to the PyAEDT CLI ``session list`` output.
+           Each entry includes whether the session is connectable from PyAEDT-MCP,
+           which currently requires gRPC mode with a known port.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_aedt_info(desktop: Any) -> dict[str, Any]
+
+   
+   Get comprehensive information from an AEDT instance.
+
+
+   :Parameters:
+
+       **desktop** : :obj:`Any`
+           AEDT instance.
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Dictionary containing AEDT information including:
+           - connection: Connection details (version, machine, port, grpc mode)
+           - projects: List of open projects
+           - active_project: Currently active project
+           - installed_versions: Available AEDT versions
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_design_info(app: Any) -> dict[str, Any]
+
+   
+   Get information about an AEDT application or design.
+
+
+   :Parameters:
+
+       **app** : :obj:`Any`
+           AEDT application instance (such as HFSS, Maxwell3d, Icepak, and so on).
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Dictionary containing design information.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: parse_aedt_version(version_str: str | None) -> str | None
+
+   
+   Parse and normalize an AEDT version string.
+
+
+   :Parameters:
+
+       **version_str** : :class:`python:str` | :data:`python:None`
+           Version string in various formats (such as "2026.1", "261", or "26.1").
+
+
+
+   :Returns:
+
+       :class:`python:str` | :data:`python:None`
+           Normalized version string or ``None`` if invalid.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_design_type_map() -> dict[str, Any]
+
+   
+   Get a mapping from AEDT design-type strings to PyAEDT application classes.
+
+   The keys are the design-type identifiers returned by
+   ``Desktop.design_type()``. The values are the corresponding PyAEDT
+   application classes that can be instantiated to attach to an existing
+   AEDT session.
+
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Mapping of design-type string to a PyAEDT application class.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: resolve_design_app(desktop: Any, project_name: str | None = None, design_name: str | None = None) -> tuple[Any, str | None, str | None]
+
+   
+   Resolve and attach to the PyAEDT application for a target design.
+
+
+   :Parameters:
+
+       **desktop** : :obj:`Any`
+           Connected AEDT instance.
+
+       **project_name** : :class:`python:str`, default: :data:`python:None`
+           Project name to resolve. If ``None``, the active project is used.
+
+       **design_name** : :class:`python:str`, default: :data:`python:None`
+           Design name to resolve. If ``None``, the active design is used.
+
+
+
+   :Returns:
+
+       :class:`python:tuple`\[:obj:`Any`, :class:`python:str` | :data:`python:None`, :class:`python:str` | :data:`python:None`]
+           Tuple containing the attached PyAEDT application instance, resolved project
+           name, and resolved design name.
+
+
+
+
+   :Raises:
+
+       :obj:`RuntimeError`
+           If the design type is unsupported.
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: logger
+
+
+
