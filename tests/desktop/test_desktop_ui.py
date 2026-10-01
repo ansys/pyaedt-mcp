@@ -519,6 +519,28 @@ async def test_branch_source_requires_a_selection_before_install(monkeypatch, tm
     assert panel.status.value == "Choose a Git branch to install"
 
 
+def test_finish_update_keeps_branch_source_in_status(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    panel.install_source.value = "branch"
+    panel.branch_picker.value = "release/0.2"
+    panel.refresh_status = lambda: setattr(panel.status, "value", "MCP 0.2.3 installed")
+
+    panel._finish_update(None, None)
+
+    assert panel.status.value == "MCP updated from Git branch 'release/0.2'"
+
+
+def test_finish_update_keeps_error_in_status(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    panel.refresh_status = lambda: setattr(panel.status, "value", "MCP 0.2.3 installed")
+
+    panel._finish_update(None, "Git repository could not be reached")
+
+    assert panel.status.value == "Update failed: Git repository could not be reached"
+
+
 def test_stdio_profiles_use_the_installed_mcp_command(monkeypatch, tmp_path, desktop_ui):
     monkeypatch.setenv("APPDATA", str(tmp_path / "AppData"))
     app_directory = tmp_path / "installed-mcp"

@@ -1197,8 +1197,14 @@ class McpControlPanel:
 
     def _finish_update(self, _result, error: str | None) -> None:
         self.update_button.disabled = False
-        self.status.value = f"Update failed: {error}" if error else "MCP updated"
         self.refresh_status()
+        if error:
+            self.status.value = f"Update failed: {error}"
+        elif branch := self._selected_branch():
+            self.status.value = f"MCP updated from Git branch '{branch}'"
+        else:
+            self.status.value = "MCP updated"
+        self.page.update()
 
     def toggle_server(self, event) -> None:
         if self.server_process is not None and self.server_process.poll() is None:
