@@ -217,6 +217,48 @@ jobs:
           path: dist/PyAEDT-MCP-Installer-windows.exe
           if-no-files-found: error
 
+  sign-application-windows:
+    name: "Sign application"
+    needs: [desktop-app]
+    runs-on:
+      group: ansys-network
+      labels: [self-hosted, Windows, signtool]
+    steps:
+      - name: "Checkout the SignTool"
+        uses: actions/checkout@v7
+        with:
+          repository: ansys/signtool-ansys-apps
+          token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
+
+      - name: "Download desktop installer artifact"
+        uses: actions/download-artifact@v8
+        with:
+          name: PyAEDT_MCP-Installer-windows
+          path: signtool/installer
+
+      - name: "List current structure"
+        run: ls -R
+
+      - name: "Sign application"
+        working-directory: signtool
+        run: |
+          $filename = (get-ChildItem installer -recurse | where {$_.name -like "*Setup*"}).Name
+          $jobname = $filename -replace ".{4}$"
+          .\SynSign.exe sign `
+            --signUrl https://csign.ansys.com `
+            -r gh_signtool_account `
+            -s '${{ secrets.SIGNTOOL_PWD }}' `
+            -n $jobname `
+            -i installer/$filename `
+            -o installer/$filename
+
+      - name: "Upload signed desktop installer"
+        uses: actions/upload-artifact@v7
+        with:
+          name: PyAEDT_MCP-Installer-windows-signed
+          path: signtool/installer/*Setup*.exe
+
+
   system-tests-tools-linux:
     name: "System tests (tools, linux)"
     runs-on: [self-hosted, Linux, pyaedt-toolkit]
