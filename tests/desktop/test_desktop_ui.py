@@ -20,7 +20,6 @@ import importlib.util
 import io
 import json
 from pathlib import Path
-import sys
 from unittest.mock import AsyncMock, Mock
 
 import flet as ft
@@ -56,13 +55,15 @@ class FakePage:
 @pytest.fixture(scope="module")
 def desktop_ui():
     desktop_app_directory = Path(__file__).parents[2] / "desktop_app"
-    sys.path.insert(0, str(desktop_app_directory))
     script_path = desktop_app_directory / "desktop_ui.py"
     spec = importlib.util.spec_from_file_location("desktop_ui_for_test", script_path)
     if spec is None or spec.loader is None:
         raise RuntimeError("Could not load the desktop UI script")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Only exposed on sys.path for the duration of the import, not the whole test session.
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.syspath_prepend(str(desktop_app_directory))
+        spec.loader.exec_module(module)
     return module
 
 
@@ -381,12 +382,18 @@ def test_coding_agent_detection_checks_cli_and_desktop_locations(monkeypatch, tm
     (local_appdata / "Programs" / "Claude" / "Claude.exe").touch()
     (local_appdata / "Programs" / "Cursor").mkdir(parents=True)
     (local_appdata / "Programs" / "Cursor" / "Cursor.exe").touch()
+    appdata = tmp_path / "AppData" / "Roaming"
+    npm_directory = appdata / "npm"
+    npm_directory.mkdir(parents=True)
+    (npm_directory / "opencode.cmd").touch()
     monkeypatch.setenv("LOCALAPPDATA", str(local_appdata))
+    monkeypatch.setenv("APPDATA", str(appdata))
+    monkeypatch.setenv("ProgramFiles", str(tmp_path / "Program Files"))
     monkeypatch.setattr(
         desktop_ui.shutil,
         "which",
         lambda command: (
-            "C:/tools/agent.exe" if command in {"copilot", "claude", "opencode"} else None
+            str(npm_directory / f"{command}.cmd") if command in {"copilot", "claude"} else None
         ),
     )
 
@@ -399,6 +406,54 @@ def test_coding_agent_detection_checks_cli_and_desktop_locations(monkeypatch, tm
         "cursor": True,
         "codex": False,
         "opencode": True,
+    }
+
+
+def test_coding_agent_detection_falls_back_to_known_install_locations(
+    monkeypatch, tmp_path, desktop_ui
+):
+    local_appdata = tmp_path / "AppData" / "Local"
+    (local_appdata / "Programs" / "Microsoft VS Code").mkdir(parents=True)
+    (local_appdata / "Programs" / "Microsoft VS Code" / "Code.exe").touch()
+    appdata = tmp_path / "AppData" / "Roaming"
+    (appdata / "npm").mkdir(parents=True)
+    (appdata / "npm" / "codex.cmd").touch()
+    monkeypatch.setenv("LOCALAPPDATA", str(local_appdata))
+    monkeypatch.setenv("APPDATA", str(appdata))
+    monkeypatch.setenv("ProgramFiles", str(tmp_path / "Program Files"))
+    monkeypatch.setattr(desktop_ui.shutil, "which", lambda _command: None)
+    # Signature verification is covered separately in test_authenticode.py; stub it here
+    # so this test only exercises the known-install-location fallback logic.
+    monkeypatch.setattr(desktop_ui, "is_trusted_publisher", lambda path, _trusted: path.is_file())
+
+    detected_agents = desktop_ui.installed_coding_agents()
+
+    assert detected_agents["copilot"] is True
+    assert detected_agents["codex"] is True
+    assert detected_agents["claude_code"] is False
+    assert detected_agents["opencode"] is False
+
+
+def test_coding_agent_detection_ignores_path_hijacking(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "AppData" / "Local"))
+    monkeypatch.setenv("APPDATA", str(tmp_path / "AppData" / "Roaming"))
+    monkeypatch.setenv("ProgramFiles", str(tmp_path / "Program Files"))
+    # Simulate a malicious same-named executable placed earlier on PATH than any real install.
+    hijack_directory = tmp_path / "hijacked-path-entry"
+    hijack_directory.mkdir()
+    monkeypatch.setattr(
+        desktop_ui.shutil, "which", lambda command: str(hijack_directory / f"{command}.exe")
+    )
+
+    detected_agents = desktop_ui.installed_coding_agents()
+
+    assert detected_agents == {
+        "copilot": False,
+        "claude_desktop": False,
+        "claude_code": False,
+        "cursor": False,
+        "codex": False,
+        "opencode": False,
     }
 
 

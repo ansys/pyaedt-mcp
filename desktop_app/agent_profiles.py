@@ -3,9 +3,7 @@
 import json
 from pathlib import Path
 
-SERVER_NAME = "pyaedt-mcp"
-STDIO_TRANSPORT = "stdio"
-HTTP_TRANSPORT = "http"
+from desktop_config import HTTP_TRANSPORT, SERVER_NAME, STDIO_TRANSPORT
 
 
 def profile_command(executable: Path, server_arguments: list[str]) -> tuple[str, list[str]]:

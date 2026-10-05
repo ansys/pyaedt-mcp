@@ -1,0 +1,39 @@
+# Centralized configuration for the PyAEDT MCP desktop application.
+# Values here are loaded by desktop_config.py and shared across the desktop_app modules.
+
+package:
+  name: ansys-aedt-mcp
+  repository_url: https://github.com/ansys/pyaedt-mcp.git
+  pypi_url: https://pypi.org/pypi/ansys-aedt-mcp/json
+  github_branches_url: https://api.github.com/repos/ansys/pyaedt-mcp/branches?per_page=100
+  issues_url: https://github.com/ansys/pyaedt-mcp/issues
+  documentation_url: https://aedt-mcp.docs.pyansys.com/version/stable/getting_started/desktop_app.html
+
+app:
+  directory_name: .pyaedt_mcp
+  server_mode_flag: --server
+  settings_filename: settings.yaml
+  window_icon_filename: pyaedt_mcp_icon.ico
+  tray_icon_filename: pyaedt_mcp_icon.png
+
+runtime:
+  wheelhouse_python_version: "3.13"
+  cpython_version: "3.13.8"
+  cpython_archive_sha256: 3de305b550bdc582f7c31a0f286f5b08c453ae5628ef2800a1bb1f86a42b746c
+  uv_version: "0.12.23"
+  uv_archive_sha256: 75d05de6762778c31ee183398de7dd15093fad0ed90b1f236d8205ea5ec00c90
+
+mcp:
+  server_name: pyaedt-mcp
+  stdio_transport: stdio
+  http_transport: http
+
+# Authenticode signer substrings required for a detected GUI agent executable to be
+# trusted (see desktop_app/authenticode.py). An empty list means no signature is
+# enforced for that agent and detection falls back to a plain file-existence check.
+# Values confirmed via `(Get-AuthenticodeSignature <path>).SignerCertificate.Subject`
+# on a machine with the real application installed.
+trusted_publishers:
+  vscode: ["O=Microsoft Corporation"]
+  claude_desktop: []
+  cursor: []
