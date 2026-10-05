@@ -1,3 +1,19 @@
+# Copyright (C) 2026 Synopsys, Inc. and ANSYS, Inc. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Tests for staging the desktop runtime payload."""
 
 import hashlib
@@ -37,12 +53,16 @@ def _fake_urlretrieve(source_archive: Path):
     return _urlretrieve
 
 
-def test_stage_embedded_python_downloads_verifies_and_extracts(tmp_path, monkeypatch, runtime_stager):
+def test_stage_embedded_python_downloads_verifies_and_extracts(
+    tmp_path, monkeypatch, runtime_stager
+):
     source_archive = tmp_path / "download-source" / "python-embed-amd64.zip"
     _write_zip(source_archive, {"python.exe": b"python executable", "python313.dll": b"dll"})
     checksum = hashlib.sha256(source_archive.read_bytes()).hexdigest()
     monkeypatch.setattr(runtime_stager, "PYTHON_ARCHIVE_SHA256", checksum)
-    monkeypatch.setattr(runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive))
+    monkeypatch.setattr(
+        runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive)
+    )
 
     runtime_dir = tmp_path / "runtime"
     runtime_stager.stage_embedded_python(runtime_dir)
@@ -55,7 +75,9 @@ def test_stage_embedded_python_rejects_checksum_mismatch(tmp_path, monkeypatch, 
     source_archive = tmp_path / "download-source" / "python-embed-amd64.zip"
     _write_zip(source_archive, {"python.exe": b"python executable"})
     monkeypatch.setattr(runtime_stager, "PYTHON_ARCHIVE_SHA256", "0" * 64)
-    monkeypatch.setattr(runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive))
+    monkeypatch.setattr(
+        runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive)
+    )
 
     runtime_dir = tmp_path / "runtime"
     with pytest.raises(RuntimeError, match="Unexpected SHA-256"):
@@ -65,12 +87,16 @@ def test_stage_embedded_python_rejects_checksum_mismatch(tmp_path, monkeypatch, 
     assert not (runtime_dir / "python").exists()
 
 
-def test_stage_embedded_python_rejects_archive_missing_executable(tmp_path, monkeypatch, runtime_stager):
+def test_stage_embedded_python_rejects_archive_missing_executable(
+    tmp_path, monkeypatch, runtime_stager
+):
     source_archive = tmp_path / "download-source" / "python-embed-amd64.zip"
     _write_zip(source_archive, {"README.txt": b"no python here"})
     checksum = hashlib.sha256(source_archive.read_bytes()).hexdigest()
     monkeypatch.setattr(runtime_stager, "PYTHON_ARCHIVE_SHA256", checksum)
-    monkeypatch.setattr(runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive))
+    monkeypatch.setattr(
+        runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive)
+    )
 
     runtime_dir = tmp_path / "runtime"
     with pytest.raises(RuntimeError, match="does not contain python.exe"):
@@ -82,7 +108,9 @@ def test_stage_uv_downloads_verifies_and_extracts(tmp_path, monkeypatch, runtime
     _write_zip(source_archive, {"uv.exe": b"uv executable", "uvx.exe": b"uvx executable"})
     checksum = hashlib.sha256(source_archive.read_bytes()).hexdigest()
     monkeypatch.setattr(runtime_stager, "UV_ARCHIVE_SHA256", checksum)
-    monkeypatch.setattr(runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive))
+    monkeypatch.setattr(
+        runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive)
+    )
 
     runtime_dir = tmp_path / "runtime"
     runtime_stager.stage_uv(runtime_dir)
@@ -95,7 +123,9 @@ def test_stage_uv_rejects_checksum_mismatch(tmp_path, monkeypatch, runtime_stage
     source_archive = tmp_path / "download-source" / "uv-x86_64-pc-windows-msvc.zip"
     _write_zip(source_archive, {"uv.exe": b"uv executable"})
     monkeypatch.setattr(runtime_stager, "UV_ARCHIVE_SHA256", "0" * 64)
-    monkeypatch.setattr(runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive))
+    monkeypatch.setattr(
+        runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive)
+    )
 
     runtime_dir = tmp_path / "runtime"
     with pytest.raises(RuntimeError, match="Unexpected SHA-256"):
@@ -110,7 +140,9 @@ def test_stage_uv_rejects_archive_missing_executable(tmp_path, monkeypatch, runt
     _write_zip(source_archive, {"README.txt": b"no uv here"})
     checksum = hashlib.sha256(source_archive.read_bytes()).hexdigest()
     monkeypatch.setattr(runtime_stager, "UV_ARCHIVE_SHA256", checksum)
-    monkeypatch.setattr(runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive))
+    monkeypatch.setattr(
+        runtime_stager.urllib.request, "urlretrieve", _fake_urlretrieve(source_archive)
+    )
 
     runtime_dir = tmp_path / "runtime"
     with pytest.raises(RuntimeError, match="does not contain uv.exe"):
