@@ -225,13 +225,14 @@ jobs:
       labels: [self-hosted, Windows, signtool]
     steps:
       - name: "Checkout the SignTool"
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ansys/signtool-ansys-apps
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
+          persist-credentials: false
 
       - name: "Download desktop installer artifact"
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: PyAEDT_MCP-Installer-windows
           path: signtool/installer
@@ -241,19 +242,21 @@ jobs:
 
       - name: "Sign application"
         working-directory: signtool
+        env:
+          SIGNTOOL_PWD: ${{ secrets.SIGNTOOL_PWD }}
         run: |
           $filename = (get-ChildItem installer -recurse | where {$_.name -like "*Setup*"}).Name
           $jobname = $filename -replace ".{4}$"
           .\SynSign.exe sign `
             --signUrl https://csign.ansys.com `
             -r gh_signtool_account `
-            -s '${{ secrets.SIGNTOOL_PWD }}' `
+            -s $env:SIGNTOOL_PWD `
             -n $jobname `
             -i installer/$filename `
             -o installer/$filename
 
       - name: "Upload signed desktop installer"
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: PyAEDT_MCP-Installer-windows-signed
           path: signtool/installer/*Setup*.exe

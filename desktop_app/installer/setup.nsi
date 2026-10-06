@@ -95,4 +95,3 @@ Section "Uninstall"
   RMDir "$INSTDIR"
   DeleteRegKey SHCTX "${UNINSTKEY}"
 SectionEnd
-
