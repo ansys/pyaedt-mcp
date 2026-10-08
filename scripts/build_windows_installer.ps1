@@ -19,7 +19,7 @@ if (-not $SkipRuntimeStaging) {
 }
 
 if (-not $SkipExecutableBuild) {
-    uv run --no-sync flet pack .\desktop_app\desktop_launcher.py --name PyAEDT_MCP --icon .\desktop_app\assets\pyaedt_mcp_icon.ico --add-data .\desktop_app\.desktop-runtime:runtime --add-data .\desktop_app\assets:assets --yes
+    uv run --no-sync flet pack .\desktop_app\desktop_launcher.py --name PyAEDT_MCP --icon .\desktop_app\assets\pyaedt_mcp_icon.ico --add-data .\desktop_app\.desktop-runtime:runtime --add-data .\desktop_app\assets:assets --add-data .\desktop_app\config.yaml:. --yes
 }
 
 if (-not (Test-Path ".\dist\PyAEDT_MCP.exe")) {
@@ -37,7 +37,7 @@ if (-not $makeNsisPath) {
     throw "NSIS is required. Install it with: choco install nsis -y"
 }
 
-& $makeNsisPath "/DPRODUCT_VERSION=$Version" ".\installer\setup.nsi"
+& $makeNsisPath "/DPRODUCT_VERSION=$Version" ".\desktop_app\installer\setup.nsi"
 if ($LASTEXITCODE -ne 0) {
     throw "NSIS failed to build the Windows installer."
 }

@@ -25,12 +25,16 @@ import pytest
 
 @pytest.fixture(scope="module")
 def agent_profiles():
-    script_path = Path(__file__).parents[2] / "desktop_app" / "agent_profiles.py"
+    desktop_app_directory = Path(__file__).parents[2] / "desktop_app"
+    script_path = desktop_app_directory / "agent_profiles.py"
     spec = importlib.util.spec_from_file_location("agent_profiles", script_path)
     if spec is None or spec.loader is None:
         raise RuntimeError("Could not load the agent profiles script")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Only exposed on sys.path for the duration of the import, not the whole test session.
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.syspath_prepend(str(desktop_app_directory))
+        spec.loader.exec_module(module)
     return module
 
 
