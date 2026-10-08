@@ -1,0 +1,238 @@
+
+
+
+
+
+
+:class:`PyAEDTAppContext`
+=========================
+
+
+.. py:class:: ansys.aedt.mcp.server.PyAEDTAppContext
+
+   Bases: :py:obj:`ansys.common.mcp.context.PyAnsysBaseAppContext`
+
+
+   
+   Application context with typed dependencies and CLI options.
+
+
+
+   :Attributes:
+
+       **desktop** : :obj:`Optional`\[:obj:`Any`]
+           AEDT instance connection. Using ``Any`` avoids type issues.
+
+       **transport_type** : :class:`python:str`
+           Transport type for MCP server. Options are ``"stdio"`` or ``"http"``.
+
+       **aedt_machine** : :obj:`Optional`\[:class:`python:str`]
+           Machine name or IP address for the AEDT connection.
+
+       **aedt_port** : :obj:`Optional`\[:class:`python:int`]
+           Port number for the AEDT gRPC connection.
+
+       **aedt_version** : :obj:`Optional`\[:class:`python:str`]
+           Version of AEDT to use.
+
+       **non_graphical** : :ref:`bool <python:bltin-boolean-values>`
+           Whether to run AEDT in non-graphical mode.
+
+       **connect_on_startup** : :ref:`bool <python:bltin-boolean-values>`
+           Whether to attempt AEDT connection on MCP startup.
+
+       **include_context_tools** : :ref:`bool <python:bltin-boolean-values>`
+           Whether to register optional context helper tools.
+
+       **dynamic_tool_discovery** : :ref:`bool <python:bltin-boolean-values>`
+           Whether tool visibility should be dynamically gated by AEDT connection state.
+
+       **http_host** : :class:`python:str`
+           Host address for HTTP transport.
+
+       **http_port** : :class:`python:int`
+           Port number for HTTP transport.
+
+       **cors_origins** : :obj:`Optional`\[:class:`python:list`\[:class:`python:str`]]
+           List of allowed CORS origins for HTTP transport.
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. py:currentmodule:: PyAEDTAppContext
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+
+   .. tab-item:: Properties
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~product_instance`
+            - Default AEDT instance for backward compatibility.
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~desktop`
+            - 
+          * - :py:attr:`~transport_type`
+            - 
+          * - :py:attr:`~aedt_machine`
+            - 
+          * - :py:attr:`~aedt_port`
+            - 
+          * - :py:attr:`~aedt_version`
+            - 
+          * - :py:attr:`~non_graphical`
+            - 
+          * - :py:attr:`~connect_on_startup`
+            - 
+          * - :py:attr:`~include_context_tools`
+            - 
+          * - :py:attr:`~dynamic_tool_discovery`
+            - 
+          * - :py:attr:`~http_host`
+            - 
+          * - :py:attr:`~http_port`
+            - 
+          * - :py:attr:`~cors_origins`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.server import PyAEDTAppContext
+
+Property detail
+---------------
+
+.. py:property:: product_instance
+   :type: Optional[Any]
+
+
+   
+   Default AEDT instance for backward compatibility.
+
+
+
+
+
+   :Returns:
+
+       :obj:`Optional`\[:obj:`Any`]
+           Default AEDT instance or ``None`` if not connected.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: desktop
+   :type:  Any | None
+   :value: None
+
+
+.. py:attribute:: transport_type
+   :type:  str
+   :value: 'stdio'
+
+
+.. py:attribute:: aedt_machine
+   :type:  str | None
+   :value: None
+
+
+.. py:attribute:: aedt_port
+   :type:  int | None
+   :value: None
+
+
+.. py:attribute:: aedt_version
+   :type:  str | None
+   :value: None
+
+
+.. py:attribute:: non_graphical
+   :type:  bool
+   :value: True
+
+
+.. py:attribute:: connect_on_startup
+   :type:  bool
+   :value: False
+
+
+.. py:attribute:: include_context_tools
+   :type:  bool
+   :value: False
+
+
+.. py:attribute:: dynamic_tool_discovery
+   :type:  bool
+   :value: False
+
+
+.. py:attribute:: http_host
+   :type:  str
+   :value: '127.0.0.1'
+
+
+.. py:attribute:: http_port
+   :type:  int
+   :value: 8080
+
+
+.. py:attribute:: cors_origins
+   :type:  list[str] | None
+   :value: None
+
+
+
+
+
+
