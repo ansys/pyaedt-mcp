@@ -1,9 +1,12 @@
 """Centralized configuration constants for the PyAEDT MCP desktop application."""
 
 from pathlib import Path
+import re
 import sys
 
 import yaml
+
+_SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def config_path() -> Path:
@@ -19,6 +22,16 @@ def _load_config() -> dict:
     if not isinstance(data, dict):
         raise RuntimeError(f"{path} must contain a YAML mapping")
     return data
+
+
+def _load_sha256(config: dict, key: str) -> str:
+    """Coerce a configured checksum to str and validate it is 64 hex characters."""
+    value = str(config["runtime"][key])
+    if not _SHA256_HEX_RE.fullmatch(value.lower()):
+        raise RuntimeError(
+            f"runtime.{key} must be a 64-character hex SHA-256 digest, got {value!r}"
+        )
+    return value
 
 
 _CONFIG = _load_config()
@@ -38,13 +51,13 @@ TRAY_ICON_FILENAME = _CONFIG["app"]["tray_icon_filename"]
 
 WHEELHOUSE_PYTHON_VERSION = str(_CONFIG["runtime"]["wheelhouse_python_version"])
 CPYTHON_VERSION = str(_CONFIG["runtime"]["cpython_version"])
-PYTHON_ARCHIVE_SHA256 = _CONFIG["runtime"]["cpython_archive_sha256"]
+PYTHON_ARCHIVE_SHA256 = _load_sha256(_CONFIG, "cpython_archive_sha256")
 ARCHIVE_URL = (
     f"https://www.python.org/ftp/python/{CPYTHON_VERSION}/python-{CPYTHON_VERSION}-embed-amd64.zip"
 )
 
 UV_VERSION = str(_CONFIG["runtime"]["uv_version"])
-UV_ARCHIVE_SHA256 = _CONFIG["runtime"]["uv_archive_sha256"]
+UV_ARCHIVE_SHA256 = _load_sha256(_CONFIG, "uv_archive_sha256")
 UV_ARCHIVE_URL = (
     f"https://github.com/astral-sh/uv/releases/download/{UV_VERSION}/uv-x86_64-pc-windows-msvc.zip"
 )
