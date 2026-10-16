@@ -1424,36 +1424,109 @@ class TestRunPythonScript:
         """Test run script with non-existent file."""
         from ansys.aedt.mcp.tools import run_python_script
 
-        with patch("ansys.aedt.mcp.tools.Path.exists", return_value=False):
+        with patch("ansys.aedt.mcp.tools.Path.is_file", return_value=False):
             result = run_python_script(mock_context, script_path="/missing/script.py")
 
         assert "Script file not found" in result
 
-    def test_script_success(self, mock_context):
-        """Test successful script execution."""
+    @pytest.mark.parametrize("platform", ["win32", "linux"])
+    def test_script_success(self, mock_context, tmp_path, platform):
+        """Launch CPython with session context and no terminal or native RunScript."""
+        import os
+        import subprocess
+        import sys
+
         from ansys.aedt.mcp.tools import run_python_script
 
-        mock_context.request_context.lifespan_context.desktop.odesktop.RunScript.return_value = "OK"
+        desktop = mock_context.request_context.lifespan_context.desktop
+        desktop.odesktop.GetExeDir.return_value = desktop.aedt_install_dir
+        desktop.odesktop.GetPersonalLibDirectory.return_value = "personal-lib"
+        script = tmp_path / "script with spaces.py"
+        script.write_text("print('done')", encoding="utf-8")
 
-        with patch("ansys.aedt.mcp.tools.Path.exists", return_value=True):
-            result = run_python_script(mock_context, script_path="test.py")
+        with (
+            patch("ansys.aedt.mcp.tools.sys.platform", platform),
+            patch("ansys.aedt.mcp.tools.subprocess.CREATE_NO_WINDOW", 0x08000000, create=True),
+            patch("ansys.aedt.mcp.tools.subprocess.Popen") as launch,
+        ):
+            launch.return_value.pid = 456
+            result = run_python_script(mock_context, script_path=str(script))
 
-        assert "Script executed successfully" in result
-        assert "OK" in result
+        assert "PyAEDT script launched successfully" in result
+        assert "Process ID: 456" in result
+        assert "asynchronous" in result
+        desktop.odesktop.RunScript.assert_not_called()
+        launch.assert_called_once()
+        arguments, options = launch.call_args
+        assert arguments == ([sys.executable, str(script.resolve())],)
+        assert options["env"]["PYAEDT_PROCESS_ID"] == "12345"
+        assert options["env"]["PYAEDT_DESKTOP_VERSION"] == "2026.1"
+        assert options["env"]["PYAEDT_DESKTOP_PORT"] == "50051"
+        assert options["env"]["PYAEDT_STUDENT_VERSION"] == "False"
+        assert options["env"]["PYAEDT_PERSONAL_LIB"] == "personal-lib"
+        desktop.odesktop.GetRegistryString.assert_not_called()
+        assert options["env"]["PATH"] == os.environ["PATH"]
+        if platform == "linux":
+            assert options["env"]["PYAEDT_DESKTOP_PATH"] == desktop.aedt_install_dir
+            assert options["env"]["ANSYSEM_ROOT261"] == desktop.aedt_install_dir
+        assert options["creationflags"] == (0x08000000 if platform == "win32" else 0)
+        assert options["stdin"] == subprocess.DEVNULL
+        assert options["stderr"] == subprocess.STDOUT
+        log = options["stdout"]
+        assert log.closed
+        assert f"Log file: {log.name}" in result
+        Path(log.name).unlink()
 
     def test_script_exception(self, mock_context):
         """Test script execution failure."""
         from ansys.aedt.mcp.tools import run_python_script
 
-        mock_context.request_context.lifespan_context.desktop.odesktop.RunScript.side_effect = (
-            RuntimeError("Script crashed")
-        )
-
-        with patch("ansys.aedt.mcp.tools.Path.exists", return_value=True):
+        with (
+            patch("ansys.aedt.mcp.tools.Path.is_file", return_value=True),
+            patch("ansys.aedt.mcp.tools.subprocess.Popen", side_effect=OSError("Launch failed")),
+        ):
             result = run_python_script(mock_context, script_path="test.py")
 
         assert "Error executing script" in result
-        assert "Script crashed" in result
+        assert "Launch failed" in result
+
+    @pytest.mark.parametrize("fail", [False, True])
+    def test_real_cpython_process(self, mock_context, tmp_path, fail):
+        """Verify session inheritance and stdout/traceback logging in a real child."""
+        import subprocess
+        import sys
+
+        from ansys.aedt.mcp.tools import run_python_script
+
+        script = tmp_path / "real script.py"
+        script.write_text(
+            "import os, sys\n"
+            "print(sys.executable, flush=True)\n"
+            "print(os.environ['PYAEDT_DESKTOP_PORT'], flush=True)\n"
+            + ("raise RuntimeError('child failed')\n" if fail else ""),
+            encoding="utf-8",
+        )
+        processes = []
+        original_launch = subprocess.Popen
+
+        def launch_process(*args, **kwargs):
+            process = original_launch(*args, **kwargs)
+            processes.append(process)
+            return process
+
+        with patch("ansys.aedt.mcp.tools.subprocess.Popen", side_effect=launch_process):
+            result = run_python_script(mock_context, str(script))
+        assert "launched successfully" in result
+        assert processes[0].wait(timeout=30) == (1 if fail else 0)
+        log_path = Path(result.split("Log file: ", 1)[1].splitlines()[0])
+        try:
+            output = log_path.read_text(encoding="utf-8")
+            assert sys.executable in output
+            assert "50051" in output
+            if fail:
+                assert "RuntimeError: child failed" in output
+        finally:
+            log_path.unlink()
 
 
 @pytest.mark.unit

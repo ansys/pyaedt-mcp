@@ -69,7 +69,7 @@ these tools are hidden again.
    * - ``run_python_code``
      - Execute inline PyAEDT Python code in the persistent session.
    * - ``run_python_script``
-     - Execute a Python script file in the persistent session.
+     - Launch a PyAEDT script asynchronously with CPython.
    * - ``get_model_info``
      - Return a structured summary of the active design.
    * - ``screenshot``
@@ -134,8 +134,13 @@ Your code runs in the **persistent Python session** of the current AEDT
 instance. Imports and variables from one call are available in later calls.
 
 Use ``run_python_script`` when you want to run a complete Python file in
-the same session. If a script is large, you can split it into smaller chunks
-and run them with ``run_python_code``.
+a separate CPython process connected to the same AEDT session through the
+PyAEDT launcher environment variables. It uses the MCP server's Python
+interpreter and opens no launcher UI or terminal. Native IronPython globals
+such as ``oDesktop`` are not injected. The response contains the process ID
+and an output log path, not a completion result; check the log before running
+dependent operations. If a script is large, you can split it into smaller
+chunks and run them with ``run_python_code``.
 
 Run an analysis
 ~~~~~~~~~~~~~~~

@@ -845,11 +845,13 @@ async def disconnect_from_aedt(
 
 @app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_LONG)
 def run_python_script(ctx: Context, script_path: str) -> str:
-    """Execute a Python script file inside AEDT.
+    """Launch a PyAEDT script file with CPython without opening a terminal.
 
-    This tool runs a Python script from a file path within the AEDT environment,
-    using AEDT's built-in Python interpreter. The script has access to all AEDT
-    APIs including oDesktop, oProject, and oDesign.
+    The script runs asynchronously using the MCP server's Python interpreter
+    and inherits the connected AEDT session through the same environment
+    variables used by the PyAEDT script launcher. Scripts must use PyAEDT;
+    native globals such as oDesktop, oProject, and oDesign are not injected.
+    Standard output and errors are written to the returned log file.
 
     Parameters
     ----------
@@ -861,7 +863,7 @@ def run_python_script(ctx: Context, script_path: str) -> str:
     Returns
     -------
     str
-        Script execution result or error message.
+        Launch status with process ID and log path, or an error message.
     """
     desktop = ctx.request_context.lifespan_context.desktop
 
@@ -869,12 +871,43 @@ def run_python_script(ctx: Context, script_path: str) -> str:
         return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
-        if not Path(script_path).exists():
+        script_file = Path(script_path).expanduser().resolve()
+        if not script_file.is_file():
             return f"Script file not found: {script_path}"
 
-        logger.info(f"Executing script: {script_path}")
-        result = desktop.odesktop.RunScript(script_path)
-        return f"Script executed successfully.\nResult: {result}"
+        native_desktop = desktop.odesktop
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "PYAEDT_PROCESS_ID": str(desktop.aedt_process_id),
+                "PYAEDT_DESKTOP_VERSION": str(desktop.aedt_version_id),
+                "PYAEDT_DESKTOP_PORT": str(desktop.port),
+                "PYAEDT_STUDENT_VERSION": str("Ansys Student" in str(native_desktop.GetExeDir())),
+                "PYAEDT_PERSONAL_LIB": str(native_desktop.GetPersonalLibDirectory()),
+            }
+        )
+        if sys.platform.startswith("linux"):
+            environment["PYAEDT_DESKTOP_PATH"] = str(desktop.aedt_install_dir)
+            version_short = desktop.aedt_version_id[2:].replace(".", "")
+            environment[f"ANSYSEM_ROOT{version_short}"] = str(desktop.aedt_install_dir)
+
+        logger.info("Launching PyAEDT script: %s", script_file)
+        with tempfile.NamedTemporaryFile(
+            prefix="pyaedt-script-", suffix=".log", delete=False
+        ) as log:
+            process = subprocess.Popen(  # nosec
+                [sys.executable, str(script_file)],
+                env=environment,
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+            )
+        return (
+            "PyAEDT script launched successfully.\n"
+            f"Process ID: {process.pid}\nLog file: {log.name}\n"
+            "Execution is asynchronous; check the log for completion or errors."
+        )
 
     except Exception as e:
         error_msg = f"Error executing script {script_path}: {str(e)}"
