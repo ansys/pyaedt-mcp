@@ -142,15 +142,20 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
     },
     "results": {
         "description": (
-            "Tools for extracting and exporting solver results from a solved AEDT design."
+            "Tools for extracting and exporting solver results from a solved "
+            "AEDT design and displaying self-contained HTML."
         ),
         "skill": (
             "Use export_results after a successful analyze_design call to "
             "write field/network/parameter results to disk in a "
-            "human-readable or post-processable format."
+            "human-readable or post-processable format. Use display_html to "
+            "display self-contained HTML inline in an MCP Apps-compatible "
+            "client without an AEDT connection. Embed images as data URLs; "
+            "network requests and external assets are blocked."
         ),
         "tools": [
             "export_results",
+            "display_html",
         ],
     },
     "guidelines": {
