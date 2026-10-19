@@ -275,6 +275,21 @@ jobs:
           sphinxopts: '-W --keep-going'
           group-dependencies-name: doc
 
+  package:
+    name: "Package library"
+    needs: [changes, test, build-docs]
+    if: always() && needs.build-docs.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Needed to checkout the code
+    steps:
+      - name: "Build library source and wheel artifacts"
+        uses: ansys/actions/build-library@7410037bfb276c79ae91eb3617b9f5d2876f0c94 # v11.0.8
+        with:
+          library-name: ${{ env.PACKAGE_NAME }}
+          python-version: ${{ env.MAIN_PYTHON_VERSION }}
+          attest-provenance: false
+
   doc-deploy-pr:
     name: "Deploy PR documentation"
     if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'pr-preview')
