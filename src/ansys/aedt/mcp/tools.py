@@ -959,6 +959,11 @@ def run_python_script(ctx: Context, script_path: str) -> str:
             version_short = desktop.aedt_version_id[2:].replace(".", "")
             environment[f"ANSYSEM_ROOT{version_short}"] = str(desktop.aedt_install_dir)
 
+        if sys.platform == "win32":
+            creationflags = subprocess.CREATE_NO_WINDOW
+        else:
+            creationflags = 0
+
         logger.info("Launching PyAEDT script: %s", script_file)
         with tempfile.NamedTemporaryFile(
             prefix="pyaedt-script-", suffix=".log", delete=False
@@ -969,7 +974,7 @@ def run_python_script(ctx: Context, script_path: str) -> str:
                 stdin=subprocess.DEVNULL,
                 stdout=log,
                 stderr=subprocess.STDOUT,
-                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+                creationflags=creationflags,
             )
         return (
             "PyAEDT script launched successfully.\n"
