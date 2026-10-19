@@ -149,8 +149,9 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
             "Use export_results after a successful analyze_design call to "
             "write field/network/parameter results to disk in a "
             "human-readable or post-processable format. Use display_html to "
-            "display self-contained HTML inline in an MCP Apps-compatible "
-            "client without an AEDT connection. Embed images as data URLs; "
+            "display self-contained HTML without an AEDT connection: inline in "
+            "an MCP Apps-compatible client, otherwise in a detached window on "
+            "the server machine. Embed images as data URLs; "
             "network requests and external assets are blocked."
         ),
         "tools": [

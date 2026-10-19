@@ -92,10 +92,30 @@ def mock_context_no_desktop(app_context_no_desktop):
 
 @pytest.mark.unit
 class TestDisplayHtml:
-    """Tests for the self-contained HTML MCP App."""
+    """Tests for the self-contained HTML MCP App and its window fallback."""
 
-    def test_result_and_text_fallback(self):
-        result = tools.display_html("<h1>Result</h1>", title="Results", height=600)
+    @pytest.fixture(autouse=True)
+    def window_opener(self):
+        from ansys.aedt.mcp.html_window import WindowResult
+
+        with patch(
+            "ansys.aedt.mcp.tools.open_html_window",
+            return_value=WindowResult(
+                opened=True, method="app_window", path="view.html", browser="msedge"
+            ),
+        ) as opener:
+            yield opener
+
+    @staticmethod
+    def _ctx(supports_ui: bool):
+        ctx = MagicMock()
+        ctx.client_supports_extension.return_value = supports_ui
+        return ctx
+
+    def test_inline_mode_text_fallback(self, window_opener):
+        result = tools.display_html(
+            "<h1>Result</h1>", title="Results", height=600, display_mode="inline"
+        )
 
         assert result.structured_content == {
             "html": "<h1>Result</h1>",
@@ -104,19 +124,54 @@ class TestDisplayHtml:
         }
         assert "Results" in result.content[0].text
         assert "MCP Apps-compatible client" in result.content[0].text
+        window_opener.assert_not_called()
+
+    def test_auto_with_ui_client_stays_inline(self, window_opener):
+        from fastmcp.apps import UI_EXTENSION_ID
+
+        ctx = self._ctx(True)
+        result = tools.display_html("<p>Inline</p>", ctx=ctx)
+
+        ctx.client_supports_extension.assert_called_once_with(UI_EXTENSION_ID)
+        assert "window" not in result.structured_content
+        assert "Displayed inline" in result.content[0].text
+        window_opener.assert_not_called()
+
+    def test_auto_without_ui_client_opens_window(self, window_opener):
+        result = tools.display_html("<p>Win</p>", title="T", height=300, ctx=self._ctx(False))
+
+        window_opener.assert_called_once_with("<p>Win</p>", "T", 300)
+        assert result.structured_content["window"]["method"] == "app_window"
+        assert "Opened in an app window" in result.content[0].text
+
+    def test_window_mode_forces_window(self, window_opener):
+        tools.display_html("<p>Win</p>", display_mode="window", ctx=self._ctx(True))
+        window_opener.assert_called_once()
+
+    def test_window_failure_is_reported(self, window_opener):
+        from ansys.aedt.mcp.html_window import WindowResult
+
+        window_opener.return_value = WindowResult(
+            opened=False, method="none", error="No display.", path=None
+        )
+        result = tools.display_html("<p>Win</p>", display_mode="window")
+
+        assert result.structured_content["window"]["opened"] is False
+        assert "could not be opened: No display." in result.content[0].text
 
     def test_results_are_independent(self):
-        first = tools.display_html("<p>First</p>")
-        second = tools.display_html("<p>Second</p>")
+        first = tools.display_html("<p>First</p>", display_mode="inline")
+        second = tools.display_html("<p>Second</p>", display_mode="inline")
 
         assert first.structured_content["html"] == "<p>First</p>"
         assert second.structured_content["html"] == "<p>Second</p>"
 
-    def test_whitespace_is_rejected(self):
+    def test_whitespace_is_rejected(self, window_opener):
         with pytest.raises(ValueError, match="whitespace-only"):
             tools.display_html(" \n\t")
+        window_opener.assert_not_called()
 
-    async def test_mcp_registration_resource_and_validation(self):
+    async def test_mcp_registration_resource_and_validation(self, window_opener):
         from fastmcp import Client
         from fastmcp.exceptions import ToolError
 
@@ -127,13 +182,28 @@ class TestDisplayHtml:
             tool = next(item for item in registered if item.name == "display_html")
             assert tool.meta["ui"]["resourceUri"] == "ui://pyaedt-mcp/html-view.html"
             assert "requires_aedt" not in tool.meta.get("_fastmcp", {}).get("tags", [])
+            assert "ctx" not in tool.inputSchema["properties"]
+            assert tool.inputSchema["properties"]["display_mode"]["enum"] == [
+                "auto",
+                "inline",
+                "window",
+            ]
 
-            result = await client.call_tool("display_html", {"html": "<h1>Inline</h1>"})
+            result = await client.call_tool(
+                "display_html", {"html": "<h1>Inline</h1>", "display_mode": "inline"}
+            )
             assert result.structured_content == {
                 "html": "<h1>Inline</h1>",
                 "title": "Custom HTML",
                 "height": 480,
             }
+            window_opener.assert_not_called()
+
+            # The test client does not advertise MCP Apps support.
+            result = await client.call_tool("display_html", {"html": "<h1>Auto</h1>"})
+            assert result.structured_content["window"]["opened"] is True
+            window_opener.assert_called_once_with("<h1>Auto</h1>", "Custom HTML", 480)
+
             resources = await client.read_resource("ui://pyaedt-mcp/html-view.html")
             resource = resources[0]
             assert resource.mimeType == "text/html;profile=mcp-app"
@@ -152,6 +222,7 @@ class TestDisplayHtml:
                 {"html": "<p>Valid</p>", "title": "x" * 201},
                 {"html": "<p>Valid</p>", "height": 199},
                 {"html": "<p>Valid</p>", "height": 1201},
+                {"html": "<p>Valid</p>", "display_mode": "popup"},
             ]
             for arguments in invalid:
                 with pytest.raises(ToolError):

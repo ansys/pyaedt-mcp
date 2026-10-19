@@ -32,7 +32,7 @@ import tempfile
 from typing import Annotated, Any, Literal
 
 from ansys.aedt.core.internal.aedt_versions import aedt_versions
-from fastmcp.apps import AppConfig, ResourceCSP
+from fastmcp.apps import UI_EXTENSION_ID, AppConfig, ResourceCSP
 from fastmcp.server import Context
 from fastmcp.server.server import get_logger
 from fastmcp.tools import ToolResult
@@ -45,6 +45,7 @@ from ansys.aedt.mcp.helpers import (
     discover_available_aedt_sessions,
     get_aedt_info,
 )
+from ansys.aedt.mcp.html_window import open_html_window
 from ansys.aedt.mcp.server import session
 from mcp.types import ImageContent, TextContent
 
@@ -74,41 +75,72 @@ def display_html(
     html: Annotated[str, Field(min_length=1, max_length=1_000_000)],
     title: Annotated[str, Field(min_length=1, max_length=200)] = "Custom HTML",
     height: Annotated[int, Field(ge=200, le=1200)] = 480,
+    display_mode: Literal["auto", "inline", "window"] = "auto",
+    ctx: Context | None = None,
 ) -> ToolResult:
-    """Display self-contained HTML inline in an MCP Apps-compatible client.
+    """Display self-contained HTML inline or in a detached window.
 
     No AEDT connection is required. Inline scripts and styles are supported,
     but network requests, external assets, forms, popups, and access to the
     MCP host are blocked. Embed images as data URLs. This does not execute
-    Python or open a browser window.
+    Python.
+
+    In ``"auto"`` mode the HTML is shown inline when the client supports MCP
+    Apps. Otherwise it opens in a lightweight detached window (a chromeless
+    Edge/Chrome app window, or the default browser) on the machine running
+    the MCP server.
 
     Parameters
     ----------
     html : str
         HTML document or fragment, up to one million characters.
     title : str, optional
-        Accessible name for the displayed document.
+        Accessible name and window title for the displayed document.
     height : int, optional
         Viewer height in pixels, between 200 and 1200.
+    display_mode : str, optional
+        ``"auto"`` (default), ``"inline"`` to never open a window, or
+        ``"window"`` to always open a detached window.
 
     Returns
     -------
     ToolResult
-        HTML app data and a text fallback for clients without MCP Apps support.
+        HTML app data and a text summary of how the HTML was displayed.
     """
     if not html.strip():
         raise ValueError("HTML must not be empty or whitespace-only.")
-    return ToolResult(
-        content=[
-            TextContent(
-                type="text",
-                text=(
-                    f"HTML view: {title}. An MCP Apps-compatible client is required "
-                    "to display it inline. The HTML is included in structuredContent."
-                ),
+
+    supports_inline = ctx is not None and ctx.client_supports_extension(UI_EXTENSION_ID)
+    open_window = display_mode == "window" or (display_mode == "auto" and not supports_inline)
+    structured_content: dict[str, Any] = {"html": html, "title": title, "height": height}
+
+    if not open_window:
+        text = (
+            f"HTML view: {title}. Displayed inline by the MCP Apps-compatible client."
+            if supports_inline
+            else (
+                f"HTML view: {title}. An MCP Apps-compatible client is required to "
+                "display it inline. The HTML is included in structuredContent. "
+                'Use display_mode="window" to open it in a detached window.'
             )
-        ],
-        structured_content={"html": html, "title": title, "height": height},
+        )
+    else:
+        window = open_html_window(html, title, height)
+        structured_content["window"] = window.to_dict()
+        if window.opened:
+            where = "an app window" if window.method == "app_window" else "the default browser"
+            text = (
+                f"HTML view: {title}. Opened in {where} on the machine running the "
+                f"MCP server ({window.path})."
+            )
+        else:
+            text = f"HTML view: {title}. A detached window could not be opened: {window.error}"
+            if window.path:
+                text += f" The view was saved to {window.path}."
+
+    return ToolResult(
+        content=[TextContent(type="text", text=text)],
+        structured_content=structured_content,
     )
 
 

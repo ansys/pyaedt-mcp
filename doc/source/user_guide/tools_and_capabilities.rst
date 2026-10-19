@@ -32,7 +32,8 @@ Always available (no AEDT connection required)
      - Read the local PyAEDT log file (useful for startup and environment
        debugging).
    * - ``display_html``
-     - Display self-contained HTML in an MCP Apps-compatible client.
+     - Display self-contained HTML inline in an MCP Apps-compatible client, or
+       in a detached window for other clients.
 
 Available after connecting to AEDT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -103,8 +104,8 @@ Tool usage
 Display custom HTML
 ~~~~~~~~~~~~~~~~~~~
 
-Use ``display_html`` to render an HTML document or fragment inline in a client
-that supports MCP Apps. No AEDT connection is required. For example:
+Use ``display_html`` to render an HTML document or fragment. No AEDT
+connection is required. For example:
 
 .. code-block:: json
 
@@ -116,10 +117,28 @@ that supports MCP Apps. No AEDT connection is required. For example:
 
 Inline JavaScript and CSS are supported. The supplied HTML runs in a separate
 sandbox: external resources, network requests, forms, popups, and access to the
-MCP host are blocked. Embed images using data URLs. The viewer itself loads
-the MCP Apps SDK from ``https://unpkg.com``, so that domain must be reachable.
-Clients without MCP Apps support receive a text fallback and structured HTML
-data, not a browser window. This tool does not run Python or Matplotlib.
+MCP host are blocked. Embed images using data URLs. This tool does not run
+Python or Matplotlib.
+
+The ``display_mode`` argument controls where the HTML appears:
+
+- ``auto`` (default): inline when the client supports MCP Apps, otherwise in a
+  detached window.
+- ``inline``: inline only. Clients without MCP Apps support receive a text
+  fallback and the HTML in structured content.
+- ``window``: always open a detached window.
+
+The inline viewer loads the MCP Apps SDK from ``https://unpkg.com``, so that
+domain must be reachable.
+
+The detached window opens on the machine running the MCP server, using only the
+Python standard library. It is a chromeless app window of an installed
+Microsoft Edge, Google Chrome, or Chromium browser. If none is found, the
+default browser is used. To choose the browser, set the
+``PYAEDT_MCP_HTML_BROWSER`` environment variable to its executable. No window
+is opened when the server runs in a container or without a graphical display.
+Views are written to the ``pyaedt-mcp-html-views`` temporary directory and
+removed after 24 hours.
 
 Establish a connection
 ~~~~~~~~~~~~~~~~~~~~~~
