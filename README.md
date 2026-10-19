@@ -31,9 +31,11 @@ Supported AEDT applications include HFSS, Maxwell 2D/3D, Q2D, Q3D, Icepak, Circu
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and
 [Git](https://git-scm.com/downloads) first. Git is required because `uvx`
 downloads and runs PyAEDT-MCP directly from this repository without cloning it.
+The examples below select Python 3.13 explicitly; the project supports Python
+3.12 and later.
 
 ```bash
-uvx --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp
+uvx --python 3.13 --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp
 ```
 
 ### Install locally
@@ -108,7 +110,7 @@ pre-commit install
    Start an HTTP server through `uvx` without cloning:
 
    ```bash
-   uvx --index-strategy unsafe-best-match \
+   uvx --python 3.13 --index-strategy unsafe-best-match \
      --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp \
      --transport http --http-host 127.0.0.1 --http-port 8080
    ```
