@@ -44,7 +44,7 @@ version = "0.2.dev0"
 dependencies = [
   "pyaedt[graphics]>=1.3.0",
   "ansys-common-mcp>=0.3.3",
-  "typer==0.27.2",
+  "typer==0.27.3",
 ]
 
 [dependency-groups]
@@ -60,7 +60,7 @@ desktop = [
 doc = [
   "ansys-sphinx-theme[autoapi,changelog]==1.11.0",
   "numpydoc==1.11.0",
-  "sphinx-autodoc-typehints==3.13.8",
+  "sphinx-autodoc-typehints==3.13.9",
   "sphinx-copybutton==0.5.2",
   "sphinx-design==0.7.0",
   "sphinx-notfound-page==1.1.0",

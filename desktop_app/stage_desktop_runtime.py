@@ -7,23 +7,33 @@ import sys
 import urllib.request
 import zipfile
 
-CPYTHON_VERSION = "3.13.8"
-ARCHIVE_URL = (
-    f"https://www.python.org/ftp/python/{CPYTHON_VERSION}/python-{CPYTHON_VERSION}-embed-amd64.zip"
+from desktop_config import (
+    ARCHIVE_URL,
+    CPYTHON_VERSION,
+    PYTHON_ARCHIVE_SHA256,
+    UV_ARCHIVE_SHA256,
+    UV_ARCHIVE_URL,
+    UV_VERSION,
 )
-ARCHIVE_SHA256 = "3de305b550bdc582f7c31a0f286f5b08c453ae5628ef2800a1bb1f86a42b746c"
+
 RUNTIME_DIR = Path(__file__).resolve().parent / ".desktop-runtime"
 
 
 def stage_embedded_python(runtime_dir: Path) -> None:
-    """Download and unpack the verified Windows CPython embedded distribution."""
+    """Download and unpack the verified Windows CPython embedded distribution.
+
+    Parameters
+    ----------
+    runtime_dir : Path
+        The directory where the embedded Python runtime should be staged.
+    """
     archive_path = runtime_dir.parent / Path(ARCHIVE_URL).name
     runtime_dir.parent.mkdir(parents=True, exist_ok=True)
     print(f"Downloading CPython {CPYTHON_VERSION} embedded distribution")
     urllib.request.urlretrieve(ARCHIVE_URL, archive_path)  # nosec B310
 
     checksum = hashlib.sha256(archive_path.read_bytes()).hexdigest()
-    if checksum != ARCHIVE_SHA256:
+    if checksum != PYTHON_ARCHIVE_SHA256:
         archive_path.unlink(missing_ok=True)
         raise RuntimeError(f"Unexpected SHA-256 for {archive_path.name}: {checksum}")
 
@@ -38,15 +48,31 @@ def stage_embedded_python(runtime_dir: Path) -> None:
 
 
 def stage_uv(runtime_dir: Path) -> None:
-    """Copy uv from the release environment into the distributable payload."""
-    uv_executable = shutil.which("uv")
-    if uv_executable is None:
-        raise RuntimeError("uv must be available on PATH to build the Windows executable")
+    """Download and unpack the verified uv release, rather than trusting whatever uv is on PATH.
+
+    Parameters
+    ----------
+    runtime_dir : Path
+        The directory where the uv release should be staged.
+    """
+    archive_path = runtime_dir.parent / Path(UV_ARCHIVE_URL).name
+    runtime_dir.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Downloading uv {UV_VERSION} release")
+    urllib.request.urlretrieve(UV_ARCHIVE_URL, archive_path)  # nosec B310
+
+    checksum = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+    if checksum != UV_ARCHIVE_SHA256:
+        archive_path.unlink(missing_ok=True)
+        raise RuntimeError(f"Unexpected SHA-256 for {archive_path.name}: {checksum}")
 
     uv_dir = runtime_dir / "uv"
     shutil.rmtree(uv_dir, ignore_errors=True)
-    uv_dir.mkdir(parents=True)
-    shutil.copy2(uv_executable, uv_dir / "uv.exe")
+    with zipfile.ZipFile(archive_path) as archive:
+        archive.extractall(uv_dir)
+    archive_path.unlink()
+
+    if not (uv_dir / "uv.exe").is_file():
+        raise RuntimeError("uv release archive does not contain uv.exe")
 
 
 def main() -> int:

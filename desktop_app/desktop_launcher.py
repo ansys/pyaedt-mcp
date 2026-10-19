@@ -8,13 +8,14 @@ import sys
 from typing import Any
 import zipfile
 
+from desktop_config import (
+    APP_DIRECTORY_NAME,
+    PACKAGE_NAME,
+    REPOSITORY_URL,
+    SERVER_MODE_FLAG,
+    WHEELHOUSE_PYTHON_VERSION,
+)
 from desktop_settings import load_settings
-
-PACKAGE_NAME = "ansys-aedt-mcp"
-APP_DIRECTORY_NAME = ".pyaedt_mcp"
-SERVER_MODE_FLAG = "--server"
-REPOSITORY_URL = "https://github.com/ansys/pyaedt-mcp.git"
-WHEELHOUSE_PYTHON_VERSION = "3.13"
 
 
 def hidden_window_options() -> dict[str, Any]:

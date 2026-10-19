@@ -29,13 +29,15 @@ import pytest
 @pytest.fixture(scope="module")
 def desktop_launcher():
     desktop_app_directory = Path(__file__).parents[2] / "desktop_app"
-    sys.path.insert(0, str(desktop_app_directory))
     script_path = desktop_app_directory / "desktop_launcher.py"
     spec = importlib.util.spec_from_file_location("desktop_launcher", script_path)
     if spec is None or spec.loader is None:
         raise RuntimeError("Could not load the desktop launcher script")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Only exposed on sys.path for the duration of the import, not the whole test session.
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.syspath_prepend(str(desktop_app_directory))
+        spec.loader.exec_module(module)
     return module
 
 

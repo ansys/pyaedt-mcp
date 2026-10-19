@@ -22,6 +22,18 @@ from agent_profiles import (
     install_opencode_profile,
     install_profile_from_template,
 )
+from authenticode import is_trusted_publisher
+from desktop_config import (
+    DESKTOP_APP_DOCUMENTATION_URL,
+    GITHUB_BRANCHES_URL,
+    ISSUES_URL,
+    PYPI_PACKAGE_URL,
+    TRAY_ICON_FILENAME,
+    TRUSTED_CLAUDE_DESKTOP_PUBLISHERS,
+    TRUSTED_CURSOR_PUBLISHERS,
+    TRUSTED_VSCODE_PUBLISHERS,
+    WINDOW_ICON_FILENAME,
+)
 from desktop_launcher import (
     WHEELHOUSE_PYTHON_VERSION,
     application_directory,
@@ -37,15 +49,7 @@ import flet as ft
 from packaging.version import Version
 from PIL import Image
 
-PYPI_PACKAGE_URL = "https://pypi.org/pypi/ansys-aedt-mcp/json"
-GITHUB_BRANCHES_URL = "https://api.github.com/repos/ansys/pyaedt-mcp/branches?per_page=100"
-WINDOW_ICON_FILENAME = "pyaedt_mcp_icon.ico"
-TRAY_ICON_FILENAME = "pyaedt_mcp_icon.png"
 UNICODE_ESCAPE_PATTERN = re.compile(r"\\(?:u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})")
-ISSUES_URL = "https://github.com/ansys/pyaedt-mcp/issues"
-DESKTOP_APP_DOCUMENTATION_URL = (
-    "https://aedt-mcp.docs.pyansys.com/version/stable/getting_started/desktop_app.html"
-)
 
 
 class ServerState(Enum):
@@ -128,13 +132,57 @@ def available_branches() -> list[str]:
 def installed_coding_agents() -> dict[str, bool]:
     """Return coding agents detected in the local user environment."""
     local_appdata = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files"))
+    # npm's default global prefix on Windows, where CLI agents installed via `npm install -g` live.
+    npm_global_directory = (
+        Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming")) / "npm"
+    )
+    vscode_bin_directories = [
+        local_appdata / "Programs" / "Microsoft VS Code" / "bin",
+        program_files / "Microsoft VS Code" / "bin",
+    ]
+
+    def npm_global_shim(name: str) -> bool:
+        return (npm_global_directory / f"{name}.cmd").is_file()
+
+    def trusted_on_path(name: str, known_directories: list[Path]) -> bool:
+        """Only trust a PATH match that resolves into a known install directory.
+
+        Ignores PATH hits elsewhere so a same-named executable placed earlier on PATH
+        (PATH hijacking) cannot be mistaken for a real installation.
+        """
+        resolved = shutil.which(name)
+        if resolved is None:
+            return False
+        resolved_directory = os.path.normcase(str(Path(resolved).resolve().parent))
+        return any(
+            resolved_directory == os.path.normcase(str(directory.resolve()))
+            for directory in known_directories
+        )
+
     return {
-        "copilot": shutil.which("copilot") is not None or shutil.which("code") is not None,
-        "claude_desktop": (local_appdata / "Programs" / "Claude" / "Claude.exe").is_file(),
-        "claude_code": shutil.which("claude") is not None,
-        "cursor": (local_appdata / "Programs" / "Cursor" / "Cursor.exe").is_file(),
-        "codex": shutil.which("codex") is not None,
-        "opencode": shutil.which("opencode") is not None,
+        "copilot": (
+            trusted_on_path("copilot", [npm_global_directory])
+            or trusted_on_path("code", vscode_bin_directories)
+            or is_trusted_publisher(
+                local_appdata / "Programs" / "Microsoft VS Code" / "Code.exe",
+                TRUSTED_VSCODE_PUBLISHERS,
+            )
+            or is_trusted_publisher(
+                program_files / "Microsoft VS Code" / "Code.exe", TRUSTED_VSCODE_PUBLISHERS
+            )
+        ),
+        "claude_desktop": is_trusted_publisher(
+            local_appdata / "Programs" / "Claude" / "Claude.exe", TRUSTED_CLAUDE_DESKTOP_PUBLISHERS
+        ),
+        "claude_code": trusted_on_path("claude", [npm_global_directory])
+        or npm_global_shim("claude"),
+        "cursor": is_trusted_publisher(
+            local_appdata / "Programs" / "Cursor" / "Cursor.exe", TRUSTED_CURSOR_PUBLISHERS
+        ),
+        "codex": trusted_on_path("codex", [npm_global_directory]) or npm_global_shim("codex"),
+        "opencode": trusted_on_path("opencode", [npm_global_directory])
+        or npm_global_shim("opencode"),
     }
 
 

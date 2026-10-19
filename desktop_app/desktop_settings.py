@@ -2,9 +2,8 @@
 
 from pathlib import Path
 
+from desktop_config import SETTINGS_FILENAME
 import yaml
-
-SETTINGS_FILENAME = "settings.yaml"
 
 
 def settings_path(application_directory: Path) -> Path:
