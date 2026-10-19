@@ -91,6 +91,74 @@ def mock_context_no_desktop(app_context_no_desktop):
 
 
 @pytest.mark.unit
+class TestDisplayHtml:
+    """Tests for the self-contained HTML MCP App."""
+
+    def test_result_and_text_fallback(self):
+        result = tools.display_html("<h1>Result</h1>", title="Results", height=600)
+
+        assert result.structured_content == {
+            "html": "<h1>Result</h1>",
+            "title": "Results",
+            "height": 600,
+        }
+        assert "Results" in result.content[0].text
+        assert "MCP Apps-compatible client" in result.content[0].text
+
+    def test_results_are_independent(self):
+        first = tools.display_html("<p>First</p>")
+        second = tools.display_html("<p>Second</p>")
+
+        assert first.structured_content["html"] == "<p>First</p>"
+        assert second.structured_content["html"] == "<p>Second</p>"
+
+    def test_whitespace_is_rejected(self):
+        with pytest.raises(ValueError, match="whitespace-only"):
+            tools.display_html(" \n\t")
+
+    async def test_mcp_registration_resource_and_validation(self):
+        from fastmcp import Client
+        from fastmcp.exceptions import ToolError
+
+        from ansys.aedt.mcp import app
+
+        async with Client(app) as client:
+            registered = await client.list_tools()
+            tool = next(item for item in registered if item.name == "display_html")
+            assert tool.meta["ui"]["resourceUri"] == "ui://pyaedt-mcp/html-view.html"
+            assert "requires_aedt" not in tool.meta.get("_fastmcp", {}).get("tags", [])
+
+            result = await client.call_tool("display_html", {"html": "<h1>Inline</h1>"})
+            assert result.structured_content == {
+                "html": "<h1>Inline</h1>",
+                "title": "Custom HTML",
+                "height": 480,
+            }
+            resources = await client.read_resource("ui://pyaedt-mcp/html-view.html")
+            resource = resources[0]
+            assert resource.mimeType == "text/html;profile=mcp-app"
+            assert 'sandbox="allow-scripts"' in resource.text
+            assert "allow-same-origin" not in resource.text
+            csp = resource.model_dump(by_alias=True)["_meta"]["ui"]["csp"]
+            assert csp["resourceDomains"] == ["https://unpkg.com"]
+            assert csp["connectDomains"] == []
+            assert csp["frameDomains"] == ["data:"]
+
+            invalid = [
+                {"html": ""},
+                {"html": " "},
+                {"html": "x" * 1_000_001},
+                {"html": "<p>Valid</p>", "title": ""},
+                {"html": "<p>Valid</p>", "title": "x" * 201},
+                {"html": "<p>Valid</p>", "height": 199},
+                {"html": "<p>Valid</p>", "height": 1201},
+            ]
+            for arguments in invalid:
+                with pytest.raises(ToolError):
+                    await client.call_tool("display_html", arguments)
+
+
+@pytest.mark.unit
 class TestCheckAEDTStatus:
     """Tests for check_aedt_status tool."""
 
@@ -2066,6 +2134,7 @@ class TestRequiresAEDTVisibility:
         ALWAYS_AVAILABLE_TOOLS = {
             "check_aedt_installed",
             "check_aedt_status",
+            "display_html",
             "launch_aedt",
             "connect_to_aedt",
             "get_pyaedt_logs",

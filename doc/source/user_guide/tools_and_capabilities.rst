@@ -31,6 +31,8 @@ Always available (no AEDT connection required)
    * - ``get_pyaedt_logs``
      - Read the local PyAEDT log file (useful for startup and environment
        debugging).
+   * - ``display_html``
+     - Display self-contained HTML in an MCP Apps-compatible client.
 
 Available after connecting to AEDT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -97,6 +99,27 @@ Optional (enabled only with ``--include-context``)
 
 Tool usage
 ----------
+
+Display custom HTML
+~~~~~~~~~~~~~~~~~~~
+
+Use ``display_html`` to render an HTML document or fragment inline in a client
+that supports MCP Apps. No AEDT connection is required. For example:
+
+.. code-block:: json
+
+   {
+     "html": "<h1>Results</h1><p>Simulation complete.</p>",
+     "title": "Simulation Results",
+     "height": 400
+   }
+
+Inline JavaScript and CSS are supported. The supplied HTML runs in a separate
+sandbox: external resources, network requests, forms, popups, and access to the
+MCP host are blocked. Embed images using data URLs. The viewer itself loads
+the MCP Apps SDK from ``https://unpkg.com``, so that domain must be reachable.
+Clients without MCP Apps support receive a text fallback and structured HTML
+data, not a browser window. This tool does not run Python or Matplotlib.
 
 Establish a connection
 ~~~~~~~~~~~~~~~~~~~~~~

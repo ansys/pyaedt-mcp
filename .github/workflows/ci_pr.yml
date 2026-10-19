@@ -17,7 +17,7 @@ env:
   ON_CI: True
   PYTEST_ARGUMENTS: -vvv --color=yes -ra --durations=25 --maxfail=10
   MAIN_PYTHON_VERSION: "3.14"
-  TESTS_PYTHON_VERSION: "3.12"
+  TESTS_PYTHON_VERSION: "3.13"
   PACKAGE_NAME: "ansys-aedt-mcp"
   DOCUMENTATION_CNAME: "aedt-mcp.docs.pyansys.com"
 
@@ -182,7 +182,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.12', '3.13', '3.14']
+        python-version: ['3.13', '3.14']
     steps:
       - name: "Build wheelhouse and perform smoke test"
         uses: ansys/actions/build-wheelhouse@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
@@ -202,7 +202,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.12', '3.13', '3.14']
+        python-version: ['3.13', '3.14']
     steps:
       - name: "Run unit tests"
         uses: ansys/actions/tests-pytest@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8

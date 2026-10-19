@@ -29,11 +29,14 @@ import shutil
 import subprocess  # nosec B404
 import sys
 import tempfile
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from ansys.aedt.core.internal.aedt_versions import aedt_versions
+from fastmcp.apps import AppConfig, ResourceCSP
 from fastmcp.server import Context
 from fastmcp.server.server import get_logger
+from fastmcp.tools import ToolResult
+from pydantic import Field
 
 from ansys.aedt.mcp import app
 from ansys.aedt.mcp.helpers import (
@@ -57,6 +60,71 @@ REQUIRES_AEDT_TAG = "requires_aedt"
 _TIMEOUT_QUICK = 30  # status checks, listing, info queries
 _TIMEOUT_MEDIUM = 120  # connect, open/save, create design, screenshot
 _TIMEOUT_LONG = 600  # launch, script execution, analysis, exports
+
+_HTML_APP_URI = "ui://pyaedt-mcp/html-view.html"
+
+
+@app.tool(
+    tags={"html_apps"},
+    timeout=_TIMEOUT_QUICK,
+    app=AppConfig(resource_uri=_HTML_APP_URI),
+    annotations={"readOnlyHint": True, "openWorldHint": False},
+)
+def display_html(
+    html: Annotated[str, Field(min_length=1, max_length=1_000_000)],
+    title: Annotated[str, Field(min_length=1, max_length=200)] = "Custom HTML",
+    height: Annotated[int, Field(ge=200, le=1200)] = 480,
+) -> ToolResult:
+    """Display self-contained HTML inline in an MCP Apps-compatible client.
+
+    No AEDT connection is required. Inline scripts and styles are supported,
+    but network requests, external assets, forms, popups, and access to the
+    MCP host are blocked. Embed images as data URLs. This does not execute
+    Python or open a browser window.
+
+    Parameters
+    ----------
+    html : str
+        HTML document or fragment, up to one million characters.
+    title : str, optional
+        Accessible name for the displayed document.
+    height : int, optional
+        Viewer height in pixels, between 200 and 1200.
+
+    Returns
+    -------
+    ToolResult
+        HTML app data and a text fallback for clients without MCP Apps support.
+    """
+    if not html.strip():
+        raise ValueError("HTML must not be empty or whitespace-only.")
+    return ToolResult(
+        content=[
+            TextContent(
+                type="text",
+                text=(
+                    f"HTML view: {title}. An MCP Apps-compatible client is required "
+                    "to display it inline. The HTML is included in structuredContent."
+                ),
+            )
+        ],
+        structured_content={"html": html, "title": title, "height": height},
+    )
+
+
+@app.resource(
+    _HTML_APP_URI,
+    app=AppConfig(
+        csp=ResourceCSP(
+            resource_domains=["https://unpkg.com"],
+            connect_domains=[],
+            frame_domains=["data:"],
+        ),
+    ),
+)
+def html_app_view() -> str:
+    """Return the sandboxed viewer for custom HTML tool results."""
+    return (Path(__file__).parent / "static" / "html_app.html").read_text(encoding="utf-8")
 
 
 def _build_disconnected_status_message(connectable_sessions: list[dict[str, Any]]) -> str:

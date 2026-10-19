@@ -15,6 +15,9 @@ before using the ``uvx`` examples below. Git is required because ``uvx``
 downloads and runs PyAEDT-MCP directly from this repository. Follow the `uv
 installation instructions <https://docs.astral.sh/uv/getting-started/installation/>`_.
 
+The examples explicitly select Python 3.13, the recommended version. uv downloads
+it if needed. PyAEDT-MCP requires Python 3.13 or later.
+
 For example, on Windows:
 
 .. code-block:: powershell
@@ -56,7 +59,7 @@ Transport configurations
 
          git clone https://github.com/ansys/pyaedt-mcp.git
          cd pyaedt-mcp
-         uv venv
+         uv venv --python 3.13
          uv pip install .
          .venv\Scripts\ansys-aedt-mcp --transport http --http-host 127.0.0.1 --http-port 8080
 
@@ -66,7 +69,7 @@ Transport configurations
 
          git clone https://github.com/ansys/pyaedt-mcp.git
          cd pyaedt-mcp
-         uv venv
+         uv venv --python 3.13
          uv pip install .
          .venv/bin/ansys-aedt-mcp --transport http --http-host 127.0.0.1 --http-port 8080
 
@@ -76,7 +79,7 @@ Transport configurations
 
       .. code-block:: powershell
 
-         uvx --index-strategy unsafe-best-match `
+         uvx --python 3.13 --index-strategy unsafe-best-match `
            --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp `
            --transport http --http-host 127.0.0.1 --http-port 8080
 
@@ -84,7 +87,7 @@ Transport configurations
 
       .. code-block:: bash
 
-         uvx --index-strategy unsafe-best-match \
+         uvx --python 3.13 --index-strategy unsafe-best-match \
            --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp \
            --transport http --http-host 127.0.0.1 --http-port 8080
 
@@ -145,8 +148,8 @@ Transport configurations
 
       Stdio clients launch the local server automatically when needed. The
       following examples use ``uvx``. To run from a cloned repository instead,
-      create the virtual environment with ``uv venv`` and install the project
-      with ``uv pip install .``. Then replace ``uvx`` and its arguments with
+      create the virtual environment with ``uv venv --python 3.13`` and install
+      the project with ``uv pip install .``. Then replace ``uvx`` and its arguments with
       ``.venv\\Scripts\\ansys-aedt-mcp`` on Windows or
       ``.venv/bin/ansys-aedt-mcp`` on macOS and Linux.
 
@@ -166,6 +169,7 @@ Transport configurations
                      "type": "stdio",
                      "command": "uvx",
                      "args": [
+                       "--python", "3.13",
                        "--index-strategy", "unsafe-best-match",
                        "--from", "git+https://github.com/ansys/pyaedt-mcp.git",
                        "ansys-aedt-mcp"
@@ -182,7 +186,7 @@ Transport configurations
             .. code-block:: bash
 
                claude mcp add --transport stdio pyaedt-mcp -- \
-                 uvx --index-strategy unsafe-best-match \
+                 uvx --python 3.13 --index-strategy unsafe-best-match \
                  --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp
 
             On Windows PowerShell, use a backtick (`` ` ``) instead of ``\`` for
@@ -203,6 +207,7 @@ Transport configurations
                      "type": "local",
                      "command": [
                        "uvx",
+                       "--python", "3.13",
                        "--index-strategy", "unsafe-best-match",
                        "--from", "git+https://github.com/ansys/pyaedt-mcp.git",
                        "ansys-aedt-mcp"
@@ -220,6 +225,7 @@ Transport configurations
                [mcp_servers.pyaedt-mcp]
                command = "uvx"
                args = [
+                 "--python", "3.13",
                  "--index-strategy", "unsafe-best-match",
                  "--from", "git+https://github.com/ansys/pyaedt-mcp.git",
                  "ansys-aedt-mcp"

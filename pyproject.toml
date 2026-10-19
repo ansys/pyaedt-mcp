@@ -9,7 +9,6 @@ classifiers = [
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Information Analysis",
@@ -39,7 +38,7 @@ license-files = ["LICENSE"]
 maintainers = [{name = "Synopsys, Inc. and ANSYS, Inc.", email = "pyansys-core@synopsys.com"}]
 name = "ansys-aedt-mcp"
 readme = "README.md"
-requires-python = ">=3.12,<4"
+requires-python = ">=3.13,<4"
 version = "0.2.dev0"
 
 dependencies = [
@@ -122,7 +121,7 @@ explicit_package_bases = true
 ignore_missing_imports = true
 mypy_path = "src"
 namespace_packages = true
-python_version = "3.14"
+python_version = "3.13"
 warn_unused_configs = true
 
 [tool.pytest.ini_options]
