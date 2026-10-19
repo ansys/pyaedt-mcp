@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ansys-aedt-mcp lanes</title>
+<style>
+  body { font: 13px/1.4 system-ui, sans-serif; margin: 16px; color: #1d1d1f; background: #fafafa; }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 12px; color: #555; }
+  .bar input { width: 4em; }
+  table { border-collapse: collapse; width: 100%; background: #fff; }
+  th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #f0f0f0; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-weight: 600; color: #fff; }
+  .ok { background: #2e7d32; } .busy { background: #ef6c00; } .degraded { background: #b8860b; } .down { background: #c62828; }
+  .yes { color: #2e7d32; } .no { color: #c62828; } .na { color: #888; }
+  .muted { color: #777; font-size: 12px; }
+  .err { color: #c62828; font-family: ui-monospace, monospace; font-size: 12px; word-break: break-word; }
+  .mono { font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all; }
+  #fetchError { color: #c62828; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>ansys-aedt-mcp lanes</h1>
+<div class="bar">
+  <span>Refresh every <input id="refresh" type="number" min="2" step="1"> s</span>
+  <button id="now" type="button">Refresh now</button>
+  <span id="updated">never updated</span>
+  <span id="countdown"></span>
+  <span id="fetchError"></span>
+</div>
+<div class="bar muted">
+  <span>State dir: <span id="stateDir" class="mono"></span></span>
+  <span>Registry: <span id="registry"></span></span>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th>Lane</th><th>Status</th><th>Backend</th><th>AEDT</th>
+      <th>Activity</th><th>Last error (log tail)</th><th>Uptime</th><th>Log</th>
+    </tr>
+  </thead>
+  <tbody id="lanes"></tbody>
+</table>
+<p class="muted">Read-only. Built from registry.json, pid/port probes and log tails; never opens an MCP session.
+"Tool call running" is a log heuristic: the last protocol event in the log was a CallToolRequest.</p>
+<script>
+"use strict";
+const KEY = "ansys-aedt-mcp.lanes.dashboard.refresh";
+const $ = (id) => document.getElementById(id);
+let refreshSeconds = null;
+let nextAt = 0;
+let timer = null;
+
+function el(tag, text, cls) {
+  const node = document.createElement(tag);
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  if (cls) node.className = cls;
+  return node;
+}
+function dur(s) {
+  if (s === null || s === undefined) return "-";
+  s = Math.floor(s);
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  if (d) return d + "d " + h + "h";
+  if (h) return h + "h " + m + "m";
+  if (m) return m + "m " + (s % 60) + "s";
+  return s + "s";
+}
+function clock(ts) { return ts ? new Date(ts * 1000).toLocaleTimeString() : "-"; }
+function flag(value, yes, no) {
+  if (value === null || value === undefined) return el("span", "n/a", "na");
+  return el("span", value ? yes : no, value ? "yes" : "no");
+}
+function bytes(n) {
+  if (n === undefined) return "-";
+  return n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : (n / 1024).toFixed(0) + " KB";
+}
+function cell(...children) {
+  const td = el("td");
+  for (const c of children) {
+    if (c === null || c === undefined) continue;
+    td.appendChild(typeof c === "string" ? el("div", c) : c);
+  }
+  return td;
+}
+function line(...parts) {
+  const div = el("div");
+  for (const p of parts) div.appendChild(typeof p === "string" ? document.createTextNode(p) : p);
+  return div;
+}
+
+function render(data) {
+  $("stateDir").textContent = data.state_dir;
+  const reg = data.registry;
+  $("registry").textContent = !reg.exists ? "missing"
+    : reg.error ? "unreadable: " + reg.error
+    : "updated " + clock(reg.modified_at) + " (" + data.lanes.length + " lane" + (data.lanes.length === 1 ? "" : "s") + ")";
+
+  const body = $("lanes");
+  body.replaceChildren();
+  if (!data.lanes.length) {
+    const tr = el("tr");
+    const td = el("td", "No lanes registered.", "muted");
+    td.colSpan = 8;
+    tr.appendChild(td);
+    body.appendChild(tr);
+  }
+  for (const lane of data.lanes) {
+    const log = lane.log || {};
+    const tr = el("tr");
+    tr.appendChild(cell(el("strong", lane.lane_id)));
+    const notes = lane.notes.map((n) => el("div", n, "muted"));
+    tr.appendChild(cell(el("span", lane.status, "pill " + lane.status), ...notes));
+    tr.appendChild(cell(
+      line(":" + lane.http_port + " ", flag(lane.listening, "listening", "closed")),
+      line("pid " + lane.pid + " ", flag(lane.pid_alive, "alive", "gone")),
+      line("auth ", flag(lane.auth === "token", "token", "none"))));
+    tr.appendChild(cell(lane.aedt_gpc_port
+      ? line("gRPC :" + lane.aedt_gpc_port + " ", flag(lane.aedt_reachable, "reachable", "unreachable"))
+      : el("span", "none attached", "na")));
+    const activity = [];
+    if (log.call_in_progress_since) {
+      activity.push(el("div", "tool call running " + dur(log.call_elapsed_seconds), lane.status === "busy" ? "no" : ""));
+    }
+    if (log.last_event) activity.push(el("div", log.last_event + " @ " + clock(log.last_event_at), "muted"));
+    if (log.idle_seconds !== undefined) activity.push(el("div", "log written " + dur(log.idle_seconds) + " ago", "muted"));
+    tr.appendChild(cell(...(activity.length ? activity : [el("span", "-", "na")])));
+    tr.appendChild(cell(log.last_error
+      ? el("div", clock(log.last_error_at) + "  " + log.last_error, "err")
+      : el("span", log.error_lines_in_tail ? log.error_lines_in_tail + " error lines" : "none", "na")));
+    tr.appendChild(cell(dur(lane.uptime_seconds)));
+    tr.appendChild(cell(el("div", log.path || "-", "mono"),
+      el("div", log.exists ? bytes(log.size_bytes) : "missing", "muted")));
+    body.appendChild(tr);
+  }
+}
+
+async function refresh() {
+  try {
+    const resp = await fetch("/api/status", { cache: "no-store" });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    if (refreshSeconds === null) setRefresh(Number(localStorage.getItem(KEY)) || data.refresh_seconds, false);
+    render(data);
+    $("updated").textContent = "updated " + new Date().toLocaleTimeString();
+    $("fetchError").textContent = "";
+  } catch (e) {
+    $("fetchError").textContent = "dashboard server unreachable (" + e.message + ")";
+  }
+  schedule();
+}
+
+function schedule() {
+  clearTimeout(timer);
+  nextAt = Date.now() + (refreshSeconds || 30) * 1000;
+  timer = setTimeout(refresh, (refreshSeconds || 30) * 1000);
+}
+
+function setRefresh(value, persist) {
+  value = Math.max(2, Math.floor(Number(value) || 30));
+  refreshSeconds = value;
+  $("refresh").value = value;
+  if (persist) localStorage.setItem(KEY, String(value));
+}
+
+$("refresh").addEventListener("change", (e) => { setRefresh(e.target.value, true); schedule(); });
+$("now").addEventListener("click", refresh);
+setInterval(() => {
+  const left = Math.max(0, Math.ceil((nextAt - Date.now()) / 1000));
+  $("countdown").textContent = nextAt ? "next in " + left + "s" : "";
+}, 1000);
+refresh();
+</script>
+</body>
+</html>

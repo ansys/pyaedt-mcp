@@ -90,6 +90,14 @@ Optional (enabled only with ``--include-context``)
        ``geometry``, ``mesh``, ``boundaries``, ``postprocessing``,
        and ``parametric``).
 
+Optional (enabled only with ``--lanes``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With ``ansys-aedt-mcp --lanes``, all the tools above are routed to the
+selected lane, and lane management tools (``list_lanes``, ``spawn_lane``,
+``switch_lane``, ``stop_lane``, ``check_lane``, ``recycle_lane``, and others)
+are added. For details, see :ref:`ref_lanes`.
+
 .. note::
    When ``--connect`` is used on startup, the connection is locked and
    ``launch_aedt``, ``connect_to_aedt``, and ``disconnect_from_aedt`` are

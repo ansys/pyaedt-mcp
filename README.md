@@ -119,6 +119,10 @@ pre-commit install
    for short HTTP and stdio configurations for VS Code/Copilot, Claude,
    OpenCode, and Codex, plus local virtual-environment instructions.
 
+4. Optional: to let several MCP clients share or isolate AEDT sessions, start
+   the client with `ansys-aedt-mcp --lanes` instead. See
+   [Lanes](https://aedt-mcp.docs.pyansys.com/version/dev/user_guide/lanes.html).
+
 ## Tool reference
 
 For information on the available tools, see [Tools and capabilities](https://aedt-mcp.docs.pyansys.com/version/dev/user_guide/tools_and_capabilities.html) in the PyAEDT-MCP documentation.
@@ -136,6 +140,7 @@ The core package is in `src\ansys\aedt\mcp`:
 | `prompts.py` | System prompt content shown to MCP clients |
 | `contexts.py` | Optional context helper tools enabled by `--include-context` |
 | `toolsets.py` | `toolsets://definition` resource used for logical tool discovery |
+| `lanes\` | Opt-in lanes mode (`--lanes`): routing proxy, lane registry, spawner, and dashboard |
 | `aedt_helper\startup_code.py` | Startup code loaded into the persistent Python session |
 
 Other top-level folders include:

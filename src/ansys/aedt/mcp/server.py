@@ -215,6 +215,31 @@ def _validate_port(port: int) -> int:
     return port
 
 
+LANES_FLAG = "--lanes"
+
+
+def _pop_lanes_flag(argv: list[str]) -> list[str] | None:
+    """Return ``argv`` without ``--lanes``, or ``None`` if the flag is absent.
+
+    Only arguments before a ``--`` separator are inspected, because the ones
+    after it are forwarded to the lane backends.
+    """
+    own = argv[: argv.index("--")] if "--" in argv else argv
+    if LANES_FLAG not in own:
+        return None
+    rest = list(argv)
+    rest.remove(LANES_FLAG)
+    return rest
+
+
+def _run_lanes(argv: list[str]) -> None:
+    from ansys.aedt.mcp.lanes import cli
+
+    exit_code = cli.main(argv)
+    if exit_code:
+        raise SystemExit(exit_code)
+
+
 def launcher(argv: list[str] | None = None) -> None:
     """Entry point for the MCP server.
 
@@ -226,7 +251,16 @@ def launcher(argv: list[str] | None = None) -> None:
     if argv is None:
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(prog="ansys.aedt.mcp")
+    lanes_argv = _pop_lanes_flag(argv)
+    if lanes_argv is not None:
+        _run_lanes(lanes_argv)
+        return
+
+    parser = argparse.ArgumentParser(
+        prog="ansys.aedt.mcp",
+        epilog=f"Use '{LANES_FLAG} --help' for the opt-in lanes mode, which lets several "
+        "MCP clients share or isolate AEDT sessions.",
+    )
     parser.add_argument(
         "--transport",
         dest="transport_type",
@@ -373,6 +407,12 @@ def launcher(argv: list[str] | None = None) -> None:
             from starlette.middleware.cors import CORSMiddleware
 
             middleware = [Middleware(CORSMiddleware, allow_origins=cors_origins)]
+
+        # Lane backends are spawned by ``--lanes`` with a per-lane token. Without
+        # that token in the environment this is a no-op.
+        from ansys.aedt.mcp.lanes.backend import apply_lane_backend_hooks
+
+        apply_lane_backend_hooks(app)
 
         asyncio.run(
             app.run_http_async(
