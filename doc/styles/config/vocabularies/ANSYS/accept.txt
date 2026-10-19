@@ -3,6 +3,7 @@
 (i?)RST
 [Aa]sync
 [Cc]ompose
+[Cc]onda
 [Cc]onfig
 [Dd]ev
 [Dd]ocker

@@ -38,10 +38,12 @@ from desktop_launcher import (
     WHEELHOUSE_PYTHON_VERSION,
     application_directory,
     command_paths,
+    environment_directory,
     hidden_window_options,
     installed_version,
     runtime_directory,
     setup_environment,
+    validate_environment,
     validate_wheelhouse,
 )
 from desktop_settings import load_settings, save_settings
@@ -370,6 +372,29 @@ class McpControlPanel:
             value=bool(self.installation_settings["offline_install"]),
             on_change=self._toggle_offline_install,
         )
+        self.custom_environment = ft.Switch(
+            label="Custom environment",
+            value=bool(self.installation_settings["custom_environment"]),
+            on_change=self._toggle_custom_environment,
+        )
+        self.environment_path = ft.TextField(
+            label="Python environment folder",
+            value=str(environment_directory(application_directory())),
+            read_only=True,
+            dense=True,
+            expand=True,
+        )
+        self.environment_selector = ft.Row(
+            [
+                self.environment_path,
+                ft.IconButton(
+                    ft.Icons.FOLDER_OPEN,
+                    tooltip="Choose Python environment",
+                    on_click=self._choose_environment,
+                ),
+            ],
+            visible=bool(self.custom_environment.value),
+        )
         self.branch_picker = ft.Dropdown(
             label="Git branch",
             options=[],
@@ -589,6 +614,10 @@ class McpControlPanel:
             content=ft.Column(
                 [
                     ft.Text("No managed MCP environment was found."),
+                    ft.Text(
+                        "Use a local Python environment instead, or create the default "
+                        "environment by following these steps."
+                    ),
                     ft.Text("1. Select an install source and MCP version on the Server tab."),
                     ft.Text("2. Select Install MCP, then start the HTTP server when needed."),
                     ft.Text("3. Open Coding agents to install your selected client profiles."),
@@ -599,6 +628,7 @@ class McpControlPanel:
             ),
             actions=[
                 ft.TextButton("View documentation", on_click=self.open_desktop_app_documentation),
+                ft.TextButton("Use local environment", on_click=self._choose_environment),
                 ft.TextButton("Close", on_click=lambda _event: self.page.pop_dialog()),
             ],
         )
@@ -941,6 +971,12 @@ class McpControlPanel:
                     "Prompt for a Python-compatible wheelhouse ZIP when installing or updating. "
                     "Git branches are unavailable in this mode.",
                 ),
+                self.custom_environment,
+                self.environment_selector,
+                ft.Text(
+                    f"Default environment: {application_directory() / '.venv'}",
+                    size=12,
+                ),
             ],
             spacing=8,
             tight=True,
@@ -1128,7 +1164,11 @@ class McpControlPanel:
             self.install_source.value = "release"
             self._change_install_source(None)
         try:
-            save_settings(application_directory(), offline_install=offline_install)
+            save_settings(
+                application_directory(),
+                offline_install=offline_install,
+                custom_environment=self.installation_settings["custom_environment"],
+            )
         except OSError as error:
             self.status.value = f"Could not save installation settings: {error}"
         else:
@@ -1138,6 +1178,69 @@ class McpControlPanel:
         if not offline_install:
             self.load_versions(None)
         self.page.update()
+
+    def _environment_change_allowed(self) -> bool:
+        if (
+            (self.server_process is not None and self.server_process.poll() is None)
+            or self.install_button.disabled
+            and self.update_button.disabled
+        ):
+            self._show_info(
+                "Environment in use",
+                "Stop the server and wait for installation to finish before changing environments.",
+            )
+            return False
+        return True
+
+    def _save_environment(self, directory: Path | None) -> bool:
+        try:
+            if directory is not None:
+                validate_environment(directory)
+            save_settings(
+                application_directory(),
+                offline_install=bool(self.offline_install.value),
+                custom_environment=str(directory) if directory is not None else None,
+            )
+        except (OSError, RuntimeError) as error:
+            self._show_info("Could not change environment", str(error))
+            return False
+        self.installation_settings = load_settings(application_directory())
+        self.custom_environment.value = directory is not None
+        self.environment_selector.visible = directory is not None
+        self.environment_path.value = str(environment_directory(application_directory()))
+        self.refresh_status()
+        return True
+
+    async def _toggle_custom_environment(self, _event) -> None:
+        if not self._environment_change_allowed():
+            self.custom_environment.value = bool(self.installation_settings["custom_environment"])
+            self.page.update()
+            return
+        if self.custom_environment.value:
+            self.environment_selector.visible = True
+            self.page.update()
+            await self._choose_environment(None)
+        else:
+            self._save_environment(None)
+        self.custom_environment.value = bool(self.installation_settings["custom_environment"])
+        self.environment_selector.visible = bool(self.custom_environment.value)
+        self.page.update()
+
+    async def _choose_environment(self, _event) -> None:
+        if not self._environment_change_allowed():
+            return
+        directory = await self.folder_picker.get_directory_path(
+            dialog_title="Choose an existing Python environment",
+        )
+        if directory and self._save_environment(Path(directory).resolve()):
+            self.page.pop_dialog()
+            self.page.show_dialog(
+                ft.SnackBar(
+                    content=ft.Text(
+                        "Environment saved. Reinstall Stdio profiles to use the new environment."
+                    )
+                )
+            )
 
     def _update_install_options_visibility(self) -> None:
         self.install_options.visible = not bool(self.offline_install.value)

@@ -558,9 +558,114 @@ async def test_offline_installation_setting_is_persisted_and_passed_to_installer
 
     assert desktop_ui.load_settings(tmp_path / ".pyaedt_mcp") == {
         "offline_install": True,
+        "custom_environment": None,
     }
     assert setup_calls[0][1]["wheelhouse"] == str(wheelhouse)
     assert not panel.install_options.visible
+
+
+async def test_setup_can_select_a_local_environment(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    directory = tmp_path / "existing environment"
+    (directory / "Scripts").mkdir(parents=True)
+    (directory / "Scripts" / "python.exe").touch()
+    (directory / "Scripts" / "ansys-aedt-mcp.exe").touch()
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    monkeypatch.setattr(
+        panel.folder_picker, "get_directory_path", AsyncMock(return_value=str(directory))
+    )
+
+    await panel._choose_environment(None)
+
+    assert panel.custom_environment.value
+    assert panel.environment_selector.visible
+    assert panel.environment_path.value == str(directory)
+    assert not panel.start_button.disabled
+    assert panel.install_button.disabled
+    assert desktop_ui.command_paths(tmp_path / ".pyaedt_mcp")[1].parent == directory / "Scripts"
+    restored = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    assert restored.custom_environment.value
+    assert restored.environment_path.value == str(directory)
+
+
+async def test_disabling_custom_environment_restores_default(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    directory = tmp_path / "existing"
+    (directory / "Scripts").mkdir(parents=True)
+    (directory / "Scripts" / "python.exe").touch()
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    assert panel._save_environment(directory)
+    panel.custom_environment.value = False
+
+    await panel._toggle_custom_environment(None)
+
+    assert not panel.environment_selector.visible
+    assert panel.environment_path.value == str(tmp_path / ".pyaedt_mcp" / ".venv")
+    assert desktop_ui.load_settings(tmp_path / ".pyaedt_mcp")["custom_environment"] is None
+    assert (directory / "Scripts" / "python.exe").is_file()
+
+
+async def test_canceling_custom_environment_selection_keeps_default(
+    monkeypatch, tmp_path, desktop_ui
+):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    monkeypatch.setattr(panel.folder_picker, "get_directory_path", AsyncMock(return_value=None))
+    panel.custom_environment.value = True
+
+    await panel._toggle_custom_environment(None)
+
+    assert not panel.custom_environment.value
+    assert not panel.environment_selector.visible
+    assert desktop_ui.load_settings(tmp_path / ".pyaedt_mcp")["custom_environment"] is None
+
+
+async def test_invalid_custom_environment_reports_error(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+    monkeypatch.setattr(
+        panel.folder_picker, "get_directory_path", AsyncMock(return_value=str(tmp_path))
+    )
+    panel.custom_environment.value = True
+
+    await panel._toggle_custom_environment(None)
+
+    assert page.dialog.title.value == "Could not change environment"
+    assert "Select a Python environment folder" in page.dialog.content.value
+    assert not panel.custom_environment.value
+
+
+async def test_running_server_prevents_environment_change(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    panel.server_process = Mock()
+    panel.server_process.poll.return_value = None
+    picker = AsyncMock()
+    monkeypatch.setattr(panel.folder_picker, "get_directory_path", picker)
+    panel.custom_environment.value = True
+
+    await panel._toggle_custom_environment(None)
+
+    picker.assert_not_awaited()
+    assert not panel.custom_environment.value
+    assert panel.page.dialog.title.value == "Environment in use"
+
+
+def test_offline_toggle_preserves_custom_environment(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    directory = tmp_path / "existing"
+    (directory / "Scripts").mkdir(parents=True)
+    (directory / "Scripts" / "python.exe").touch()
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    assert panel._save_environment(directory)
+    panel.offline_install.value = True
+
+    panel._toggle_offline_install(None)
+
+    settings = desktop_ui.load_settings(tmp_path / ".pyaedt_mcp")
+    assert settings["offline_install"]
+    assert settings["custom_environment"] == str(directory)
 
 
 async def test_branch_source_requires_a_selection_before_install(monkeypatch, tmp_path, desktop_ui):

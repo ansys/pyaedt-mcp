@@ -23,9 +23,33 @@ runtime before installation. Enable or disable this mode in the **Installation**
 of the **Settings** tab; the choice is retained in ``%APPDATA%\\.pyaedt_mcp\\settings.yaml``.
 Git branch installation requires online mode.
 
+To reuse an existing local Python environment instead of creating one, select
+**Use local environment** in the first-launch guide. Choose the environment's
+root folder (containing ``Scripts\python.exe`` for a virtual environment, or
+``python.exe`` for a Conda environment), not its ``Scripts`` folder. If PyAEDT
+MCP is already installed there, the app enables **Start Server** immediately.
+Otherwise, **Install MCP** installs it into that environment without creating
+a new one.
+
+In **Settings**, turn on **Custom environment** to select a folder, or use the
+folder selector to change it. Turning the toggle off restores the default
+``%APPDATA%\.pyaedt_mcp\.venv`` environment without deleting or modifying the
+custom environment. The selection is retained across launches. Stop the server
+and wait for any installation or update to finish before switching environments.
+Install and update actions modify the selected environment. After switching,
+reinstall any Stdio coding-agent profiles so they use the newly selected
+environment.
+
 Use the **Update MCP** button to update an existing managed environment. Choose
 **Git branch** as the install source when testing a repository branch instead
 of a published release.
+
+Building the Windows executable
+-------------------------------
+
+From a development checkout, install the ``desktop`` dependency group and run
+``.\scripts\build_windows_installer.ps1 -ExecutableOnly``. This command checks
+that the desktop GUI imports and its tray image loads before packaging.
 
 Server tab
 ----------
