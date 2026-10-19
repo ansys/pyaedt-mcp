@@ -39,15 +39,36 @@ def runtime_directory() -> Path:
     return Path(__file__).resolve().parent / ".desktop-runtime"
 
 
+def environment_directory(app_directory: Path) -> Path:
+    """Return the selected environment root, defaulting to the managed venv."""
+    custom_environment = load_settings(app_directory)["custom_environment"]
+    return Path(custom_environment) if custom_environment else app_directory / ".venv"
+
+
+def validate_environment(directory: Path) -> None:
+    """Require an existing Windows Python environment rather than creating one."""
+    if not (
+        (directory / "Scripts" / "python.exe").is_file() or (directory / "python.exe").is_file()
+    ):
+        raise RuntimeError(
+            f"Select a Python environment folder containing python.exe "
+            f"or Scripts\\python.exe: {directory}"
+        )
+
+
 def command_paths(app_directory: Path) -> tuple[Path, Path]:
     """Return the venv Python and MCP command paths."""
-    scripts_directory = app_directory / ".venv" / "Scripts"
-    return scripts_directory / "python.exe", scripts_directory / "ansys-aedt-mcp.exe"
+    directory = environment_directory(app_directory)
+    scripts_directory = directory / "Scripts"
+    python = directory / "python.exe"
+    if not python.is_file():
+        python = scripts_directory / "python.exe"
+    return python, scripts_directory / "ansys-aedt-mcp.exe"
 
 
 def installed_version(app_directory: Path) -> str | None:
     """Return the MCP version installed in the user virtual environment, if any."""
-    site_packages = app_directory / ".venv" / "Lib" / "site-packages"
+    site_packages = environment_directory(app_directory) / "Lib" / "site-packages"
     for metadata_path in site_packages.glob("ansys_aedt_mcp-*.dist-info/METADATA"):
         version_match = re.search(
             r"^Version: (.+)$", metadata_path.read_text(encoding="utf-8"), re.MULTILINE
@@ -96,6 +117,8 @@ def setup_environment(
         raise ValueError("Specify either a package version or a Git branch, not both")
     if wheelhouse and branch:
         raise ValueError("Offline installation supports published releases, not Git branches")
+    if load_settings(app_directory)["custom_environment"]:
+        validate_environment(environment_directory(app_directory))
     python_executable, mcp_executable = command_paths(app_directory)
     if mcp_executable.is_file() and version is None and branch is None and not upgrade:
         return mcp_executable

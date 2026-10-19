@@ -2,7 +2,8 @@
 param(
     [string]$Version,
     [switch]$SkipRuntimeStaging,
-    [switch]$SkipExecutableBuild
+    [switch]$SkipExecutableBuild,
+    [switch]$ExecutableOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,14 +17,29 @@ if (-not $Version) {
 
 if (-not $SkipRuntimeStaging) {
     uv run --no-sync .\desktop_app\stage_desktop_runtime.py
+    if ($LASTEXITCODE -ne 0) {
+        throw "Embedded runtime staging failed."
+    }
 }
 
 if (-not $SkipExecutableBuild) {
-    uv run --no-sync flet pack .\desktop_app\desktop_launcher.py --name PyAEDT_MCP --icon .\desktop_app\assets\pyaedt_mcp_icon.ico --add-data .\desktop_app\.desktop-runtime:runtime --add-data .\desktop_app\assets:assets --add-data .\desktop_app\config.yaml:. --yes
+    uv run --no-sync python -c "import sys; sys.path.insert(0, 'desktop_app'); import desktop_ui; desktop_ui.McpControlPanel._tray_image().load()"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Desktop GUI dependency check failed. Repair the build environment before packaging."
+    }
+    uv run --no-sync flet pack .\desktop_app\desktop_launcher.py --name PyAEDT_MCP --icon .\desktop_app\assets\pyaedt_mcp_icon.ico --add-data .\desktop_app\.desktop-runtime:runtime --add-data .\desktop_app\assets:assets --add-data .\desktop_app\config.yaml:. --pyinstaller-build-args=--clean --yes
+    if ($LASTEXITCODE -ne 0) {
+        throw "Desktop executable build failed."
+    }
 }
 
 if (-not (Test-Path ".\dist\PyAEDT_MCP.exe")) {
     throw "The desktop executable was not found at dist\PyAEDT_MCP.exe."
+}
+
+if ($ExecutableOnly) {
+    Write-Output "Built dist\PyAEDT_MCP.exe"
+    return
 }
 
 $makeNsisPath = (Get-Command makensis.exe -ErrorAction SilentlyContinue).Source

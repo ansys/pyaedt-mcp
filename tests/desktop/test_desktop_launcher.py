@@ -273,3 +273,101 @@ def test_main_opens_ui_without_server_mode(monkeypatch, desktop_launcher):
     monkeypatch.setitem(sys.modules, "desktop_ui", ui_module)
 
     assert desktop_launcher.main([]) == 3
+
+
+@pytest.mark.parametrize("root_python", [False, True])
+def test_custom_environment_is_used_without_creating_a_venv(
+    monkeypatch, tmp_path, desktop_launcher, root_python
+):
+    app_directory = tmp_path / "app"
+    directory = tmp_path / "existing environment"
+    (directory / "Scripts").mkdir(parents=True)
+    python = directory / "python.exe" if root_python else directory / "Scripts" / "python.exe"
+    python.touch()
+    command = directory / "Scripts" / "ansys-aedt-mcp.exe"
+    command.touch()
+    sys.modules["desktop_settings"].save_settings(
+        app_directory, offline_install=False, custom_environment=str(directory)
+    )
+    monkeypatch.setattr(desktop_launcher.subprocess, "run", pytest.fail)
+
+    assert desktop_launcher.command_paths(app_directory) == (python, command)
+    assert desktop_launcher.setup_environment(app_directory, tmp_path / "runtime") == command
+    assert not (app_directory / ".venv").exists()
+
+
+def test_invalid_custom_environment_is_not_recreated(monkeypatch, tmp_path, desktop_launcher):
+    app_directory = tmp_path / "app"
+    directory = tmp_path / "missing"
+    sys.modules["desktop_settings"].save_settings(
+        app_directory, offline_install=False, custom_environment=str(directory)
+    )
+    monkeypatch.setattr(desktop_launcher.subprocess, "run", pytest.fail)
+
+    with pytest.raises(RuntimeError, match="Select a Python environment folder"):
+        desktop_launcher.setup_environment(app_directory, tmp_path / "runtime")
+
+    assert not directory.exists()
+    assert not (app_directory / ".venv").exists()
+
+
+def test_install_targets_custom_python_without_creating_environment(
+    monkeypatch, tmp_path, desktop_launcher
+):
+    app_directory = tmp_path / "app"
+    directory = tmp_path / "existing"
+    (directory / "Scripts").mkdir(parents=True)
+    python = directory / "Scripts" / "python.exe"
+    python.touch()
+    command = directory / "Scripts" / "ansys-aedt-mcp.exe"
+    sys.modules["desktop_settings"].save_settings(
+        app_directory, offline_install=False, custom_environment=str(directory)
+    )
+    runtime = tmp_path / "runtime"
+    (runtime / "python").mkdir(parents=True)
+    (runtime / "python" / "python.exe").touch()
+    (runtime / "uv").mkdir()
+    (runtime / "uv" / "uv.exe").touch()
+    commands = []
+
+    def fake_run(arguments, **kwargs):
+        commands.append(arguments)
+        command.touch()
+        return subprocess.CompletedProcess(arguments, 0)
+
+    monkeypatch.setattr(desktop_launcher.subprocess, "run", fake_run)
+
+    assert desktop_launcher.setup_environment(app_directory, runtime, version="1.2.3") == command
+    assert len(commands) == 1
+    assert commands[0][1:5] == ["pip", "install", "--python", str(python)]
+    assert not (app_directory / ".venv").exists()
+
+
+def test_server_mode_uses_persisted_custom_environment(monkeypatch, tmp_path, desktop_launcher):
+    directory = tmp_path / "existing"
+    (directory / "Scripts").mkdir(parents=True)
+    (directory / "Scripts" / "python.exe").touch()
+    command = directory / "Scripts" / "ansys-aedt-mcp.exe"
+    command.touch()
+    sys.modules["desktop_settings"].save_settings(
+        tmp_path, offline_install=False, custom_environment=str(directory)
+    )
+    monkeypatch.setattr(desktop_launcher, "application_directory", lambda: tmp_path)
+    monkeypatch.setattr(desktop_launcher.subprocess, "run", pytest.fail)
+    calls = []
+    monkeypatch.setattr(desktop_launcher.subprocess, "call", lambda args: calls.append(args) or 0)
+
+    assert desktop_launcher.main(["--server", "--transport", "stdio"]) == 0
+    assert calls == [[str(command), "--transport", "stdio"]]
+
+
+def test_installed_version_reads_custom_environment(tmp_path, desktop_launcher):
+    directory = tmp_path / "existing"
+    metadata = directory / "Lib" / "site-packages" / "ansys_aedt_mcp-1.2.3.dist-info" / "METADATA"
+    metadata.parent.mkdir(parents=True)
+    metadata.write_text("Version: 1.2.3\n", encoding="utf-8")
+    sys.modules["desktop_settings"].save_settings(
+        tmp_path, offline_install=False, custom_environment=str(directory)
+    )
+
+    assert desktop_launcher.installed_version(tmp_path) == "1.2.3"
