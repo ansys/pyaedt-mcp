@@ -1007,16 +1007,15 @@ def register_management_tools(server: FastMCP, state: ProxyState) -> None:
         dict
             Whether the lane was removed and its process killed.
         """
-        entry = reg_mod.get_entry(lane_id)
-        if entry is None:
+        report = reg_mod.stop_entry(lane_id, timeout=shutdown_timeout)
+        if report is None:
             return {"ok": True, "lane_id": lane_id, "removed": False, "reason": "not registered"}
-        killed = entry.pid is not None and reg_mod.kill_pid(entry.pid, timeout=shutdown_timeout)
         result: dict[str, Any] = {
             "ok": True,
             "lane_id": lane_id,
-            "removed": reg_mod.remove_entry(lane_id),
-            "killed": killed,
-            "pid": entry.pid,
+            "removed": report.removed,
+            "killed": report.killed,
+            "pid": report.pid,
             "current_lane_id": state.current_lane,
         }
         if state.current_lane == lane_id:

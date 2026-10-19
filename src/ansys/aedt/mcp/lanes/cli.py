@@ -38,7 +38,7 @@ from typing import Any
 from ansys.aedt.mcp.lanes import aedt_compat, dashboard, proxy, registry as reg_mod, spawner
 
 PROG = "ansys-aedt-mcp --lanes"
-SUBCOMMANDS = ("status", "reap", "reset", "unlock", "dashboard")
+SUBCOMMANDS = ("status", "stop", "reap", "reset", "unlock", "dashboard")
 RESERVED_BACKEND_ARGS = ("--transport", "--http-host", "--http-port", "--lanes")
 """Backend arguments the spawner sets itself, so they cannot be forwarded."""
 
@@ -196,6 +196,30 @@ def _status(argv: list[str]) -> int:
     return 0
 
 
+def _stop(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog=f"{PROG} stop", description="Stop a lane and remove it from the registry."
+    )
+    parser.add_argument("lane_id", help="Name of the lane to stop.")
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=proxy.DEFAULT_SHUTDOWN_TIMEOUT,
+        help="Seconds to wait for the backend to exit "
+        f"(default: {proxy.DEFAULT_SHUTDOWN_TIMEOUT:g}).",
+    )
+    args = parser.parse_args(argv)
+    report = reg_mod.stop_entry(args.lane_id, timeout=args.timeout)
+    if report is None:
+        print(f"Lane {args.lane_id!r} is not registered.")
+        return 1
+    print(
+        f"Stopped lane {report.server_id!r}: killed={report.killed} "
+        f"removed={report.removed} pid={report.pid or '?'}"
+    )
+    return 0
+
+
 def _reap(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog=f"{PROG} reap", description="Drop dead lanes.")
     parser.add_argument("--http-host", default=spawner.DEFAULT_HOST)
@@ -254,6 +278,7 @@ def _dashboard(argv: list[str]) -> int:
 
 _HANDLERS = {
     "status": _status,
+    "stop": _stop,
     "reap": _reap,
     "reset": _reset,
     "unlock": _unlock,

@@ -48,6 +48,8 @@ from desktop_launcher import (
 )
 from desktop_settings import load_settings, save_settings
 import flet as ft
+from lanes_client import lanes_profile_arguments
+from lanes_panel import LANES_HELP, LanesPanel
 from packaging.version import Version
 from PIL import Image
 
@@ -446,9 +448,17 @@ class McpControlPanel:
             on_click=self.submit_bug_report,
         )
         self.theme_button = ft.IconButton(on_click=self._toggle_theme)
+        self.use_lanes = ft.Checkbox(label="Use lanes")
+        self.lanes_panel = LanesPanel(
+            self.page,
+            lambda: command_paths(application_directory())[1],
+            self._run_background,
+            self._help_button("Lanes", LANES_HELP),
+        )
         self._configure_page()
         if isinstance(self.page, ft.Page):
             self._configure_tray()
+            self.page.run_task(self.lanes_panel.watch)
         self._build()
         self.refresh_status(show_setup_guide=True)
         if load_versions and not self.offline_install.value:
@@ -560,6 +570,7 @@ class McpControlPanel:
 
     async def _exit_application(self) -> None:
         self.stop(None)
+        self.lanes_panel.close()
         with self._tray_lock:
             if self.tray_icon is not None:
                 self.tray_icon.stop()
@@ -841,6 +852,7 @@ class McpControlPanel:
                     ),
                 ),
                 server_log_section,
+                self.lanes_panel.container,
             ],
             scroll=ft.ScrollMode.AUTO,
         )
@@ -998,6 +1010,14 @@ class McpControlPanel:
                                         "Stdio starts PyAEDT MCP for each agent. "
                                         "HTTP connects the agent to the local server "
                                         "on the HTTP port.",
+                                    ),
+                                    self.use_lanes,
+                                    self._help_button(
+                                        "Use lanes",
+                                        "Stdio profiles start 'ansys-aedt-mcp --lanes', a routing "
+                                        "proxy that lets several agents share or isolate AEDT "
+                                        "sessions. MCP options are forwarded to every lane. "
+                                        "Active lanes can be managed from the Server tab.",
                                     ),
                                 ]
                             ),
@@ -1622,6 +1642,12 @@ class McpControlPanel:
         server_arguments = self._mcp_arguments()
         _, executable = command_paths(application_directory())
         transport = self.profile_transport.value or "stdio"
+        if self.use_lanes.value:
+            if lanes_error := self._lanes_profile_error(transport):
+                self.status.value = lanes_error
+                self.page.update()
+                return
+            server_arguments = lanes_profile_arguments(server_arguments)
         http_url = f"http://127.0.0.1:{self.http_port.value.strip() or '8080'}/mcp"
         directories = {
             profile: Path(field.value).expanduser()
@@ -1672,6 +1698,13 @@ class McpControlPanel:
         self.status.value = "Installing profiles..."
         self.page.update()
         self._run_background(lambda: [action() for action in actions], self._finish_profiles)
+
+    def _lanes_profile_error(self, transport: str) -> str | None:
+        if transport != "stdio":
+            return "Lanes require the Stdio profile transport"
+        if self.dynamic_tools.value:
+            return "Dynamic tools are not supported with lanes; clear it on the Advanced tab"
+        return None
 
     def _finish_profiles(self, paths, error: str | None) -> None:
         self.profile_button.disabled = False

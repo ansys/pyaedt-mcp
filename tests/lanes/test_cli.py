@@ -327,6 +327,32 @@ def test_status_text_output(isolated_state, capsys):
 
 
 @pytest.mark.unit
+def test_stop_subcommand_kills_and_removes_the_lane(isolated_state, monkeypatch, capsys):
+    isolated_state.upsert_entry(
+        isolated_state.ServerEntry(server_id="work", http_port=8123, pid=4242)
+    )
+    killed = []
+    monkeypatch.setattr(
+        isolated_state, "kill_pid", lambda pid, timeout: killed.append((pid, timeout)) or True
+    )
+
+    server.launcher(["--lanes", "stop", "work", "--timeout", "3"])
+
+    assert killed == [(4242, 3.0)]
+    assert "Stopped lane 'work': killed=True removed=True pid=4242" in capsys.readouterr().out
+    assert isolated_state.list_entries() == []
+
+
+@pytest.mark.unit
+def test_stop_subcommand_unknown_lane_fails(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        server.launcher(["--lanes", "stop", "ghost"])
+
+    assert exc_info.value.code == 1
+    assert "Lane 'ghost' is not registered." in capsys.readouterr().out
+
+
+@pytest.mark.unit
 def test_reap_subcommand(isolated_state, capsys):
     isolated_state.upsert_entry(isolated_state.ServerEntry(server_id="dead", http_port=8123))
 

@@ -447,6 +447,38 @@ def kill_keeping_aedt(
 
 
 @dataclass
+class StopReport:
+    """Outcome of :func:`stop_entry`."""
+
+    server_id: str
+    pid: int | None
+    killed: bool
+    removed: bool
+
+
+def stop_entry(server_id: str, timeout: float = 10.0) -> StopReport | None:
+    """Kill a lane backend and remove it from the registry.
+
+    Parameters
+    ----------
+    server_id : str
+        Lane name.
+    timeout : float, default: 10.0
+        Seconds to wait for the backend to exit.
+
+    Returns
+    -------
+    StopReport or None
+        What was killed and removed, or ``None`` if the lane is not registered.
+    """
+    entry = get_entry(server_id)
+    if entry is None:
+        return None
+    killed = entry.pid is not None and kill_pid(entry.pid, timeout=timeout)
+    return StopReport(server_id, entry.pid, killed, remove_entry(server_id))
+
+
+@dataclass
 class ReapReport:
     """Lanes removed and kept by :func:`reap_registry`."""
 

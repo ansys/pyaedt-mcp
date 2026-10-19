@@ -145,6 +145,7 @@ These commands work even when no MCP client is running:
 .. code-block:: bash
 
    ansys-aedt-mcp --lanes status [--json]          # registered lanes and their health
+   ansys-aedt-mcp --lanes stop LANE [--timeout 10] # stop one lane and unregister it
    ansys-aedt-mcp --lanes reap                     # drop dead lanes
    ansys-aedt-mcp --lanes reset [--kill] [--unlock] [--yes]
    ansys-aedt-mcp --lanes unlock                   # delete a stale lock file

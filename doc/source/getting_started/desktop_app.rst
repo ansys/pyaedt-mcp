@@ -63,6 +63,30 @@ inspect debug output, and diagnose a server that exits unexpectedly.
 	:alt: PyAEDT MCP desktop app Server tab
 	:align: center
 
+Lanes
+~~~~~
+
+When lanes are registered on the machine, the **Server** tab shows a **Lanes**
+section below the server log. Lanes are shared PyAEDT MCP backends started by
+coding agents whose profiles use ``ansys-aedt-mcp --lanes``. For more
+information, see :ref:`Lanes <ref_lanes>`. The section is hidden while no lanes
+are registered and is refreshed automatically when agents start or stop lanes.
+
+Each lane shows its name, HTTP port, AEDT gRPC port, and uptime. A green
+indicator means that the lane process is running and serving its port. A red
+indicator means that the lane is not responding. The section provides these
+actions:
+
+* **Stop** next to a lane stops that lane and removes it from the registry.
+  Coding agents routed to the lane lose their backend.
+* **Remove dead lanes** drops registry entries whose backend is no longer
+  running.
+* **Stop all lanes** stops every lane process and clears the registry.
+* The browser button opens the read-only lanes dashboard.
+
+The desktop app manages lanes through the ``ansys-aedt-mcp --lanes`` commands of
+the selected environment. The dashboard server stops when you exit the app.
+
 System tray
 -----------
 
@@ -125,6 +149,11 @@ Select the coding-agent profiles to configure, choose **Stdio** or **HTTP** as
 the profile transport, and confirm the configuration file path for each agent.
 Select **Install profiles** to write the selected configuration files. Use
 **HTTP** only after starting the local HTTP server.
+
+Select **Use lanes** to write Stdio profiles that start the lanes routing proxy
+(``ansys-aedt-mcp --lanes``), so several agents can share or isolate AEDT
+sessions. The **MCP options** from the **Advanced** tab are forwarded to every
+lane. Lanes require the **Stdio** transport and do not support **Dynamic tools**.
 
 .. image:: ../_static/images/desktop_app/coding-agents-tab.png
 	:alt: PyAEDT MCP desktop app Coding agents tab
