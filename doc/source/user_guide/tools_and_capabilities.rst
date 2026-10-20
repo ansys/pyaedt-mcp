@@ -101,8 +101,8 @@ Optional (enabled only with ``--include-context``)
 Tool usage
 ----------
 
-Display custom HTML
-~~~~~~~~~~~~~~~~~~~
+Display custom web content
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Use ``display_html`` to render an HTML document or fragment. No AEDT
 connection is required. For example:
@@ -132,8 +132,8 @@ The inline viewer loads the MCP Apps SDK from ``https://unpkg.com``, so that
 domain must be reachable.
 
 The detached window opens on the machine running the MCP server, using only the
-Python standard library. It is a chromeless app window of an installed
-Microsoft Edge or Google Chrome browser. If neither is found, the
+Python standard library. It is an app window without browser controls, provided by
+an installed Microsoft Edge or Google Chrome browser. If neither is found, the
 default browser is used. To choose the browser, set the
 ``PYAEDT_MCP_HTML_BROWSER`` environment variable to its executable. No window
 is opened when the server runs in a container or without a graphical display.

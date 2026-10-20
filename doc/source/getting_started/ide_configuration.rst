@@ -273,15 +273,15 @@ configuration, or to the command used to start an HTTP server.
      - Enabled
      - Explicitly launch AEDT without its graphical interface.
    * - ``--connect``
-     - Disabled
+     - Off
      - Connect to AEDT when PyAEDT-MCP starts, using ``--machine`` and
        ``--port``. This locks the connection, disabling ``launch_aedt``,
        ``connect_to_aedt``, and ``disconnect_from_aedt`` for the server lifetime.
    * - ``--include-context``
-     - Disabled
+     - Off
      - Register the optional AEDT and PyAEDT workflow guidance tools.
    * - ``--dynamic-tool-discovery``
-     - Disabled
+     - Off
      - Hide AEDT-only tools until an AEDT connection is established, reducing
        the initial client context.
    * - ``--http-host HOST``

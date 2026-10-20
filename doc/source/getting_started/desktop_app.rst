@@ -11,15 +11,15 @@ First launch
 ------------
 
 When the managed environment has not been installed, the app opens a setup
-guide. We refer as managed environment the virtual environment that the PyAEDT
-MCP desktop app creates for installing and running the managed MCP environment.
-By default, this environment will be available in `%APPDATA%\\.pyaedt_mcp`.
+guide. The managed environment is the virtual environment that the PyAEDT
+MCP desktop app creates for installing and running PyAEDT MCP.
+By default, this environment is available in ``%APPDATA%\\.pyaedt_mcp``.
 
 On the **Server** tab, choose an install source and MCP version, then
 select **Install MCP**. After installation, the app enables **Start Server**.
 Offline installation prompts for a wheelhouse ZIP for each install or update, without
 querying package indexes. The app verifies that the ZIP targets its bundled Python 3.13
-runtime before installation. Enable or disable this mode in the **Installation** section
+runtime before installation. Turn this mode on or off in the **Installation** section
 of the **Settings** tab; the choice is retained in ``%APPDATA%\\.pyaedt_mcp\\settings.yaml``.
 Git branch installation requires online mode.
 
@@ -68,7 +68,7 @@ System tray
 
 .. warning::
 
-	Closing the application window keeps PyAEDT MCP running in the Windows
+	Closing the app window keeps PyAEDT MCP running in the Windows
 	system tray. To exit the desktop app completely, right-click the PyAEDT MCP
 	tray icon and select **Exit**.
 
@@ -122,7 +122,7 @@ Coding agents tab
 -----------------
 
 Select the coding-agent profiles to configure, choose **Stdio** or **HTTP** as
-the profile transport, and confirm the configuration file path for each agent.
+the profile transport, and confirm the configuration path for each agent.
 Select **Install profiles** to write the selected configuration files. Use
 **HTTP** only after starting the local HTTP server.
 
