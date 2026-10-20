@@ -63,6 +63,7 @@ _TIMEOUT_MEDIUM = 120  # connect, open/save, create design, screenshot
 _TIMEOUT_LONG = 600  # launch, script execution, analysis, exports
 
 _HTML_APP_URI = "ui://pyaedt-mcp/html-view.html"
+_DEFAULT_INLINE_HEIGHT = 480
 
 
 @app.tool(
@@ -74,7 +75,8 @@ _HTML_APP_URI = "ui://pyaedt-mcp/html-view.html"
 def display_html(
     html: Annotated[str, Field(min_length=1, max_length=1_000_000)],
     title: Annotated[str, Field(min_length=1, max_length=200)] = "Custom HTML",
-    height: Annotated[int, Field(ge=200, le=1200)] = 480,
+    width: Annotated[int | None, Field(ge=200, le=3840)] = None,
+    height: Annotated[int | None, Field(ge=200, le=1200)] = None,
     display_mode: Literal["auto", "inline", "window"] = "auto",
     ctx: Context | None = None,
 ) -> ToolResult:
@@ -88,7 +90,8 @@ def display_html(
     In ``"auto"`` mode the HTML is shown inline when the client supports MCP
     Apps. Otherwise it opens in a lightweight detached window (a chromeless
     Edge/Chrome app window, or the default browser) on the machine running
-    the MCP server.
+    the MCP server. The detached window adjusts to the size of the rendered
+    HTML unless ``width`` or ``height`` are given.
 
     Parameters
     ----------
@@ -96,8 +99,12 @@ def display_html(
         HTML document or fragment, up to one million characters.
     title : str, optional
         Accessible name and window title for the displayed document.
+    width : int, optional
+        Window content width in pixels, between 200 and 3840. By default, the
+        detached window fits the HTML width. Inline viewers use the host width.
     height : int, optional
-        Viewer height in pixels, between 200 and 1200.
+        Viewer height in pixels, between 200 and 1200. By default, the
+        detached window fits the HTML height and the inline viewer uses 480.
     display_mode : str, optional
         ``"auto"`` (default), ``"inline"`` to never open a window, or
         ``"window"`` to always open a detached window.
@@ -112,7 +119,13 @@ def display_html(
 
     supports_inline = ctx is not None and ctx.client_supports_extension(UI_EXTENSION_ID)
     open_window = display_mode == "window" or (display_mode == "auto" and not supports_inline)
-    structured_content: dict[str, Any] = {"html": html, "title": title, "height": height}
+    structured_content: dict[str, Any] = {
+        "html": html,
+        "title": title,
+        "height": height or _DEFAULT_INLINE_HEIGHT,
+    }
+    if width:
+        structured_content["width"] = width
 
     if not open_window:
         text = (
@@ -125,7 +138,7 @@ def display_html(
             )
         )
     else:
-        window = open_html_window(html, title, height)
+        window = open_html_window(html, title, width, height)
         structured_content["window"] = window.to_dict()
         if window.opened:
             where = "an app window" if window.method == "app_window" else "the default browser"

@@ -140,9 +140,16 @@ class TestDisplayHtml:
     def test_auto_without_ui_client_opens_window(self, window_opener):
         result = tools.display_html("<p>Win</p>", title="T", height=300, ctx=self._ctx(False))
 
-        window_opener.assert_called_once_with("<p>Win</p>", "T", 300)
+        window_opener.assert_called_once_with("<p>Win</p>", "T", None, 300)
         assert result.structured_content["window"]["method"] == "app_window"
         assert "Opened in an app window" in result.content[0].text
+
+    def test_window_size_is_forwarded(self, window_opener):
+        result = tools.display_html("<p>Win</p>", width=640, display_mode="window")
+
+        window_opener.assert_called_once_with("<p>Win</p>", "Custom HTML", 640, None)
+        assert result.structured_content["width"] == 640
+        assert result.structured_content["height"] == 480
 
     def test_window_mode_forces_window(self, window_opener):
         tools.display_html("<p>Win</p>", display_mode="window", ctx=self._ctx(True))
@@ -202,7 +209,7 @@ class TestDisplayHtml:
             # The test client does not advertise MCP Apps support.
             result = await client.call_tool("display_html", {"html": "<h1>Auto</h1>"})
             assert result.structured_content["window"]["opened"] is True
-            window_opener.assert_called_once_with("<h1>Auto</h1>", "Custom HTML", 480)
+            window_opener.assert_called_once_with("<h1>Auto</h1>", "Custom HTML", None, None)
 
             resources = await client.read_resource("ui://pyaedt-mcp/html-view.html")
             resource = resources[0]
@@ -222,6 +229,8 @@ class TestDisplayHtml:
                 {"html": "<p>Valid</p>", "title": "x" * 201},
                 {"html": "<p>Valid</p>", "height": 199},
                 {"html": "<p>Valid</p>", "height": 1201},
+                {"html": "<p>Valid</p>", "width": 199},
+                {"html": "<p>Valid</p>", "width": 3841},
                 {"html": "<p>Valid</p>", "display_mode": "popup"},
             ]
             for arguments in invalid:

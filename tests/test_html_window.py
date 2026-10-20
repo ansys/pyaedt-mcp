@@ -53,10 +53,15 @@ class TestBuildWindowDocument:
         assert 'sandbox="allow-scripts"' in document
         assert "allow-same-origin" not in document
         assert "<title>A &lt;b&gt;&quot;T&quot;&lt;/b&gt;</title>" in document
-        assert "<script>" not in document
+        assert "<script>alert(1)" not in document
         inner = _srcdoc(document)
         assert inner.endswith(payload)
         assert html_window.CONTENT_POLICY in inner
+
+    def test_fixed_size_is_embedded(self):
+        document = html_window.build_window_document("<p>x</p>", "T", 640, 300)
+        assert "const fixedWidth = 640, fixedHeight = 300;" in document
+        assert "const fixedWidth = 640;" in _srcdoc(document)
 
     def test_policies_block_network(self):
         document = html_window.build_window_document("<p>x</p>", "T")
@@ -75,9 +80,9 @@ class TestFindAppBrowser:
     def test_invalid_override_falls_back(self, monkeypatch):
         monkeypatch.setenv(html_window.BROWSER_ENV_VAR, "missing")
         monkeypatch.setattr(html_window.sys, "platform", "linux")
-        found = {"chromium": "/usr/bin/chromium"}
+        found = {"google-chrome": "/usr/bin/google-chrome"}
         with patch.object(html_window.shutil, "which", side_effect=found.get):
-            assert html_window.find_app_browser() == "/usr/bin/chromium"
+            assert html_window.find_app_browser() == "/usr/bin/google-chrome"
 
     def test_windows_program_files(self, monkeypatch, tmp_path):
         exe = tmp_path / "Microsoft" / "Edge" / "Application" / "msedge.exe"
@@ -122,7 +127,7 @@ class TestOpenHtmlWindow:
             patch.object(html_window, "find_app_browser", return_value="msedge"),
             patch.object(html_window.subprocess, "Popen") as popen,
         ):
-            result = html_window.open_html_window("<p>Hi</p>", "Title", 500)
+            result = html_window.open_html_window("<p>Hi</p>", "Title", 640, 500)
 
         assert result.opened and result.method == "app_window"
         assert result.browser == "msedge"
@@ -132,8 +137,20 @@ class TestOpenHtmlWindow:
         command = popen.call_args.args[0]
         assert command[0] == "msedge"
         assert command[1] == f"--app={path.as_uri()}"
-        assert "--window-size=1024,540" in command
+        assert "--window-size=640,540" in command
         assert popen.call_args.kwargs["stdin"] is html_window.subprocess.DEVNULL
+
+    def test_app_window_default_size_is_fitted(self, view_dir, desktop):
+        with (
+            patch.object(html_window, "find_app_browser", return_value="msedge"),
+            patch.object(html_window.subprocess, "Popen") as popen,
+        ):
+            result = html_window.open_html_window("<p>Hi</p>", "Title")
+
+        assert "--window-size=800,640" in popen.call_args.args[0]
+        document = Path(result.path).read_text(encoding="utf-8")
+        assert "resizeTo(" in document
+        assert "const fixedWidth = null, fixedHeight = null;" in document
 
     def test_default_browser_fallback(self, view_dir, desktop):
         with (

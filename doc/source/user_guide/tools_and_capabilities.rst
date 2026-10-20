@@ -133,11 +133,14 @@ domain must be reachable.
 
 The detached window opens on the machine running the MCP server, using only the
 Python standard library. It is a chromeless app window of an installed
-Microsoft Edge, Google Chrome, or Chromium browser. If none is found, the
+Microsoft Edge or Google Chrome browser. If neither is found, the
 default browser is used. To choose the browser, set the
 ``PYAEDT_MCP_HTML_BROWSER`` environment variable to its executable. No window
 is opened when the server runs in a container or without a graphical display.
-Views are written to the ``pyaedt-mcp-html-views`` temporary directory and
+The detached window resizes itself to fit the rendered HTML, limited to the
+available screen area. Pass ``width`` (200-3840) or ``height`` (200-1200), in
+pixels, to fix either dimension instead. Window resizing is not available when
+falling back to the default browser. Views are written to the ``pyaedt-mcp-html-views`` temporary directory and
 removed after 24 hours.
 
 Establish a connection
