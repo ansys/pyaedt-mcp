@@ -54,6 +54,8 @@ you can plan workflows before connecting.
 - `connect_to_aedt`: Connect to an already-running AEDT instance.
 - `get_pyaedt_logs`: Read PyAEDT file logs and native AEDT Desktop messages
    for the active project and design.
+- `find_api`: Search the installed PyAEDT API offline (up to 10 parallel
+   queries). Maps native AEDT calls such as `oEditor.CreateBox` to PyAEDT methods.
 
 **Also visible from startup, but callable only after AEDT is connected:**
 
@@ -86,7 +88,9 @@ you can plan workflows before connecting.
    operations.
 4. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
    directly and prefer `run_python_code` over `run_python_script` unless the
-   user already has a script file.
+   user already has a script file. When unsure of a PyAEDT method name or
+   signature, or when translating native AEDT scripting calls, call `find_api`
+   first, batching related lookups into a single call.
 5. When the user asks to build, modify, or troubleshoot a specific design,
    call `validate_design` programmatically after design changes and before
    calling `analyze_design`.
@@ -125,6 +129,8 @@ call depends on whether an AEDT session is connected.
 - `connect_to_aedt`: Connect to an already-running AEDT instance.
 - `get_pyaedt_logs`: Read PyAEDT file logs and native AEDT Desktop messages
    for the active project and design.
+- `find_api`: Search the installed PyAEDT API offline (up to 10 parallel
+   queries). Maps native AEDT calls such as `oEditor.CreateBox` to PyAEDT methods.
 
 **Unlocked automatically once `launch_aedt` or `connect_to_aedt` succeeds:**
 
@@ -162,7 +168,9 @@ call depends on whether an AEDT session is connected.
    operations.
 4. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
    directly and prefer `run_python_code` over `run_python_script` unless the
-   user already has a script file.
+   user already has a script file. When unsure of a PyAEDT method name or
+   signature, or when translating native AEDT scripting calls, call `find_api`
+   first, batching related lookups into a single call.
 5. When the user asks to build, modify, or troubleshoot a specific design,
    call `validate_design` programmatically after design changes and before
    calling `analyze_design`.

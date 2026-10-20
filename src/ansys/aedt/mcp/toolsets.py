@@ -155,18 +155,26 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
     },
     "guidelines": {
         "description": (
-            "Reference tool for retrieving PyAEDT / AEDT scripting "
-            "guidelines (workflow, HFSS, Maxwell, Icepak, Circuit, "
-            "geometry, mesh, boundaries, postprocessing, parametric)."
+            "Reference tools for searching the PyAEDT API and retrieving "
+            "PyAEDT / AEDT scripting guidelines (workflow, HFSS, Maxwell, "
+            "Icepak, Circuit, geometry, mesh, boundaries, postprocessing, "
+            "parametric)."
         ),
         "skill": (
+            "Call find_api before writing PyAEDT code to locate the right "
+            "class, method, or property. It runs up to 10 queries in "
+            "parallel, works without an AEDT connection, and maps native "
+            "AEDT calls (for example oEditor.CreateBox) to the PyAEDT methods "
+            "that wrap them; use scope='native' for native-name queries and "
+            "include_docstring=True for the final candidate. "
             "Call get_guidelines_for once per topic before generating "
             "PyAEDT code or invoking a workflow tool. It returns the "
             "authoritative scripting patterns and best practices for the "
-            "requested topic. This tool is only registered when the "
+            "requested topic. get_guidelines_for is only registered when the "
             "server is launched with --include-context-tools."
         ),
         "tools": [
+            "find_api",
             "get_guidelines_for",
         ],
     },

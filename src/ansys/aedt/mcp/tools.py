@@ -448,6 +448,102 @@ def get_pyaedt_logs(
         return error_msg
 
 
+_FIND_API_MAX_QUERIES = 10
+_FIND_API_MAX_TOP_K = 25
+
+
+@app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_MEDIUM)
+async def find_api(
+    queries: list[str],
+    top_k: int = 5,
+    scope: Literal["all", "pyaedt", "native"] = "all",
+    kinds: list[Literal["class", "method", "property", "function"]] | None = None,
+    module: str | None = None,
+    include_docstring: bool = False,
+) -> str:
+    """Search the installed PyAEDT API offline, running up to 10 queries in parallel.
+
+    Use this tool before writing PyAEDT code to find the right class, method, or
+    property, and to map native AEDT scripting calls (``oEditor.CreateBox``,
+    ``oModule.AssignRadiation``, ``oDesign.ExportNetworkData``) to the PyAEDT
+    method that wraps them. Each hit includes the signature, a one-line summary,
+    the native AEDT calls the method uses, and the subclasses (such as ``Hfss``)
+    that expose it. No AEDT connection is required.
+
+    Parameters
+    ----------
+    queries : list[str]
+        One to ten independent searches, run in parallel. Each query can be free
+        text (``"radiation boundary"``), a PyAEDT name (``"create_box"``), or a
+        native AEDT call (``"oModule.InsertFrequencySweep"``).
+    top_k : int, default: 5
+        Maximum number of hits per query (1-25).
+    scope : str, default: ``"all"``
+        ``"all"`` ranks by PyAEDT names, native calls, and docstrings.
+        ``"pyaedt"`` ignores native-call matching. ``"native"`` only returns
+        PyAEDT APIs that call a native AEDT API and favors native-name matches.
+    kinds : list[str], default: None
+        Restrict hits to ``class``, ``method``, ``property``, or ``function``.
+    module : str, default: None
+        Restrict hits to qualified names containing this text, for example
+        ``"ansys.aedt.core.hfss"``, ``"modeler"``, or ``"Hfss."``.
+    include_docstring : bool, default: False
+        Whether to include the full docstring (parameters, returns, examples)
+        of each hit. Keep ``False`` for discovery and enable for the final pick.
+
+    Returns
+    -------
+    str
+        JSON string with one result block per query, in the same order as ``queries``.
+    """
+    import asyncio
+
+    from ansys.aedt.mcp.api_search import get_api_index
+
+    if isinstance(queries, str):
+        queries = [queries]
+    cleaned = [q.strip() for q in queries if isinstance(q, str) and q.strip()]
+    if not cleaned:
+        return "Invalid parameter: provide at least one non-empty query."
+    if len(cleaned) > _FIND_API_MAX_QUERIES:
+        return (
+            f"Invalid parameter: at most {_FIND_API_MAX_QUERIES} queries are allowed per call "
+            f"(received {len(cleaned)})."
+        )
+    if top_k <= 0:
+        return "Invalid parameter: top_k must be greater than 0."
+    safe_top_k = min(top_k, _FIND_API_MAX_TOP_K)
+
+    index = get_api_index()
+    try:
+        # Build once up front so parallel searches don't wait on each other.
+        await asyncio.to_thread(index.ensure_loaded)
+    except Exception as e:
+        error_msg = f"Error building the PyAEDT API index: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+    def _run(query: str) -> dict[str, Any]:
+        try:
+            hits = index.search(query, top_k=safe_top_k, scope=scope, kinds=kinds, module=module)
+            return {
+                "query": query,
+                "hit_count": len(hits),
+                "hits": [index.describe(e, s, include_doc=include_docstring) for e, s in hits],
+            }
+        except Exception as exc:
+            return {"query": query, "error": str(exc), "hits": []}
+
+    results = await asyncio.gather(*(asyncio.to_thread(_run, q) for q in cleaned))
+    payload = {
+        "pyaedt_version": index.version,
+        "indexed_entries": len(index.entries),
+        "scope": scope,
+        "results": list(results),
+    }
+    return json.dumps(payload, indent=2)
+
+
 @app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_QUICK)
 def check_aedt_installed(ctx: Context) -> str:
     """Check if AEDT is installed on the system.

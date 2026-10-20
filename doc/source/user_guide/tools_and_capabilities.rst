@@ -31,6 +31,9 @@ Always available (no AEDT connection required)
    * - ``get_pyaedt_logs``
      - Read the local PyAEDT log file (useful for startup and environment
        debugging).
+   * - `find_api`
+     - Search the installed PyAEDT API offline with up to 10 parallel queries.
+       Maps native AEDT calls (such as `oEditor.CreateBox`) to PyAEDT methods.
 
 Available after connecting to AEDT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -144,6 +147,25 @@ instance. Imports and variables from one call are available in later calls.
 Use ``run_python_script`` when you want to run a complete Python file in
 the same session. If a script is large, you can split it into smaller chunks
 and run them with ``run_python_code``.
+
+Search the PyAEDT API
+~~~~~~~~~~~~~~~~~~~~~
+
+Use `find_api` to locate PyAEDT classes, methods, and properties without
+an AEDT connection. The tool indexes the installed PyAEDT package, so results
+always match the version that runs your code. Each call accepts up to 10
+queries, which run in parallel. A query can be free text, a PyAEDT name, or a
+native AEDT scripting call. Each hit lists the signature, a summary, the native
+AEDT calls that the method uses, and the subclasses (such as `Hfss`) that
+expose it.
+
+Set `scope="native"` to find the PyAEDT equivalent of native calls such as
+`oEditor.CreateBox` or `oModule.InsertFrequencySweep`. Set
+`include_docstring=True` to get the full parameter documentation of the hits.
+
+*"Find the PyAEDT methods for oModule.AssignRadiation and oDesign.ExportNetworkData."*
+
+*"Search the PyAEDT API for length-based mesh operations and far-field exports."*
 
 Run an analysis
 ~~~~~~~~~~~~~~~
