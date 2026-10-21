@@ -245,7 +245,7 @@ jobs:
         env:
           SIGNTOOL_PWD: ${{ secrets.SIGNTOOL_PWD }}
         run: |
-          $filename = (get-ChildItem installer -recurse | where {$_.name -like "*Setup*"}).Name
+          $filename = (get-ChildItem installer -recurse | where {$_.name -like "*MCP-Installer*"}).Name
           $jobname = $filename -replace ".{4}$"
           .\SynSign.exe sign `
             --signUrl https://csign.ansys.com `
