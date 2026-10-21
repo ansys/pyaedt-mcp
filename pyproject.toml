@@ -61,7 +61,7 @@ doc = [
   "ansys-sphinx-theme[autoapi,changelog]==1.11.0",
   "Sphinx>=7.1.0",
   "numpydoc==1.11.0",
-  "sphinx-autodoc-typehints==3.13.9",
+  "sphinx-autodoc-typehints==3.13.10",
   "sphinx-copybutton==0.5.2",
   "sphinx-design==0.7.0",
   "sphinx-notfound-page==1.1.0",
