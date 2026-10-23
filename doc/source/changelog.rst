@@ -9,6 +9,38 @@ This section contains the release notes for PyAEDT-MCP.
 
 .. towncrier release notes start
 
+`0.3.1 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.3.1>`_ - October 23, 2026
+=====================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Dependencies
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Bump https://github.com/astral-sh/ruff-pre-commit from v0.16.10 to 0.17.0 in the pre-commit group
+          - `#149 <https://github.com/ansys/pyaedt-mcp/pull/149>`_
+
+        * - Bump sphinx-autodoc-typehints from 3.13.9 to 3.13.10 in the pip-deps group
+          - `#150 <https://github.com/ansys/pyaedt-mcp/pull/150>`_
+
+        * - Bump the actions group with 18 updates
+          - `#152 <https://github.com/ansys/pyaedt-mcp/pull/152>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update CHANGELOG for v0.3.0
+          - `#148 <https://github.com/ansys/pyaedt-mcp/pull/148>`_
+
+
 `0.3.0 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.3.0>`_ - October 21, 2026
 =====================================================================================
 
