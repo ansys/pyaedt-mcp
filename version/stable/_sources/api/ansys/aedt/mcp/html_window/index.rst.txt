@@ -1,0 +1,320 @@
+
+
+
+
+
+
+The ``html_window.py`` module
+=============================
+
+.. py:module:: ansys.aedt.mcp.html_window
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+
+
+.. py:currentmodule:: html_window
+.. tab-set::
+
+
+
+
+    .. tab-item:: Classes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.html_window.WindowResult`
+            - Outcome of an attempt to open a detached HTML window.
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~build_window_document`
+            - Build the wrapper page that sandboxes the supplied HTML.
+
+
+          * - :py:obj:`~find_app_browser`
+            - Find Microsoft Edge or Google Chrome to open ``--app`` windows.
+
+
+          * - :py:obj:`~display_unavailable_reason`
+            - Return why a local window cannot be shown, or ``None`` if it can.
+
+
+          * - :py:obj:`~open_html_window`
+            - Open HTML in a detached window on the machine running the MCP server.
+
+
+
+    .. tab-item:: Attributes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~logger`
+            - 
+
+
+
+    .. tab-item:: Constants
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~BROWSER_ENV_VAR`
+            - Environment variable with the path of the Edge or Chrome executable to use.
+
+
+          * - :py:obj:`~VIEW_DIR_NAME`
+            - 
+
+
+          * - :py:obj:`~CONTENT_POLICY`
+            - 
+
+
+
+
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-cod-symbol_class"></span> WindowResult</api/ansys/aedt/mcp/html_window/WindowResult>
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Detached HTML window for clients without MCP Apps support.
+
+The HTML is written to a temporary wrapper file and opened in a chromeless
+application window of an installed Microsoft Edge or Google Chrome browser.
+If neither is found, the default browser is used.
+Only the Python standard library is required.
+
+The supplied HTML runs inside an ``iframe`` sandbox with an opaque origin and
+a Content Security Policy that blocks network access, external resources,
+forms, popups, and access to local files.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: build_window_document(html: str, title: str, width: int | None = None, height: int | None = None) -> str
+
+   
+   Build the wrapper page that sandboxes the supplied HTML.
+
+   The wrapper resizes its window to fit the rendered content. Dimensions
+   given explicitly are kept fixed instead of being fitted.
+
+   :Parameters:
+
+       **html** : :class:`python:str`
+           HTML document or fragment to display.
+
+       **title** : :class:`python:str`
+           Window title.
+
+       **width** : :class:`python:int`, :obj:`optional`
+           Fixed content width in pixels. Fitted to the content if ``None``.
+
+       **height** : :class:`python:int`, :obj:`optional`
+           Fixed content height in pixels. Fitted to the content if ``None``.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Complete HTML wrapper document.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: find_app_browser() -> str | None
+
+   
+   Find Microsoft Edge or Google Chrome to open ``--app`` windows.
+
+   The ``PYAEDT_MCP_HTML_BROWSER`` environment variable takes precedence.
+
+
+
+
+   :Returns:
+
+       :class:`python:str` | :data:`python:None`
+           Path of the browser executable, or ``None`` if none was found.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: display_unavailable_reason() -> str | None
+
+   
+   Return why a local window cannot be shown, or ``None`` if it can.
+
+
+
+
+
+   :Returns:
+
+       :class:`python:str` | :data:`python:None`
+           Reason a window cannot be displayed on this machine.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: open_html_window(html: str, title: str, width: int | None = None, height: int | None = None) -> WindowResult
+
+   
+   Open HTML in a detached window on the machine running the MCP server.
+
+   The window adjusts to the size of the rendered HTML, limited to the
+   available screen area. Explicit dimensions override the fitted ones.
+
+   :Parameters:
+
+       **html** : :class:`python:str`
+           HTML document or fragment to display.
+
+       **title** : :class:`python:str`
+           Window title.
+
+       **width** : :class:`python:int`, :obj:`optional`
+           Content width in pixels. Fitted to the HTML if ``None``.
+
+       **height** : :class:`python:int`, :obj:`optional`
+           Content height in pixels. Fitted to the HTML if ``None``.
+
+
+
+   :Returns:
+
+       :obj:`WindowResult`
+           How the HTML was opened, or why it could not be.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: BROWSER_ENV_VAR
+   :value: 'PYAEDT_MCP_HTML_BROWSER'
+
+
+   
+   Environment variable with the path of the Edge or Chrome executable to use.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: VIEW_DIR_NAME
+   :value: 'pyaedt-mcp-html-views'
+
+
+.. py:data:: CONTENT_POLICY
+   :value: "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:;...
+
+
+.. py:data:: logger
+
+
+
