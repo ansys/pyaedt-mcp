@@ -622,6 +622,7 @@ async def launch_aedt(
     non_graphical: bool = False,
     confirm_new_session: bool = False,
     application: AEDTAppType | None = None,
+    student_version: bool = False,
 ) -> str:
     """Launch a new AEDT instance.
 
@@ -646,6 +647,9 @@ async def launch_aedt(
     application : AEDTAppType, default: None
         AEDT application to launch directly, such as ``"Hfss"`` or ``"Maxwell3d"``.
         If ``None``, AEDT launches in desktop mode.
+    student_version : bool, default: False
+        Whether to use the AEDT Student edition. For example, use
+        ``launch_aedt(student_version=True)`` on a Student installation.
 
     Returns
     -------
@@ -688,11 +692,16 @@ async def launch_aedt(
         kwargs: dict[str, Any] = {
             "non_graphical": non_graphical,
             "new_desktop": True,
+            "student_version": student_version,
         }
 
         if application is None:
             if version is None:
-                version = aedt_versions.current_version or aedt_versions.latest_version
+                version = (
+                    aedt_versions.current_student_version
+                    if student_version
+                    else aedt_versions.current_version or aedt_versions.latest_version
+                )
                 if not version:
                     raise RuntimeError("No AEDT versions found installed on this system.")
             kwargs["version"] = version
@@ -704,7 +713,11 @@ async def launch_aedt(
                 return f"Unsupported application type: {application}"
 
             if version is None:
-                version = aedt_versions.current_version or aedt_versions.latest_version
+                version = (
+                    aedt_versions.current_student_version
+                    if student_version
+                    else aedt_versions.current_version or aedt_versions.latest_version
+                )
                 if not version:
                     raise RuntimeError("No AEDT versions found installed on this system.")
             kwargs["version"] = version
@@ -745,6 +758,7 @@ async def connect_to_aedt(
     non_graphical: bool = True,
     project_name: str | None = None,
     design_name: str | None = None,
+    student_version: bool = False,
 ) -> str:
     """Connect to an existing AEDT instance via gRPC.
 
@@ -771,6 +785,8 @@ async def connect_to_aedt(
     design_name : str, default: ``None``
         Design name to attach directly to a PyAEDT application session.
         If ``None``, the connection remains at the AEDT level.
+    student_version : bool, default: False
+        Whether the target session uses the AEDT Student edition.
 
     Returns
     -------
@@ -826,6 +842,7 @@ async def connect_to_aedt(
             "new_desktop": False,
             "machine": machine,
             "port": port,
+            "student_version": student_version,
         }
 
         if version is not None:
