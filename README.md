@@ -91,14 +91,6 @@ pre-commit install
 
 ## Quick start
 
-For an AEDT Student installation, pass `student_version=True` to the
-`launch_aedt` or `connect_to_aedt` tool. For example,
-`launch_aedt(version="2025.2", non_graphical=True, student_version=True)`
-launches a Student session. Omit `version` to select the current installed
-Student version. For a startup connection, use
-`ansys-aedt-mcp --connect --port 50051 --student-version`.
-The default remains the standard edition.
-
 1. Start AEDT in gRPC mode when connecting to an existing session:
 
    ```bash
