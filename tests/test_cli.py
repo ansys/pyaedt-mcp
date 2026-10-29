@@ -256,6 +256,7 @@ def test_product_startup_connects_when_connect_flag_is_true():
             new_desktop=False,
             machine="localhost",
             port=50051,
+            student_version=False,
         )
         assert mcp.context.desktop is fake_desktop
 
