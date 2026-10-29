@@ -61,7 +61,7 @@ doc = [
   "ansys-sphinx-theme[autoapi,changelog]==1.11.0",
   "Sphinx>=7.1.0",
   "numpydoc==1.11.0",
-  "sphinx-autodoc-typehints==3.13.10",
+  "sphinx-autodoc-typehints==3.17.2",
   "sphinx-copybutton==0.5.2",
   "sphinx-design==0.7.0",
   "sphinx-notfound-page==1.1.0",
@@ -73,7 +73,7 @@ tests = [
   "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
   "pytest-cov==7.1.0",
-  "pytest-mock==3.16.0",
+  "pytest-mock==3.17.0",
   "pytest-timeout==2.4.0",
 ]
 
