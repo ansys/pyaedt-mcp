@@ -1,0 +1,109 @@
+
+
+
+
+
+
+The ``toolsets.py`` module
+==========================
+
+.. py:module:: ansys.aedt.mcp.toolsets
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: toolsets
+.. tab-set::
+
+
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~get_toolsets`
+            - Get toolset definitions for PyAnsys MCP service discovery.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Toolset definitions for PyAnsys MCP service discovery.
+
+Exposes the ``toolsets://definition`` MCP resource that groups every tool
+registered on PyAEDT-MCP into logical, user-facing categories.
+Each toolset entry follows the schema agreed across the Ansys MCP family:
+
+``{"name": str, "description": str, "skill": str, "tools": list[str]}``
+
+The catalogue is a pure discovery aid — it does not affect tool visibility,
+gating, or runtime behavior. Visibility is still controlled by the existing
+``REQUIRES_AEDT_TAG`` / ``aedt_tools`` / ``locked_connection`` tags applied
+in :mod:`ansys.aedt.mcp.tools`.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: get_toolsets() -> list[dict[str, Any]]
+
+   
+   Get toolset definitions for PyAnsys MCP service discovery.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+

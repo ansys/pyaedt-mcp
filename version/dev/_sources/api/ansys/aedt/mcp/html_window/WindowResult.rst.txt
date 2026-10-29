@@ -1,0 +1,155 @@
+
+
+
+
+
+
+:class:`WindowResult`
+=====================
+
+
+.. py:class:: ansys.aedt.mcp.html_window.WindowResult
+
+   
+   Outcome of an attempt to open a detached HTML window.
+
+
+
+   :Attributes:
+
+       **opened** : :ref:`bool <python:bltin-boolean-values>`
+           Whether a window or browser was launched.
+
+       **method** : :class:`python:str`
+           ``"app_window"``, ``"default_browser"``, or ``"none"``.
+
+       **path** : :class:`python:str` | :data:`python:None`
+           Wrapper file that was opened, if one was written.
+
+       **browser** : :class:`python:str` | :data:`python:None`
+           Browser executable used for ``"app_window"``.
+
+       **error** : :class:`python:str` | :data:`python:None`
+           Reason the window could not be opened.
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. py:currentmodule:: WindowResult
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+   .. tab-item:: Methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~to_dict`
+            - Return the result as a JSON-serializable dictionary.
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~opened`
+            - 
+          * - :py:attr:`~method`
+            - 
+          * - :py:attr:`~path`
+            - 
+          * - :py:attr:`~browser`
+            - 
+          * - :py:attr:`~error`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.html_window import WindowResult
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: opened
+   :type:  bool
+
+.. py:attribute:: method
+   :type:  str
+
+.. py:attribute:: path
+   :type:  str | None
+   :value: None
+
+
+.. py:attribute:: browser
+   :type:  str | None
+   :value: None
+
+
+.. py:attribute:: error
+   :type:  str | None
+   :value: None
+
+
+
+
+Method detail
+-------------
+
+.. py:method:: to_dict() -> dict
+
+   
+   Return the result as a JSON-serializable dictionary.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+
