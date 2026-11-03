@@ -98,6 +98,11 @@ class PyAEDTMCP(PyAnsysBaseMCP):
     """FastMCP server for managing AEDT instances."""
 
     def __init__(self, name: str = "PyAEDT-MCP", *args, **kwargs):
+        # PyAEDT-MCP executes user code in-process (``run_python_code``) so that it can
+        # share the live ``Desktop`` handle. The persistent Python subprocess offered by
+        # the base class is never used, and starting it imports Matplotlib and PyVista in
+        # an extra interpreter on every server start. Skip it unless explicitly requested.
+        kwargs.setdefault("need_python", False)
         super().__init__(name=name, *args, **kwargs)
 
     def create_context(self) -> PyAEDTAppContext:
