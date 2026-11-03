@@ -358,6 +358,8 @@ def _resolve_pyaedt_log_file() -> str | None:
     return None
 
 
+_LOG_TAIL_BYTES = 2 * 1024 * 1024
+
 _USER_CODE_FILENAME = "<run_python_code>"
 _MAX_CAPTURED_OUTPUT_CHARS = 20000
 _RUN_CODE_LOCK = threading.Lock()
@@ -405,6 +407,31 @@ def _user_code_error_location(error: BaseException, code: str) -> str | None:
     lines = code.splitlines()
     source = lines[line_number - 1].strip() if 0 < line_number <= len(lines) else ""
     return f"Line {line_number}: {source}"
+
+
+def _read_log_tail(path: Path, need_all_lines: bool) -> tuple[list[str], int]:
+    """Read log lines efficiently.
+
+    Without a filter only the last ``_LOG_TAIL_BYTES`` are decoded and split, which
+    is enough for the maximum of 5000 lines or 200000 characters returned by
+    ``get_pyaedt_logs``. The total line count is still computed on the raw bytes.
+
+    Returns
+    -------
+    tuple[list[str], int]
+        Selected lines and total number of lines in the file.
+    """
+    data = path.read_bytes()
+    total_lines = data.count(b"\n") + (1 if data and not data.endswith(b"\n") else 0)
+    if need_all_lines or len(data) <= _LOG_TAIL_BYTES:
+        chunk = data
+    else:
+        chunk = data[-_LOG_TAIL_BYTES:]
+        # Drop the partial first line.
+        newline = chunk.find(b"\n")
+        chunk = chunk[newline + 1 :] if newline >= 0 else chunk
+    text = chunk.decode("utf-8", errors="replace").replace("\r\n", "\n")
+    return text.splitlines(keepends=True), total_lines
 
 
 def _get_native_aedt_messages(desktop: Any) -> dict[str, Any]:
@@ -580,9 +607,7 @@ def get_pyaedt_logs(
         }
 
         if log_file is not None:
-            with Path(log_file).open("r", encoding="utf-8", errors="replace") as file_handle:
-                all_lines = file_handle.readlines()
-
+            all_lines, total_lines = _read_log_tail(Path(log_file), contains is not None)
             filtered_lines = all_lines
             if contains:
                 filter_token = contains.lower()
@@ -597,7 +622,7 @@ def get_pyaedt_logs(
 
             payload.update(
                 {
-                    "total_lines": len(all_lines),
+                    "total_lines": total_lines,
                     "matched_lines": len(filtered_lines),
                     "returned_lines": len(selected_lines),
                     "logs": log_text,
