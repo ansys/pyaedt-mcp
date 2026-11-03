@@ -72,6 +72,14 @@ _HTML_APP_URI = "ui://pyaedt-mcp/html-view.html"
 _DEFAULT_INLINE_HEIGHT = 480
 
 
+def _to_json(payload: Any) -> str:
+    """Serialize a tool payload as compact JSON.
+
+    Tool results are consumed by an LLM, so indentation only adds tokens.
+    """
+    return json.dumps(payload, separators=(",", ":"), default=str)
+
+
 @app.tool(
     tags={"html_apps"},
     timeout=_TIMEOUT_QUICK,
@@ -502,14 +510,14 @@ def check_aedt_status(ctx: Context) -> str:
             "session_count": len(available_sessions),
             "connectable_session_count": len(connectable_sessions),
         }
-        return json.dumps(payload, indent=2)
+        return _to_json(payload)
 
     try:
         info = get_aedt_info(desktop)
         info["connected"] = True
         info["available_sessions"] = available_sessions
         info["connectable_sessions"] = connectable_sessions
-        return json.dumps(info, indent=2)
+        return _to_json(info)
 
     except Exception as e:
         error_msg = f"Error checking AEDT status: {str(e)}"
@@ -611,7 +619,7 @@ def get_pyaedt_logs(
         if log_file is None and desktop is None:
             return payload["file_log_error"]
 
-        return json.dumps(payload, indent=2)
+        return _to_json(payload)
 
     except Exception as e:
         error_msg = f"Error reading PyAEDT logs: {str(e)}"
@@ -1264,7 +1272,7 @@ def list_designs(ctx: Context, project_name: str | None = None) -> str:
             result["project"] = project_entries[0]["project"]
             result["designs"] = project_entries[0]["designs"]
             result["count"] = project_entries[0]["count"]
-        return json.dumps(result, indent=2)
+        return _to_json(result)
 
     except Exception as e:
         error_msg = f"Error listing designs: {str(e)}"
@@ -1297,7 +1305,7 @@ def list_projects(ctx: Context) -> str:
             "open_projects": projects,
             "count": len(projects),
         }
-        return json.dumps(result, indent=2)
+        return _to_json(result)
 
     except Exception as e:
         error_msg = f"Error listing projects: {str(e)}"
@@ -1963,7 +1971,7 @@ def export_config(
         if output:
             data["config_file"] = config_file
 
-        return json.dumps(data, indent=2)
+        return _to_json(data)
 
     except Exception as e:
         error_msg = f"Error: {str(e)}"
@@ -2046,7 +2054,7 @@ def get_model_info(ctx: Context, design_name: str | None = None) -> str:
             "design_type": design_type,
             "project_path": project_path,
         }
-        return json.dumps(result, indent=2)
+        return _to_json(result)
 
     except Exception as e:
         error_msg = f"Error getting model info: {str(e)}"
