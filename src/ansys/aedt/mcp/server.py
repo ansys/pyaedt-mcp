@@ -166,8 +166,11 @@ class PyAEDTMCP(PyAnsysBaseMCP):
                 from ansys.aedt.core import Desktop
                 from ansys.aedt.core.generic.settings import settings
 
+                from ansys.aedt.mcp.helpers import install_fast_process_lookup
+
                 # Enable gRPC API
                 settings.use_grpc_api = True
+                install_fast_process_lookup()
 
                 logger.info(
                     "Attempting to connect to AEDT at "

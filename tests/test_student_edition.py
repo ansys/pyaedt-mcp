@@ -78,10 +78,18 @@ async def test_student_launch_error_preserves_unconnected_context(mock_context_n
 def test_startup_forwards_cli_edition(student):
     from ansys.aedt.mcp.server import app, launcher
 
+    def create_desktop(**kwargs):
+        fast_lookup.assert_called_once_with()
+        return MagicMock()
+
     with patch.object(asyncio, "run"):
         launcher(["--connect", "--student-version"] if student else ["--connect"])
     assert app._cli_config["student_version"] is student
-    with patch("ansys.aedt.core.Desktop") as desktop:
+    with (
+        patch("ansys.aedt.mcp.helpers.install_fast_process_lookup") as fast_lookup,
+        patch("ansys.aedt.core.Desktop", side_effect=create_desktop) as desktop,
+    ):
         app.create_context()
         app.product_startup()
     assert desktop.call_args.kwargs["student_version"] is student
+    fast_lookup.assert_called_once_with()
