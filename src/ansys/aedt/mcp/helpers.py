@@ -139,6 +139,54 @@ def _discover_sessions_with_psutil() -> list[dict[str, Any]]:
     return sorted(sessions, key=lambda session: int(session["pid"]))
 
 
+def _get_pids_by_name_psutil(image_name: str) -> list[int]:
+    """Return PIDs for an AEDT executable name using ``psutil`` (no subprocess)."""
+    import psutil
+
+    if image_name not in ["ansysedt.exe", "ansysedtsv.exe"]:
+        raise ValueError(f"Invalid process name: {image_name}")
+    target = image_name.lower()
+    return [
+        proc.info["pid"]
+        for proc in psutil.process_iter(["pid", "name"])
+        if (proc.info.get("name") or "").lower() == target
+    ]
+
+
+def install_fast_process_lookup() -> bool:
+    """Make PyAEDT's Windows AEDT process lookup use ``psutil`` instead of ``tasklist``.
+
+    PyAEDT resolves AEDT PIDs on Windows by spawning ``tasklist`` (about 2 s per call).
+    That lookup runs in loops while launching AEDT (``is_grpc_session_active`` once per
+    second), while closing it (``while pid in active_sessions()``), and when attaching to
+    a session. Replacing it with an equivalent ``psutil`` scan (a few milliseconds)
+    removes seconds of dead time from ``launch_aedt``, ``connect_to_aedt``, and
+    ``disconnect_from_aedt``. The patch is a no-op outside Windows or if PyAEDT
+    internals change.
+
+    Returns
+    -------
+    bool
+        ``True`` if the fast lookup is active.
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        from ansys.aedt.core.generic import general_methods
+        import psutil  # noqa: F401
+
+        current = getattr(general_methods, "_get_pids_by_name_windows", None)
+        if current is None:
+            return False
+        if current is _get_pids_by_name_psutil:
+            return True
+        general_methods._get_pids_by_name_windows = _get_pids_by_name_psutil
+        return True
+    except Exception:
+        logger.debug("Unable to install fast AEDT process lookup.", exc_info=True)
+        return False
+
+
 def discover_available_aedt_sessions() -> list[dict[str, Any]]:
     """Discover AEDT sessions currently running on the local system.
 

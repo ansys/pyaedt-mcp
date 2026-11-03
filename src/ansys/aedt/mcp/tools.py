@@ -44,6 +44,7 @@ from ansys.aedt.mcp.helpers import (
     _probe_grpc_endpoint,
     discover_available_aedt_sessions,
     get_aedt_info,
+    install_fast_process_lookup,
 )
 from ansys.aedt.mcp.html_window import open_html_window
 from ansys.aedt.mcp.server import session
@@ -289,6 +290,9 @@ def _configure_pyaedt_runtime_settings(enable_grpc: bool = False) -> None:
 
     # Prevent AEDT shutdown when user-provided code raises.
     settings.release_on_exception = False
+
+    # Avoid multi-second ``tasklist`` calls inside PyAEDT launch/attach/release loops.
+    install_fast_process_lookup()
 
 
 def _resolve_pyaedt_log_file() -> str | None:
