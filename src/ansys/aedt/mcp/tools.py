@@ -22,6 +22,8 @@ Icepak, Circuit, and Q3D.
 """
 
 import base64
+from contextlib import redirect_stderr, redirect_stdout
+import io
 import json
 import os
 from pathlib import Path
@@ -29,6 +31,8 @@ import shutil
 import subprocess  # nosec B404
 import sys
 import tempfile
+import threading
+import traceback
 from typing import Annotated, Any, Literal
 
 from ansys.aedt.core.internal.aedt_versions import aedt_versions
@@ -344,6 +348,55 @@ def _resolve_pyaedt_log_file() -> str | None:
         )
 
     return None
+
+
+_USER_CODE_FILENAME = "<run_python_code>"
+_MAX_CAPTURED_OUTPUT_CHARS = 20000
+_RUN_CODE_LOCK = threading.Lock()
+
+
+def _get_code_namespace(lifespan_context: Any) -> dict[str, Any]:
+    """Return the ``run_python_code`` namespace that persists for the current connection."""
+    namespace = getattr(lifespan_context, "code_namespace", None)
+    if not isinstance(namespace, dict):
+        namespace = {}
+        try:
+            lifespan_context.code_namespace = namespace
+        except Exception:
+            logger.debug("Unable to persist the run_python_code namespace.", exc_info=True)
+    return namespace
+
+
+def _reset_code_namespace(lifespan_context: Any) -> None:
+    """Drop objects created by ``run_python_code`` (they reference the old session)."""
+    namespace = getattr(lifespan_context, "code_namespace", None)
+    if isinstance(namespace, dict):
+        namespace.clear()
+
+
+def _truncate_output(text: str, limit: int = _MAX_CAPTURED_OUTPUT_CHARS) -> str:
+    """Keep the tail of captured output within ``limit`` characters."""
+    text = text.rstrip()
+    if len(text) <= limit:
+        return text
+    return f"[... {len(text) - limit} characters truncated ...]\n" + text[-limit:]
+
+
+def _user_code_error_location(error: BaseException, code: str) -> str | None:
+    """Return the line of user code that raised ``error``, if it can be resolved."""
+    line_number = None
+    if isinstance(error, SyntaxError) and error.filename == _USER_CODE_FILENAME:
+        line_number = error.lineno
+    else:
+        for frame in reversed(traceback.extract_tb(error.__traceback__)):
+            if frame.filename == _USER_CODE_FILENAME:
+                line_number = frame.lineno
+                break
+    if not line_number:
+        return None
+    lines = code.splitlines()
+    source = lines[line_number - 1].strip() if 0 < line_number <= len(lines) else ""
+    return f"Line {line_number}: {source}"
 
 
 def _get_native_aedt_messages(desktop: Any) -> dict[str, Any]:
@@ -967,6 +1020,7 @@ async def disconnect_from_aedt(
         )
         ctx.request_context.lifespan_context.desktop = None
         ctx.request_context.lifespan_context.aedt_port = None
+        _reset_code_namespace(ctx.request_context.lifespan_context)
 
         await ctx.disable_components(tags={REQUIRES_AEDT_TAG})
         logger.info("Disconnected from AEDT successfully!")
@@ -979,6 +1033,7 @@ async def disconnect_from_aedt(
         logger.error(error_msg)
         ctx.request_context.lifespan_context.desktop = None
         ctx.request_context.lifespan_context.aedt_port = None
+        _reset_code_namespace(ctx.request_context.lifespan_context)
         return error_msg
 
 
@@ -1077,6 +1132,11 @@ def run_python_code(ctx: Context, code: str) -> str:
         - `odesktop`: Native AEDT oDesktop COM object
         - `aedt_port`: gRPC port of the connected AEDT instance
 
+        Variables, imports, and app objects (for example ``hfss``) persist
+        between calls until AEDT is disconnected, so reuse them instead of
+        re-creating apps. Assign ``result`` to return a value; anything printed
+        is also returned. Errors report the failing line.
+
     Returns
     -------
     str
@@ -1093,18 +1153,48 @@ def run_python_code(ctx: Context, code: str) -> str:
         _configure_pyaedt_runtime_settings()
 
         # Include aedt_port so user code can do Hfss(..., port=aedt_port)
-        local_ns = {
-            "desktop": desktop,
-            "odesktop": desktop.odesktop,
-            "aedt_port": getattr(desktop, "port", ctx.request_context.lifespan_context.aedt_port),
-        }
+        lifespan_context = ctx.request_context.lifespan_context
+        local_ns = _get_code_namespace(lifespan_context)
+        local_ns.update(
+            {
+                "desktop": desktop,
+                "odesktop": desktop.odesktop,
+                "aedt_port": getattr(desktop, "port", lifespan_context.aedt_port),
+            }
+        )
+        # ``result`` is the per-call return channel; never return a stale value.
+        local_ns.pop("result", None)
 
-        # This tool's explicit contract is to execute user-provided Python inside AEDT.
-        exec(code, local_ns)  # nosec B102
-        result = local_ns.get("result", "Code executed successfully. (No result variable set.)")
-        return str(result)
+        output = io.StringIO()
+        try:
+            # Serialize executions: stdout redirection is process-wide and AEDT
+            # handles one scripted operation at a time.
+            with _RUN_CODE_LOCK, redirect_stdout(output), redirect_stderr(output):
+                # This tool's explicit contract is to execute user-provided Python inside AEDT.
+                exec(compile(code, _USER_CODE_FILENAME, "exec"), local_ns)  # nosec B102
+        except Exception as e:
+            error_msg = f"Error executing code: {type(e).__name__}: {e}"
+            location = _user_code_error_location(e, code)
+            if location:
+                error_msg += f"\n{location}"
+            printed = _truncate_output(output.getvalue())
+            if printed:
+                error_msg += f"\nOutput before the error:\n{printed}"
+            logger.error(error_msg)
+            return error_msg
+
+        printed = _truncate_output(output.getvalue())
+        if "result" in local_ns:
+            result = str(local_ns["result"])
+            return f"{result}\nOutput:\n{printed}" if printed else result
+        if printed:
+            return printed
+        return "Code executed successfully. (No result variable set.)"
 
     except Exception as e:
+        error_msg = f"Error executing code: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
         error_msg = f"Error executing code: {str(e)}"
         logger.error(error_msg)
         return error_msg
@@ -1909,6 +1999,8 @@ def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
         logger.info("Clearing AEDT state...")
 
         if close_projects:
+            # App objects created by run_python_code reference the closed projects.
+            _reset_code_namespace(ctx.request_context.lifespan_context)
             projects = desktop.project_list
             for proj in projects:
                 desktop.odesktop.CloseProject(proj)

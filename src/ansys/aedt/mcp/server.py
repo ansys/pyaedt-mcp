@@ -17,7 +17,7 @@
 """Lifespan and CLI entry for PyAEDT-MCP with startup options."""
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import importlib
 import sys
 from typing import Any, Optional
@@ -61,6 +61,8 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
         Port number for HTTP transport.
     cors_origins : Optional[list[str]]
         List of allowed CORS origins for HTTP transport.
+    code_namespace : dict[str, Any]
+        Variables shared between ``run_python_code`` calls for the active connection.
     """
 
     desktop: Any | None = None  # Using 'Any' to avoid type issues with AEDT variants
@@ -76,6 +78,7 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
     http_host: str = "127.0.0.1"
     http_port: int = 8080
     cors_origins: list[str] | None = None
+    code_namespace: dict[str, Any] = field(default_factory=dict)
 
     @property
     def product_instance(self) -> Optional[Any]:
