@@ -67,7 +67,9 @@ you can plan workflows before connecting.
 
 ## Rules
 
-1. Before any AEDT call, run `check_aedt_installed` first.
+1. Start with `check_aedt_status`. Call `check_aedt_installed` only when no
+   session is connected or discoverable and you need to launch AEDT, or after a
+   failed launch.
 2. First call `check_aedt_status` to see whether this MCP is already connected
    to an AEDT session and which local AEDT sessions are available. If the
    tool reports multiple connectable sessions, ask the user which session to
@@ -93,9 +95,13 @@ you can plan workflows before connecting.
 6. Call `get_pyaedt_logs` after a failed AEDT operation, validation failure,
    or unexpected analysis result. Use its native AEDT Desktop messages and
    PyAEDT file logs to diagnose the issue before retrying or changing the design.
-7. Before code intended for `run_python_code`, include
-   `from ansys.aedt.core import settings`, set `settings.release_on_exception = False`
-   and `settings.pyedb_use_grpc = True`.
+7. `run_python_code` already sets `settings.release_on_exception = False`.
+   Variables and app objects persist between `run_python_code` calls until
+   AEDT is disconnected: create an app once (for example
+   `hfss = Hfss(..., port=aedt_port, new_desktop=False)`) and reuse it, and batch
+   related operations into one call instead of many small calls. Assign `result`
+   or `print` values to return them. For EDB work, set
+   `settings.pyedb_use_grpc = True` first.
 8. Use the correct PyAEDT app class for the solver: `Hfss`, `Maxwell3d`, `Maxwell2d`,
    `Icepak`, `Circuit`, `Q3d`, `Q2d`, `TwinBuilder`, `Mechanical`, `Emit`, `RMXprt`,
    `Hfss3dLayout`.
@@ -143,7 +149,9 @@ call depends on whether an AEDT session is connected.
 
 ## Rules
 
-1. Before any AEDT call, run `check_aedt_installed` first.
+1. Start with `check_aedt_status`. Call `check_aedt_installed` only when no
+   session is connected or discoverable and you need to launch AEDT, or after a
+   failed launch.
 2. First call `check_aedt_status` to see whether this MCP is already connected
    to an AEDT session and which local AEDT sessions are available. If the
    tool reports multiple connectable sessions, ask the user which session to
@@ -169,9 +177,13 @@ call depends on whether an AEDT session is connected.
 6. Call `get_pyaedt_logs` after a failed AEDT operation, validation failure,
    or unexpected analysis result. Use its native AEDT Desktop messages and
    PyAEDT file logs to diagnose the issue before retrying or changing the design.
-7. Before code intended for `run_python_code`, include
-   `from ansys.aedt.core import settings`, set `settings.release_on_exception = False`
-   and `settings.pyedb_use_grpc = True`.
+7. `run_python_code` already sets `settings.release_on_exception = False`.
+   Variables and app objects persist between `run_python_code` calls until
+   AEDT is disconnected: create an app once (for example
+   `hfss = Hfss(..., port=aedt_port, new_desktop=False)`) and reuse it, and batch
+   related operations into one call instead of many small calls. Assign `result`
+   or `print` values to return them. For EDB work, set
+   `settings.pyedb_use_grpc = True` first.
 8. Use the correct PyAEDT app class for the solver: `Hfss`, `Maxwell3d`, `Maxwell2d`,
    `Icepak`, `Circuit`, `Q3d`, `Q2d`, `TwinBuilder`, `Mechanical`, `Emit`, `RMXprt`,
    `Hfss3dLayout`.
