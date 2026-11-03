@@ -23,6 +23,7 @@ instances and extracting information from them.
 from dataclasses import asdict
 from pathlib import Path
 import socket
+import sys
 from typing import Any
 
 from ansys.common.mcp import get_logger
@@ -59,6 +60,85 @@ def _probe_grpc_endpoint(host: str, port: int, timeout: float = 2.0) -> dict[str
         return {"reachable": False, "host": host, "port": port, "error": str(e)}
 
 
+_AEDT_PROCESS_NAMES = {
+    "ansysedt.exe": False,
+    "ansysedt": False,
+    "ansysedtsv.exe": True,
+    "ansysedtsv": True,
+}
+
+
+def _grpc_port_from_cmdline(cmdline: list[str]) -> int | None:
+    """Return the port passed to ``-grpcsrv`` on an AEDT command line, if any."""
+    for index, arg in enumerate(cmdline):
+        if arg.lower() == "-grpcsrv" and index + 1 < len(cmdline):
+            value = cmdline[index + 1].rsplit(":", 1)[-1]
+            if value.isdigit():
+                return int(value)
+    return None
+
+
+def _grpc_port_from_connections(proc: Any) -> int | None:
+    """Return the localhost gRPC LISTEN port of an AEDT process, if any."""
+    try:
+        connections = proc.net_connections(kind="tcp")
+    except Exception:
+        return None
+    listening = {
+        conn.laddr.ip: conn.laddr.port
+        for conn in connections
+        if conn.status == "LISTEN" and conn.laddr
+    }
+    # Same precedence as PyAEDT: AEDT binds its gRPC server on a loopback address.
+    for ip in ("::", "127.0.0.1", "::ffff:127.0.0.1"):
+        if ip in listening:
+            return listening[ip]
+    return None
+
+
+def _discover_sessions_with_psutil() -> list[dict[str, Any]]:
+    """Discover local AEDT sessions with a single ``psutil`` process scan.
+
+    This produces the same records as ``ansys.aedt.core.cli.aedt._discover_aedt_sessions``
+    without spawning ``tasklist`` twice (about 2 s per call on Windows).
+    """
+    import re
+
+    from ansys.aedt.core.cli.aedt import _normalize_version_to_string
+    import psutil
+
+    sessions = []
+    for proc in psutil.process_iter(["pid", "name"]):
+        name = (proc.info.get("name") or "").lower()
+        if name not in _AEDT_PROCESS_NAMES:
+            continue
+        try:
+            cmdline = proc.cmdline()
+        except (psutil.NoSuchProcess, psutil.ZombieProcess):
+            continue
+        except psutil.AccessDenied:
+            cmdline = []
+
+        port = _grpc_port_from_cmdline(cmdline) or _grpc_port_from_connections(proc)
+        cmdline_str = " ".join(cmdline)
+        version = "unknown"
+        version_match = re.search(r"[\\/]v(?P<version>\d{3})(?=[\\/\s]|$)", cmdline_str)
+        if version_match:
+            version = _normalize_version_to_string(version_match.group("version"))
+
+        sessions.append(
+            {
+                "mode": "grpc" if port else "com",
+                "non_graphical": ("-ng" in cmdline) if cmdline else None,
+                "pid": proc.info["pid"],
+                "port": port,
+                "student_version": _AEDT_PROCESS_NAMES[name],
+                "version": version,
+            }
+        )
+    return sorted(sessions, key=lambda session: int(session["pid"]))
+
+
 def discover_available_aedt_sessions() -> list[dict[str, Any]]:
     """Discover AEDT sessions currently running on the local system.
 
@@ -69,12 +149,19 @@ def discover_available_aedt_sessions() -> list[dict[str, Any]]:
         Each entry includes whether the session is connectable from PyAEDT-MCP,
         which currently requires gRPC mode with a known port.
     """
-    from ansys.aedt.core.cli.aedt import _discover_aedt_sessions
+    try:
+        if sys.platform != "win32":
+            raise NotImplementedError("Fast discovery is only needed on Windows.")
+        raw_sessions = _discover_sessions_with_psutil()
+    except Exception:
+        if sys.platform == "win32":
+            logger.debug("Fast AEDT session discovery failed; using PyAEDT CLI.", exc_info=True)
+        from ansys.aedt.core.cli.aedt import _discover_aedt_sessions
 
-    sessions = _discover_aedt_sessions()
+        raw_sessions = [asdict(session_info) for session_info in _discover_aedt_sessions()]
+
     normalized_sessions = []
-    for session_info in sessions:
-        normalized = asdict(session_info)
+    for normalized in raw_sessions:
         normalized["connectable"] = (
             normalized.get("mode") == "grpc" and normalized.get("port") is not None
         )
