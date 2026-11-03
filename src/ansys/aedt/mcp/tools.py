@@ -32,6 +32,7 @@ import tempfile
 from typing import Annotated, Any, Literal
 
 from ansys.aedt.core.internal.aedt_versions import aedt_versions
+import anyio.to_thread
 from fastmcp.apps import UI_EXTENSION_ID, AppConfig, ResourceCSP
 from fastmcp.server import Context
 from fastmcp.server.server import get_logger
@@ -682,16 +683,12 @@ async def launch_aedt(
         if not confirm_new_session:
             discovered_sessions = [
                 session_info
-                for session_info in discover_available_aedt_sessions()
+                for session_info in await anyio.to_thread.run_sync(discover_available_aedt_sessions)
                 if session_info.get("connectable")
             ]
             launch_blocked_message = _build_launch_blocked_message(discovered_sessions)
             if launch_blocked_message is not None:
                 return launch_blocked_message
-
-        from ansys.aedt.core import Desktop
-
-        _configure_pyaedt_runtime_settings()
 
         kwargs: dict[str, Any] = {
             "non_graphical": non_graphical,
@@ -699,39 +696,39 @@ async def launch_aedt(
             "student_version": student_version,
         }
 
-        if application is None:
-            if version is None:
-                version = (
-                    aedt_versions.current_student_version
-                    if student_version
-                    else aedt_versions.current_version or aedt_versions.latest_version
-                )
-                if not version:
-                    raise RuntimeError("No AEDT versions found installed on this system.")
-            kwargs["version"] = version
-            desktop = Desktop(**kwargs)
-            launched_target = "AEDT"
-        else:
+        app_class = None
+        if application is not None:
             app_class = _get_aedt_app_class(application)
             if app_class is None:
                 return f"Unsupported application type: {application}"
 
-            if version is None:
-                version = (
-                    aedt_versions.current_student_version
-                    if student_version
-                    else aedt_versions.current_version or aedt_versions.latest_version
-                )
-                if not version:
-                    raise RuntimeError("No AEDT versions found installed on this system.")
-            kwargs["version"] = version
+        if version is None:
+            version = (
+                aedt_versions.current_student_version
+                if student_version
+                else aedt_versions.current_version or aedt_versions.latest_version
+            )
+            if not version:
+                raise RuntimeError("No AEDT versions found installed on this system.")
+        kwargs["version"] = version
+
+        def _launch() -> Any:
+            from ansys.aedt.core import Desktop
+
+            _configure_pyaedt_runtime_settings()
+            if app_class is None:
+                return Desktop(**kwargs)
             app_instance = app_class(**kwargs)
-            desktop = getattr(app_instance, "desktop_class", None)
-            if desktop is None:
+            launched_desktop = getattr(app_instance, "desktop_class", None)
+            if launched_desktop is None:
                 raise RuntimeError(
                     f"Unable to resolve AEDT handle from launched {application} session."
                 )
-            launched_target = application
+            return launched_desktop
+
+        # Launching takes tens of seconds; keep the MCP event loop responsive meanwhile.
+        desktop = await anyio.to_thread.run_sync(_launch)
+        launched_target = application or "AEDT"
 
         # Store in context for later use
         ctx.request_context.lifespan_context.desktop = desktop
@@ -817,7 +814,7 @@ async def connect_to_aedt(
     elif machine == "localhost" and port is None:
         discovered_sessions = [
             session_info
-            for session_info in discover_available_aedt_sessions()
+            for session_info in await anyio.to_thread.run_sync(discover_available_aedt_sessions)
             if session_info.get("connectable")
         ]
         if len(discovered_sessions) == 1:
@@ -836,10 +833,6 @@ async def connect_to_aedt(
         port = 50051
 
     try:
-        from ansys.aedt.core import Desktop, get_pyaedt_app
-
-        _configure_pyaedt_runtime_settings(enable_grpc=True)
-
         # Connect to existing AEDT instance
         kwargs: dict[str, Any] = {
             "non_graphical": non_graphical,
@@ -852,23 +845,31 @@ async def connect_to_aedt(
         if version is not None:
             kwargs["version"] = version
 
-        desktop = Desktop(**kwargs)
+        def _connect() -> tuple[Any, list[str], Any]:
+            from ansys.aedt.core import Desktop, get_pyaedt_app
 
-        open_projects: list[str] = []
-        try:
-            project_list = getattr(desktop, "project_list", None)
-            if project_list is not None:
-                open_projects = list(project_list)
-        except TypeError:
-            open_projects = []
+            _configure_pyaedt_runtime_settings(enable_grpc=True)
+            connected_desktop = Desktop(**kwargs)
 
-        aedt_app = None
-        if design_name is not None:
-            aedt_app = get_pyaedt_app(
-                project_name=project_name,
-                design_name=design_name,
-                desktop=desktop,
-            )
+            projects: list[str] = []
+            try:
+                project_list = getattr(connected_desktop, "project_list", None)
+                if project_list is not None:
+                    projects = list(project_list)
+            except TypeError:
+                projects = []
+
+            design_app = None
+            if design_name is not None:
+                design_app = get_pyaedt_app(
+                    project_name=project_name,
+                    design_name=design_name,
+                    desktop=connected_desktop,
+                )
+            return connected_desktop, projects, design_app
+
+        # Attaching performs blocking gRPC calls; keep the MCP event loop responsive.
+        desktop, open_projects, aedt_app = await anyio.to_thread.run_sync(_connect)
 
         # Store in context for later use
         ctx.request_context.lifespan_context.desktop = desktop
@@ -958,8 +959,12 @@ async def disconnect_from_aedt(
     try:
         logger.info("Disconnecting from AEDT...")
 
-        # Release AEDT
-        desktop.release_desktop(close_projects=close_projects, close_on_exit=close_desktop)
+        # Release AEDT (closing the desktop can take several seconds).
+        await anyio.to_thread.run_sync(
+            lambda: desktop.release_desktop(
+                close_projects=close_projects, close_on_exit=close_desktop
+            )
+        )
         ctx.request_context.lifespan_context.desktop = None
         ctx.request_context.lifespan_context.aedt_port = None
 
