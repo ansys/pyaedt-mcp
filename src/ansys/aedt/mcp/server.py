@@ -47,6 +47,8 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
         Version of AEDT to use.
     non_graphical : bool
         Whether to run AEDT in non-graphical mode.
+    student_version : bool
+        Whether the startup connection uses the AEDT Student edition.
     connect_on_startup : bool
         Whether to attempt AEDT connection on MCP startup.
     include_context_tools : bool
@@ -67,6 +69,7 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
     aedt_port: int | None = None
     aedt_version: str | None = None
     non_graphical: bool = True
+    student_version: bool = False
     connect_on_startup: bool = False
     include_context_tools: bool = False
     dynamic_tool_discovery: bool = False
@@ -127,6 +130,7 @@ class PyAEDTMCP(PyAnsysBaseMCP):
             context.aedt_port = cli_cfg.get("aedt_port", context.aedt_port)
             context.aedt_version = cli_cfg.get("aedt_version", context.aedt_version)
             context.non_graphical = cli_cfg.get("non_graphical", context.non_graphical)
+            context.student_version = cli_cfg.get("student_version", context.student_version)
             context.connect_on_startup = cli_cfg.get(
                 "connect_on_startup", context.connect_on_startup
             )
@@ -169,6 +173,7 @@ class PyAEDTMCP(PyAnsysBaseMCP):
                     new_desktop=False,
                     machine=context.aedt_machine,
                     port=context.aedt_port,
+                    student_version=context.student_version,
                 )
                 logger.info("Successfully connected to AEDT on startup.")
 
@@ -267,6 +272,11 @@ def launcher(argv: list[str] | None = None) -> None:
         help="Run AEDT in graphical mode",
     )
     parser.add_argument(
+        "--student-version",
+        action="store_true",
+        help="Use AEDT Student edition for the startup connection",
+    )
+    parser.add_argument(
         "--connect",
         dest="connect_on_startup",
         action="store_true",
@@ -331,6 +341,7 @@ def launcher(argv: list[str] | None = None) -> None:
             "aedt_port": args.aedt_port,
             "aedt_version": args.aedt_version,
             "non_graphical": args.non_graphical,
+            "student_version": args.student_version,
             "connect_on_startup": session.connect_on_startup,
             "include_context_tools": bool(args.include_context_tools),
             "dynamic_tool_discovery": bool(args.dynamic_tool_discovery),
