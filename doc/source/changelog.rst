@@ -9,6 +9,47 @@ This section contains the release notes for PyAEDT-MCP.
 
 .. towncrier release notes start
 
+`0.3.2 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.3.2>`_ - November 05, 2026
+======================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Dependencies
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Bump the pip-deps group with 2 updates
+          - `#156 <https://github.com/ansys/pyaedt-mcp/pull/156>`_, `#164 <https://github.com/ansys/pyaedt-mcp/pull/164>`_
+
+        * - Bump https://github.com/astral-sh/ruff-pre-commit from v0.17.0 to 0.17.1 in the pre-commit group
+          - `#157 <https://github.com/ansys/pyaedt-mcp/pull/157>`_
+
+        * - Bump https://github.com/astral-sh/ruff-pre-commit from v0.17.1 to 0.17.3 in the pre-commit group
+          - `#160 <https://github.com/ansys/pyaedt-mcp/pull/160>`_
+
+        * - Bump the pip-deps group with 3 updates
+          - `#161 <https://github.com/ansys/pyaedt-mcp/pull/161>`_
+
+        * - Bump astral-sh/setup-uv from 10.3.1 to 10.3.2 in the actions group
+          - `#162 <https://github.com/ansys/pyaedt-mcp/pull/162>`_
+
+        * - Bump the actions group with 16 updates
+          - `#165 <https://github.com/ansys/pyaedt-mcp/pull/165>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update CHANGELOG for v0.3.1
+          - `#153 <https://github.com/ansys/pyaedt-mcp/pull/153>`_
+
+
 `0.3.1 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.3.1>`_ - October 23, 2026
 =====================================================================================
 
