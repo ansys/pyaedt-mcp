@@ -11,7 +11,7 @@ You can run PyAEDT-MCP in two modes:
 Check prerequisites
 -------------------
 
-- Python 3.12 or later
+- Python 3.13 or later (3.13 recommended)
 - `Git <https://git-scm.com/downloads>`_ to install or run PyAEDT-MCP directly
    from this repository with ``uv``
 - AEDT 2022 R2 or later for gRPC workflows
@@ -20,11 +20,13 @@ Check prerequisites
 Run PyAEDT-MCP with uvx
 -----------------------
 
-Use uvx when you want to run PyAEDT-MCP without cloning the repository:
+Use uvx when you want to run PyAEDT-MCP without cloning the repository.
+Select the recommended Python version explicitly; uv downloads Python 3.13
+if it is not already installed:
 
 .. code-block:: bash
 
-   uvx --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp
+   uvx --python 3.13 --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-mcp
 
 Install PyAEDT-MCP with ``pip``
 -------------------------------

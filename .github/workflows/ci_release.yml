@@ -20,7 +20,7 @@ env:
   ON_CI: True
   PYTEST_ARGUMENTS: -vvv --color=yes -ra --durations=25 --maxfail=10
   MAIN_PYTHON_VERSION: "3.14"
-  TESTS_PYTHON_VERSION: "3.12"
+  TESTS_PYTHON_VERSION: "3.13"
   PACKAGE_NAME: "ansys-aedt-mcp"
   DOCUMENTATION_CNAME: "aedt-mcp.docs.pyansys.com"
 
@@ -34,7 +34,7 @@ jobs:
       contents: write # Needed to read and write repository contents
       pull-requests: write # Needed to create pull requests
     steps:
-      - uses: ansys/actions/doc-deploy-changelog@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
+      - uses: ansys/actions/doc-deploy-changelog@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 #v11.1.5
         with:
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
           bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}
@@ -73,7 +73,7 @@ jobs:
       contents: read # Needed to checkout the code
     steps:
       - name: "Run PyAnsys code style checks"
-        uses: ansys/actions/code-style@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
+        uses: ansys/actions/code-style@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 #v11.1.5
         with:
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
 
@@ -85,7 +85,7 @@ jobs:
       checks: write # Needed for reviewdog to create check runs
     steps:
       - name: "Run Ansys documentation style checks"
-        uses: ansys/actions/doc-style@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
+        uses: ansys/actions/doc-style@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 #v11.1.5
         with:
             token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
 
@@ -95,7 +95,7 @@ jobs:
     permissions:
       contents: read # Needed to checkout and scan workflows
     steps:
-      - uses: ansys/actions/check-actions-security@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
+      - uses: ansys/actions/check-actions-security@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 #v11.1.5
         with:
           generate-summary: true
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -109,7 +109,7 @@ jobs:
       security-events: write # Needed to create security advisories
       issues: write # Needed to create issues for new advisories
     steps:
-      - uses: ansys/actions/check-vulnerabilities@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
+      - uses: ansys/actions/check-vulnerabilities@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 #v11.1.5
         with:
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
           python-package-name: ${{ env.PACKAGE_NAME }}
@@ -128,10 +128,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.12', '3.13', '3.14']
+        python-version: ['3.13', '3.14']
     steps:
       - name: "Build wheelhouse and perform smoke test"
-        uses: ansys/actions/build-wheelhouse@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
+        uses: ansys/actions/build-wheelhouse@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 #v11.1.5
         with:
           library-name: ${{ env.PACKAGE_NAME }}
           operating-system: ${{ matrix.os }}
@@ -148,10 +148,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.12', '3.13', '3.14']
+        python-version: ['3.13', '3.14']
     steps:
       - name: "Run unit tests"
-        uses: ansys/actions/tests-pytest@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
+        uses: ansys/actions/tests-pytest@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 #v11.1.5
         with:
           python-version: ${{ matrix.python-version }}
           pytest-extra-args: '${{ env.PYTEST_ARGUMENTS }} tests --ignore=tests/desktop --ignore=tests/integration'
@@ -166,7 +166,7 @@ jobs:
       contents: read # Needed to checkout the code
     steps:
       - name: "Run desktop unit tests"
-        uses: ansys/actions/tests-pytest@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
+        uses: ansys/actions/tests-pytest@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 #v11.1.5
         with:
           python-version: ${{ env.TESTS_PYTHON_VERSION }}
           pytest-extra-args: '${{ env.PYTEST_ARGUMENTS }} tests/desktop'
@@ -186,7 +186,7 @@ jobs:
           persist-credentials: false
 
       - name: "Set up uv"
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: false
 
@@ -232,7 +232,7 @@ jobs:
           persist-credentials: false
 
       - name: "Download desktop installer artifact"
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: PyAEDT_MCP-Installer-windows
           path: signtool/installer
@@ -245,7 +245,7 @@ jobs:
         env:
           SIGNTOOL_PWD: ${{ secrets.SIGNTOOL_PWD }}
         run: |
-          $filename = (get-ChildItem installer -recurse | where {$_.name -like "*Setup*"}).Name
+          $filename = (get-ChildItem installer -recurse | where {$_.name -like "*MCP-Installer*"}).Name
           $jobname = $filename -replace ".{4}$"
           .\SynSign.exe sign `
             --signUrl https://csign.ansys.com `
@@ -256,7 +256,7 @@ jobs:
             -o installer/$filename
 
       - name: "Upload signed desktop installer"
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: PyAEDT_MCP-Installer-windows-signed
           path: signtool/installer/*Setup*.exe
@@ -279,12 +279,12 @@ jobs:
           persist-credentials: false
 
       - name: "Set up Python"
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.TESTS_PYTHON_VERSION }}
 
       - name: "Set up uv"
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           activate-environment: true
           enable-cache: false
@@ -318,7 +318,7 @@ jobs:
       contents: read # Needed to checkout the code
     steps:
       - name: "Run Ansys documentation building action"
-        uses: ansys/actions/doc-build@7410037bfb276c79ae91eb3617b9f5d2876f0c94 # v11.0.8
+        uses: ansys/actions/doc-build@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 # v11.1.5
         with:
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
           dependencies: 'zip libgl1 libglx-mesa0 xvfb'
@@ -336,7 +336,7 @@ jobs:
       id-token: write # Required for OIDC authentication to upload provenance attestations
     steps:
       - name: "Build library source and wheel artifacts"
-        uses: ansys/actions/build-library@7410037bfb276c79ae91eb3617b9f5d2876f0c94 # v11.0.8
+        uses: ansys/actions/build-library@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 # v11.1.5
         with:
           library-name: ${{ env.PACKAGE_NAME }}
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
@@ -351,7 +351,7 @@ jobs:
     needs: [build-docs, package]
     steps:
       - name: "Deploy the latest documentation"
-        uses: ansys/actions/doc-deploy-dev@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
+        uses: ansys/actions/doc-deploy-dev@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 #v11.1.5
         with:
           cname: ${{ env.DOCUMENTATION_CNAME }}
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN  }}
@@ -369,7 +369,7 @@ jobs:
       contents: write # Required for GitHub release
     steps:
       - name: "Release to GitHub"
-        uses: ansys/actions/release-github@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
+        uses: ansys/actions/release-github@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 #v11.1.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           library-name: ${{ env.PACKAGE_NAME }}
@@ -378,7 +378,7 @@ jobs:
           changelog-release-notes: true
 
       - name: "Release to PyPI"
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           repository-url: "https://upload.pypi.org/legacy/"
           print-hash: true
@@ -394,7 +394,7 @@ jobs:
     needs: [release]
     steps:
       - name: "Deploy the stable documentation"
-        uses: ansys/actions/doc-deploy-stable@7410037bfb276c79ae91eb3617b9f5d2876f0c94 #v11.0.8
+        uses: ansys/actions/doc-deploy-stable@f5e1481b9c128197a30d1dc1dfc52b8cd6865555 #v11.1.5
         with:
           cname: ${{ env.DOCUMENTATION_CNAME }}
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}

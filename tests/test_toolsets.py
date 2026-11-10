@@ -135,6 +135,14 @@ class TestToolsetsResource:
         assert "validate_design" in simulation_tools
         assert "Use validate_design" in simulation_skill
 
+    def test_results_toolset_includes_html_display(self):
+        results_tools = _TOOLSET_CATALOGUE["results"]["tools"]
+        results_skill = _TOOLSET_CATALOGUE["results"]["skill"]
+
+        assert "display_html" in results_tools
+        assert "Use display_html" in results_skill
+        assert "without an AEDT connection" in results_skill
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -31,6 +31,9 @@ Always available (no AEDT connection required)
    * - ``get_pyaedt_logs``
      - Read the local PyAEDT log file (useful for startup and environment
        debugging).
+   * - ``display_html``
+     - Display self-contained HTML inline in an MCP Apps-compatible client, or
+       in a detached window for other clients.
    * - `find_api`
      - Search the installed PyAEDT API offline with up to 10 parallel queries.
        Maps native AEDT calls (such as `oEditor.CreateBox`) to PyAEDT methods.
@@ -72,7 +75,7 @@ these tools are hidden again.
    * - ``run_python_code``
      - Execute inline PyAEDT Python code in the persistent session.
    * - ``run_python_script``
-     - Execute a Python script file in the persistent session.
+     - Launch a PyAEDT script asynchronously with CPython.
    * - ``get_model_info``
      - Return a structured summary of the active design.
    * - ``screenshot``
@@ -108,6 +111,48 @@ are added. For details, see :ref:`ref_lanes`.
 
 Tool usage
 ----------
+
+Display custom web content
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use ``display_html`` to render an HTML document or fragment. No AEDT
+connection is required. For example:
+
+.. code-block:: json
+
+   {
+     "html": "<h1>Results</h1><p>Simulation complete.</p>",
+     "title": "Simulation Results",
+     "height": 400
+   }
+
+Inline JavaScript and CSS are supported. The supplied HTML runs in a separate
+sandbox: external resources, network requests, forms, popups, and access to the
+MCP host are blocked. Embed images using data URLs. This tool does not run
+Python or Matplotlib.
+
+The ``display_mode`` argument controls where the HTML appears:
+
+- ``auto`` (default): inline when the client supports MCP Apps, otherwise in a
+  detached window.
+- ``inline``: inline only. Clients without MCP Apps support receive a text
+  fallback and the HTML in structured content.
+- ``window``: always open a detached window.
+
+The inline viewer loads the MCP Apps SDK from ``https://unpkg.com``, so that
+domain must be reachable.
+
+The detached window opens on the machine running the MCP server, using only the
+Python standard library. It is an app window without browser controls, provided by
+an installed Microsoft Edge or Google Chrome browser. If neither is found, the
+default browser is used. To choose the browser, set the
+``PYAEDT_MCP_HTML_BROWSER`` environment variable to its executable. No window
+is opened when the server runs in a container or without a graphical display.
+The detached window resizes itself to fit the rendered HTML, limited to the
+available screen area. Pass ``width`` (200-3840) or ``height`` (200-1200), in
+pixels, to fix either dimension instead. Window resizing is not available when
+falling back to the default browser. Views are written to the ``pyaedt-mcp-html-views`` temporary directory and
+removed after 24 hours.
 
 Establish a connection
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -145,8 +190,13 @@ Your code runs in the **persistent Python session** of the current AEDT
 instance. Imports and variables from one call are available in later calls.
 
 Use ``run_python_script`` when you want to run a complete Python file in
-the same session. If a script is large, you can split it into smaller chunks
-and run them with ``run_python_code``.
+a separate CPython process connected to the same AEDT session through the
+PyAEDT launcher environment variables. It uses the MCP server's Python
+interpreter and opens no launcher UI or terminal. Native IronPython globals
+such as ``oDesktop`` are not injected. The response contains the process ID
+and an output log path, not a completion result; check the log before running
+dependent operations. If a script is large, you can split it into smaller
+chunks and run them with ``run_python_code``.
 
 Search the PyAEDT API
 ~~~~~~~~~~~~~~~~~~~~~

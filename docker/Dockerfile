@@ -7,7 +7,7 @@
 #   docker run --rm -e AEDT_MACHINE=host.docker.internal \
 #              -e AEDT_PORT=50051 pyaedt-mcp
 # -------------------------------------------------------
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 # ---------- build-time args ----------
 ARG PYANSYS_PYPI_INDEX_URL=""

@@ -91,6 +91,154 @@ def mock_context_no_desktop(app_context_no_desktop):
 
 
 @pytest.mark.unit
+class TestDisplayHtml:
+    """Tests for the self-contained HTML MCP App and its window fallback."""
+
+    @pytest.fixture(autouse=True)
+    def window_opener(self):
+        from ansys.aedt.mcp.html_window import WindowResult
+
+        with patch(
+            "ansys.aedt.mcp.tools.open_html_window",
+            return_value=WindowResult(
+                opened=True, method="app_window", path="view.html", browser="msedge"
+            ),
+        ) as opener:
+            yield opener
+
+    @staticmethod
+    def _ctx(supports_ui: bool):
+        ctx = MagicMock()
+        ctx.client_supports_extension.return_value = supports_ui
+        return ctx
+
+    def test_inline_mode_text_fallback(self, window_opener):
+        result = tools.display_html(
+            "<h1>Result</h1>", title="Results", height=600, display_mode="inline"
+        )
+
+        assert result.structured_content == {
+            "html": "<h1>Result</h1>",
+            "title": "Results",
+            "height": 600,
+        }
+        assert "Results" in result.content[0].text
+        assert "MCP Apps-compatible client" in result.content[0].text
+        window_opener.assert_not_called()
+
+    def test_auto_with_ui_client_stays_inline(self, window_opener):
+        from fastmcp.apps import UI_EXTENSION_ID
+
+        ctx = self._ctx(True)
+        result = tools.display_html("<p>Inline</p>", ctx=ctx)
+
+        ctx.client_supports_extension.assert_called_once_with(UI_EXTENSION_ID)
+        assert "window" not in result.structured_content
+        assert "Displayed inline" in result.content[0].text
+        window_opener.assert_not_called()
+
+    def test_auto_without_ui_client_opens_window(self, window_opener):
+        result = tools.display_html("<p>Win</p>", title="T", height=300, ctx=self._ctx(False))
+
+        window_opener.assert_called_once_with("<p>Win</p>", "T", None, 300)
+        assert result.structured_content["window"]["method"] == "app_window"
+        assert "Opened in an app window" in result.content[0].text
+
+    def test_window_size_is_forwarded(self, window_opener):
+        result = tools.display_html("<p>Win</p>", width=640, display_mode="window")
+
+        window_opener.assert_called_once_with("<p>Win</p>", "Custom HTML", 640, None)
+        assert result.structured_content["width"] == 640
+        assert result.structured_content["height"] == 480
+
+    def test_window_mode_forces_window(self, window_opener):
+        tools.display_html("<p>Win</p>", display_mode="window", ctx=self._ctx(True))
+        window_opener.assert_called_once()
+
+    def test_window_failure_is_reported(self, window_opener):
+        from ansys.aedt.mcp.html_window import WindowResult
+
+        window_opener.return_value = WindowResult(
+            opened=False, method="none", error="No display.", path=None
+        )
+        result = tools.display_html("<p>Win</p>", display_mode="window")
+
+        assert result.structured_content["window"]["opened"] is False
+        assert "could not be opened: No display." in result.content[0].text
+
+    def test_results_are_independent(self):
+        first = tools.display_html("<p>First</p>", display_mode="inline")
+        second = tools.display_html("<p>Second</p>", display_mode="inline")
+
+        assert first.structured_content["html"] == "<p>First</p>"
+        assert second.structured_content["html"] == "<p>Second</p>"
+
+    def test_whitespace_is_rejected(self, window_opener):
+        with pytest.raises(ValueError, match="whitespace-only"):
+            tools.display_html(" \n\t")
+        window_opener.assert_not_called()
+
+    async def test_mcp_registration_resource_and_validation(self, window_opener):
+        from fastmcp import Client
+        from fastmcp.exceptions import ToolError
+
+        from ansys.aedt.mcp import app
+
+        async with Client(app) as client:
+            registered = await client.list_tools()
+            tool = next(item for item in registered if item.name == "display_html")
+            assert tool.meta["ui"]["resourceUri"] == "ui://pyaedt-mcp/html-view.html"
+            assert "requires_aedt" not in tool.meta.get("_fastmcp", {}).get("tags", [])
+            assert "ctx" not in tool.inputSchema["properties"]
+            assert tool.inputSchema["properties"]["display_mode"]["enum"] == [
+                "auto",
+                "inline",
+                "window",
+            ]
+
+            result = await client.call_tool(
+                "display_html", {"html": "<h1>Inline</h1>", "display_mode": "inline"}
+            )
+            assert result.structured_content == {
+                "html": "<h1>Inline</h1>",
+                "title": "Custom HTML",
+                "height": 480,
+            }
+            window_opener.assert_not_called()
+
+            # The test client does not advertise MCP Apps support.
+            result = await client.call_tool("display_html", {"html": "<h1>Auto</h1>"})
+            assert result.structured_content["window"]["opened"] is True
+            window_opener.assert_called_once_with("<h1>Auto</h1>", "Custom HTML", None, None)
+
+            resources = await client.read_resource("ui://pyaedt-mcp/html-view.html")
+            resource = resources[0]
+            assert resource.mimeType == "text/html;profile=mcp-app"
+            assert 'sandbox="allow-scripts"' in resource.text
+            assert "allow-same-origin" not in resource.text
+            csp = resource.model_dump(by_alias=True)["_meta"]["ui"]["csp"]
+            assert csp["resourceDomains"] == ["https://unpkg.com"]
+            assert csp["connectDomains"] == []
+            assert csp["frameDomains"] == ["data:"]
+
+            invalid = [
+                {"html": ""},
+                {"html": " "},
+                {"html": "x" * 1_000_001},
+                {"html": "<p>Valid</p>", "title": ""},
+                {"html": "<p>Valid</p>", "title": "x" * 201},
+                {"html": "<p>Valid</p>", "height": 199},
+                {"html": "<p>Valid</p>", "height": 1201},
+                {"html": "<p>Valid</p>", "width": 199},
+                {"html": "<p>Valid</p>", "width": 3841},
+                {"html": "<p>Valid</p>", "display_mode": "popup"},
+            ]
+            for arguments in invalid:
+                with pytest.raises(ToolError):
+                    await client.call_tool("display_html", arguments)
+
+
+@pytest.mark.unit
 class TestCheckAEDTStatus:
     """Tests for check_aedt_status tool."""
 
@@ -1425,36 +1573,109 @@ class TestRunPythonScript:
         """Test run script with non-existent file."""
         from ansys.aedt.mcp.tools import run_python_script
 
-        with patch("ansys.aedt.mcp.tools.Path.exists", return_value=False):
+        with patch("ansys.aedt.mcp.tools.Path.is_file", return_value=False):
             result = run_python_script(mock_context, script_path="/missing/script.py")
 
         assert "Script file not found" in result
 
-    def test_script_success(self, mock_context):
-        """Test successful script execution."""
+    @pytest.mark.parametrize("platform", ["win32", "linux"])
+    def test_script_success(self, mock_context, tmp_path, platform):
+        """Launch CPython with session context and no terminal or native RunScript."""
+        import os
+        import subprocess
+        import sys
+
         from ansys.aedt.mcp.tools import run_python_script
 
-        mock_context.request_context.lifespan_context.desktop.odesktop.RunScript.return_value = "OK"
+        desktop = mock_context.request_context.lifespan_context.desktop
+        desktop.odesktop.GetExeDir.return_value = desktop.aedt_install_dir
+        desktop.odesktop.GetPersonalLibDirectory.return_value = "personal-lib"
+        script = tmp_path / "script with spaces.py"
+        script.write_text("print('done')", encoding="utf-8")
 
-        with patch("ansys.aedt.mcp.tools.Path.exists", return_value=True):
-            result = run_python_script(mock_context, script_path="test.py")
+        with (
+            patch("ansys.aedt.mcp.tools.sys.platform", platform),
+            patch("ansys.aedt.mcp.tools.subprocess.CREATE_NO_WINDOW", 0x08000000, create=True),
+            patch("ansys.aedt.mcp.tools.subprocess.Popen") as launch,
+        ):
+            launch.return_value.pid = 456
+            result = run_python_script(mock_context, script_path=str(script))
 
-        assert "Script executed successfully" in result
-        assert "OK" in result
+        assert "PyAEDT script launched successfully" in result
+        assert "Process ID: 456" in result
+        assert "asynchronous" in result
+        desktop.odesktop.RunScript.assert_not_called()
+        launch.assert_called_once()
+        arguments, options = launch.call_args
+        assert arguments == ([sys.executable, str(script.resolve())],)
+        assert options["env"]["PYAEDT_PROCESS_ID"] == "12345"
+        assert options["env"]["PYAEDT_DESKTOP_VERSION"] == "2026.1"
+        assert options["env"]["PYAEDT_DESKTOP_PORT"] == "50051"
+        assert options["env"]["PYAEDT_STUDENT_VERSION"] == "False"
+        assert options["env"]["PYAEDT_PERSONAL_LIB"] == "personal-lib"
+        desktop.odesktop.GetRegistryString.assert_not_called()
+        assert options["env"]["PATH"] == os.environ["PATH"]
+        if platform == "linux":
+            assert options["env"]["PYAEDT_DESKTOP_PATH"] == desktop.aedt_install_dir
+            assert options["env"]["ANSYSEM_ROOT261"] == desktop.aedt_install_dir
+        assert options["creationflags"] == (0x08000000 if platform == "win32" else 0)
+        assert options["stdin"] == subprocess.DEVNULL
+        assert options["stderr"] == subprocess.STDOUT
+        log = options["stdout"]
+        assert log.closed
+        assert f"Log file: {log.name}" in result
+        Path(log.name).unlink()
 
     def test_script_exception(self, mock_context):
         """Test script execution failure."""
         from ansys.aedt.mcp.tools import run_python_script
 
-        mock_context.request_context.lifespan_context.desktop.odesktop.RunScript.side_effect = (
-            RuntimeError("Script crashed")
-        )
-
-        with patch("ansys.aedt.mcp.tools.Path.exists", return_value=True):
+        with (
+            patch("ansys.aedt.mcp.tools.Path.is_file", return_value=True),
+            patch("ansys.aedt.mcp.tools.subprocess.Popen", side_effect=OSError("Launch failed")),
+        ):
             result = run_python_script(mock_context, script_path="test.py")
 
         assert "Error executing script" in result
-        assert "Script crashed" in result
+        assert "Launch failed" in result
+
+    @pytest.mark.parametrize("fail", [False, True])
+    def test_real_cpython_process(self, mock_context, tmp_path, fail):
+        """Verify session inheritance and stdout/traceback logging in a real child."""
+        import subprocess
+        import sys
+
+        from ansys.aedt.mcp.tools import run_python_script
+
+        script = tmp_path / "real script.py"
+        script.write_text(
+            "import os, sys\n"
+            "print(sys.executable, flush=True)\n"
+            "print(os.environ['PYAEDT_DESKTOP_PORT'], flush=True)\n"
+            + ("raise RuntimeError('child failed')\n" if fail else ""),
+            encoding="utf-8",
+        )
+        processes = []
+        original_launch = subprocess.Popen
+
+        def launch_process(*args, **kwargs):
+            process = original_launch(*args, **kwargs)
+            processes.append(process)
+            return process
+
+        with patch("ansys.aedt.mcp.tools.subprocess.Popen", side_effect=launch_process):
+            result = run_python_script(mock_context, str(script))
+        assert "launched successfully" in result
+        assert processes[0].wait(timeout=30) == (1 if fail else 0)
+        log_path = Path(result.split("Log file: ", 1)[1].splitlines()[0])
+        try:
+            output = log_path.read_text(encoding="utf-8")
+            assert sys.executable in output
+            assert "50051" in output
+            if fail:
+                assert "RuntimeError: child failed" in output
+        finally:
+            log_path.unlink()
 
 
 @pytest.mark.unit
@@ -1994,6 +2215,7 @@ class TestRequiresAEDTVisibility:
         ALWAYS_AVAILABLE_TOOLS = {
             "check_aedt_installed",
             "check_aedt_status",
+            "display_html",
             "launch_aedt",
             "connect_to_aedt",
             "get_pyaedt_logs",

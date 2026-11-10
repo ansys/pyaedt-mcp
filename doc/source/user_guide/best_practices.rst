@@ -37,8 +37,10 @@ Scripting with ``run_python_code``
 -----------------------------------
 
 **Use the persistent session.**
-    ``run_python_code`` and ``run_python_script`` share a persistent Python
-    interpreter. Break complex workflows into several short
+    ``run_python_script`` launches a separate CPython process with the connected
+    AEDT session's environment. It does not share
+    Python variables with ``run_python_code``. Check its returned output log
+    before starting dependent operations. Break complex workflows into short
     ``run_python_code`` calls instead of one large script so you can inspect
     intermediate state.
 

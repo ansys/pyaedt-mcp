@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
 import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -373,7 +374,7 @@ def test_get_model_info(live_project_env):
     assert "HFSS" in data["design_type"].upper()
 
 
-def test_run_python_script(live_project_env, test_tmp_dir):
+def test_run_python_script(live_project_env, test_tmp_dir, monkeypatch):
     script_path = test_tmp_dir / "touch_aedt_script.py"
     script_marker = test_tmp_dir / "script_marker.txt"
     script_path.write_text(
@@ -382,8 +383,18 @@ def test_run_python_script(live_project_env, test_tmp_dir):
         encoding="utf-8",
     )
 
+    processes = []
+    original_launch = subprocess.Popen
+
+    def launch_process(*args, **kwargs):
+        process = original_launch(*args, **kwargs)
+        processes.append(process)
+        return process
+
+    monkeypatch.setattr("ansys.aedt.mcp.tools.subprocess.Popen", launch_process)
     result = run_python_script(live_project_env["ctx"], str(script_path))
-    assert "Script executed successfully" in result
+    assert "PyAEDT script launched successfully" in result
+    assert processes[0].wait(timeout=30) == 0
     assert script_marker.exists()
 
 

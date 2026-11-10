@@ -24,8 +24,8 @@ Answer discussions
 
 Answering questions on the PyAEDT-MCP `Discussions <https://github.com/ansys/pyaedt-mcp/discussions>`_ page
 is the easiest way to contribute. Only a GitHub account is required. Engaging with discussions
-deepens your understanding of the project and helps other users who are facing similar issues,
-making the repository more welcoming and inclusive.
+deepens your understanding of the project and helps other users who are facing similar issues.
+This makes the repository more welcoming and inclusive.
 
 Post issues
 ===========

@@ -29,11 +29,14 @@ import shutil
 import subprocess  # nosec B404
 import sys
 import tempfile
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from ansys.aedt.core.internal.aedt_versions import aedt_versions
+from fastmcp.apps import UI_EXTENSION_ID, AppConfig, ResourceCSP
 from fastmcp.server import Context
 from fastmcp.server.server import get_logger
+from fastmcp.tools import ToolResult
+from pydantic import Field
 
 from ansys.aedt.mcp import app
 from ansys.aedt.mcp.helpers import (
@@ -42,6 +45,7 @@ from ansys.aedt.mcp.helpers import (
     discover_available_aedt_sessions,
     get_aedt_info,
 )
+from ansys.aedt.mcp.html_window import open_html_window
 from ansys.aedt.mcp.server import session
 from mcp.types import ImageContent, TextContent
 
@@ -57,6 +61,115 @@ REQUIRES_AEDT_TAG = "requires_aedt"
 _TIMEOUT_QUICK = 30  # status checks, listing, info queries
 _TIMEOUT_MEDIUM = 120  # connect, open/save, create design, screenshot
 _TIMEOUT_LONG = 600  # launch, script execution, analysis, exports
+
+_HTML_APP_URI = "ui://pyaedt-mcp/html-view.html"
+_DEFAULT_INLINE_HEIGHT = 480
+
+
+@app.tool(
+    tags={"html_apps"},
+    timeout=_TIMEOUT_QUICK,
+    app=AppConfig(resource_uri=_HTML_APP_URI),
+    annotations={"readOnlyHint": True, "openWorldHint": False},
+)
+def display_html(
+    html: Annotated[str, Field(min_length=1, max_length=1_000_000)],
+    title: Annotated[str, Field(min_length=1, max_length=200)] = "Custom HTML",
+    width: Annotated[int | None, Field(ge=200, le=3840)] = None,
+    height: Annotated[int | None, Field(ge=200, le=1200)] = None,
+    display_mode: Literal["auto", "inline", "window"] = "auto",
+    ctx: Context | None = None,
+) -> ToolResult:
+    """Display self-contained HTML inline or in a detached window.
+
+    No AEDT connection is required. Inline scripts and styles are supported,
+    but network requests, external assets, forms, popups, and access to the
+    MCP host are blocked. Embed images as data URLs. This does not execute
+    Python.
+
+    In ``"auto"`` mode the HTML is shown inline when the client supports MCP
+    Apps. Otherwise it opens in a lightweight detached window (a chromeless
+    Edge/Chrome app window, or the default browser) on the machine running
+    the MCP server. The detached window adjusts to the size of the rendered
+    HTML unless ``width`` or ``height`` are given.
+
+    Parameters
+    ----------
+    html : str
+        HTML document or fragment, up to one million characters.
+    title : str, optional
+        Accessible name and window title for the displayed document.
+    width : int, optional
+        Window content width in pixels, between 200 and 3840. By default, the
+        detached window fits the HTML width. Inline viewers use the host width.
+    height : int, optional
+        Viewer height in pixels, between 200 and 1200. By default, the
+        detached window fits the HTML height and the inline viewer uses 480.
+    display_mode : str, optional
+        ``"auto"`` (default), ``"inline"`` to never open a window, or
+        ``"window"`` to always open a detached window.
+
+    Returns
+    -------
+    ToolResult
+        HTML app data and a text summary of how the HTML was displayed.
+    """
+    if not html.strip():
+        raise ValueError("HTML must not be empty or whitespace-only.")
+
+    supports_inline = ctx is not None and ctx.client_supports_extension(UI_EXTENSION_ID)
+    open_window = display_mode == "window" or (display_mode == "auto" and not supports_inline)
+    structured_content: dict[str, Any] = {
+        "html": html,
+        "title": title,
+        "height": height or _DEFAULT_INLINE_HEIGHT,
+    }
+    if width:
+        structured_content["width"] = width
+
+    if not open_window:
+        text = (
+            f"HTML view: {title}. Displayed inline by the MCP Apps-compatible client."
+            if supports_inline
+            else (
+                f"HTML view: {title}. An MCP Apps-compatible client is required to "
+                "display it inline. The HTML is included in structuredContent. "
+                'Use display_mode="window" to open it in a detached window.'
+            )
+        )
+    else:
+        window = open_html_window(html, title, width, height)
+        structured_content["window"] = window.to_dict()
+        if window.opened:
+            where = "an app window" if window.method == "app_window" else "the default browser"
+            text = (
+                f"HTML view: {title}. Opened in {where} on the machine running the "
+                f"MCP server ({window.path})."
+            )
+        else:
+            text = f"HTML view: {title}. A detached window could not be opened: {window.error}"
+            if window.path:
+                text += f" The view was saved to {window.path}."
+
+    return ToolResult(
+        content=[TextContent(type="text", text=text)],
+        structured_content=structured_content,
+    )
+
+
+@app.resource(
+    _HTML_APP_URI,
+    app=AppConfig(
+        csp=ResourceCSP(
+            resource_domains=["https://unpkg.com"],
+            connect_domains=[],
+            frame_domains=["data:"],
+        ),
+    ),
+)
+def html_app_view() -> str:
+    """Return the sandboxed viewer for custom HTML tool results."""
+    return (Path(__file__).parent / "static" / "html_app.html").read_text(encoding="utf-8")
 
 
 def _build_disconnected_status_message(connectable_sessions: list[dict[str, Any]]) -> str:
@@ -941,11 +1054,13 @@ async def disconnect_from_aedt(
 
 @app.tool(tags={"aedt_tools", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_LONG)
 def run_python_script(ctx: Context, script_path: str) -> str:
-    """Execute a Python script file inside AEDT.
+    """Launch a PyAEDT script file with CPython without opening a terminal.
 
-    This tool runs a Python script from a file path within the AEDT environment,
-    using AEDT's built-in Python interpreter. The script has access to all AEDT
-    APIs including oDesktop, oProject, and oDesign.
+    The script runs asynchronously using the MCP server's Python interpreter
+    and inherits the connected AEDT session through the same environment
+    variables used by the PyAEDT script launcher. Scripts must use PyAEDT;
+    native globals such as oDesktop, oProject, and oDesign are not injected.
+    Standard output and errors are written to the returned log file.
 
     Parameters
     ----------
@@ -957,7 +1072,7 @@ def run_python_script(ctx: Context, script_path: str) -> str:
     Returns
     -------
     str
-        Script execution result or error message.
+        Launch status with process ID and log path, or an error message.
     """
     desktop = ctx.request_context.lifespan_context.desktop
 
@@ -965,12 +1080,48 @@ def run_python_script(ctx: Context, script_path: str) -> str:
         return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
-        if not Path(script_path).exists():
+        script_file = Path(script_path).expanduser().resolve()
+        if not script_file.is_file():
             return f"Script file not found: {script_path}"
 
-        logger.info(f"Executing script: {script_path}")
-        result = desktop.odesktop.RunScript(script_path)
-        return f"Script executed successfully.\nResult: {result}"
+        native_desktop = desktop.odesktop
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "PYAEDT_PROCESS_ID": str(desktop.aedt_process_id),
+                "PYAEDT_DESKTOP_VERSION": str(desktop.aedt_version_id),
+                "PYAEDT_DESKTOP_PORT": str(desktop.port),
+                "PYAEDT_STUDENT_VERSION": str("Ansys Student" in str(native_desktop.GetExeDir())),
+                "PYAEDT_PERSONAL_LIB": str(native_desktop.GetPersonalLibDirectory()),
+            }
+        )
+        if sys.platform.startswith("linux"):
+            environment["PYAEDT_DESKTOP_PATH"] = str(desktop.aedt_install_dir)
+            version_short = desktop.aedt_version_id[2:].replace(".", "")
+            environment[f"ANSYSEM_ROOT{version_short}"] = str(desktop.aedt_install_dir)
+
+        if sys.platform == "win32":
+            creationflags = subprocess.CREATE_NO_WINDOW
+        else:
+            creationflags = 0
+
+        logger.info("Launching PyAEDT script: %s", script_file)
+        with tempfile.NamedTemporaryFile(
+            prefix="pyaedt-script-", suffix=".log", delete=False
+        ) as log:
+            process = subprocess.Popen(  # nosec
+                [sys.executable, str(script_file)],
+                env=environment,
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                creationflags=creationflags,
+            )
+        return (
+            "PyAEDT script launched successfully.\n"
+            f"Process ID: {process.pid}\nLog file: {log.name}\n"
+            "Execution is asynchronous; check the log for completion or errors."
+        )
 
     except Exception as e:
         error_msg = f"Error executing script {script_path}: {str(e)}"

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Custom HTML</title>
+  <style>
+    body { margin: 0; color: var(--color-text-primary, #252525);
+      background: var(--color-background-primary, #fff); font-family: var(--font-sans, sans-serif); }
+    iframe { display: block; width: 100%; height: 480px; border: 0; }
+    #status { margin: 0; padding: 12px; font-size: 14px; }
+    [hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <p id="status" role="status">Waiting for HTML...</p>
+  <iframe id="view" title="Custom HTML" sandbox="allow-scripts" hidden></iframe>
+  <script type="module">
+    const status = document.getElementById("status");
+    const frame = document.getElementById("view");
+    const contentPolicy = "default-src 'none'; script-src 'unsafe-inline'; " +
+      "style-src 'unsafe-inline'; img-src data: blob:; font-src data:; " +
+      "connect-src 'none'; frame-src 'none'; object-src 'none'; " +
+      "base-uri 'none'; form-action 'none'";
+
+    function render(data) {
+      if (!data || typeof data.html !== "string") return;
+      const policy = `<meta http-equiv="Content-Security-Policy" content="${contentPolicy}">`;
+      const document = "<!doctype html>" + policy + data.html;
+      frame.title = data.title || "Custom HTML";
+      frame.style.height = `${Math.min(1200, Math.max(200, Number(data.height) || 480))}px`;
+      frame.src = "data:text/html;charset=utf-8," + encodeURIComponent(document);
+      frame.hidden = false;
+      status.hidden = true;
+    }
+
+    function applyContext(context) {
+      if (context.theme) document.documentElement.style.colorScheme = context.theme;
+      for (const [name, value] of Object.entries(context.styles?.variables || {})) {
+        if (name.startsWith("--")) document.documentElement.style.setProperty(name, value);
+      }
+      if (context.safeAreaInsets) {
+        const { top, right, bottom, left } = context.safeAreaInsets;
+        document.body.style.padding = `${top}px ${right}px ${bottom}px ${left}px`;
+      }
+    }
+
+    try {
+      const { App } = await import(
+        "https://unpkg.com/@modelcontextprotocol/ext-apps@0.4.0/app-with-deps"
+      );
+      const app = new App({ name: "PyAEDT HTML View", version: "1.0.0" });
+      app.ontoolresult = (result) => {
+        if (result.isError) {
+          frame.hidden = true;
+          status.hidden = false;
+          status.textContent = "HTML view could not be displayed.";
+          return;
+        }
+        render(result.structuredContent);
+      };
+      app.onhostcontextchanged = applyContext;
+      app.onteardown = async () => {
+        frame.removeAttribute("src");
+        return {};
+      };
+      await app.connect();
+      applyContext(app.getHostContext() || {});
+    } catch (error) {
+      status.hidden = false;
+      status.textContent = "HTML viewer unavailable: " + error.message;
+    }
+  </script>
+</body>
+</html>
