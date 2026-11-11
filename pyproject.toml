@@ -38,7 +38,7 @@ license-files = ["LICENSE"]
 maintainers = [{name = "Synopsys, Inc. and ANSYS, Inc.", email = "pyansys-core@synopsys.com"}]
 name = "ansys-aedt-mcp"
 readme = "README.md"
-requires-python = ">=3.13,<4"
+requires-python = ">=3.13,<3.15"
 version = "0.3.dev0"
 
 dependencies = [
@@ -61,7 +61,7 @@ doc = [
   "ansys-sphinx-theme[autoapi,changelog]==1.12.1",
   "Sphinx>=7.1.0",
   "numpydoc==1.11.0",
-  "sphinx-autodoc-typehints==3.17.3",
+  "sphinx-autodoc-typehints==3.17.4",
   "sphinx-copybutton==0.5.2",
   "sphinx-design==0.7.0",
   "sphinx-notfound-page==1.1.0",
@@ -70,7 +70,7 @@ doc = [
 tests = [
   "flet>=0.28",
   "pystray>=0.19.5",
-  "pytest==9.1.1",
+  "pytest==9.2.0",
   "pytest-asyncio==1.4.1",
   "pytest-cov==7.1.0",
   "pytest-mock==3.17.0",
