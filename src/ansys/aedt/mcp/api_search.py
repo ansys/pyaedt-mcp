@@ -75,6 +75,13 @@ _SECTION_UNDERLINE_RE = re.compile(r"^\s*-{3,}\s*$")
 
 _DOC_TOKEN_LIMIT = 400
 
+# Some PyAEDT methods never name the native AEDT call directly. Instead, they pass a
+# type string to a shared helper (for example ``self._create_boundary(name, props,
+# "Current")``), and that helper makes the real native call (``oboundary.AssignCurrent``).
+# This maps such a helper to the text that is prepended to the type string to rebuild the
+# native name: "Assign" + "Current" -> "AssignCurrent".
+_DISPATCH_HELPERS = {"_create_boundary": "Assign"}
+
 SearchScope = Literal["all", "pyaedt", "native"]
 EntryKind = Literal["class", "method", "property", "function"]
 
@@ -118,10 +125,27 @@ class ApiEntry:
     doc: str
     file: str
     line: int
-    native_references: list[str] = field(default_factory=list)
-    native_calls: list[str] = field(default_factory=list)
+    # Native AEDT calls that this PyAEDT method maps to, grouped by how they were found.
+    # The first two come straight from the method itself. The last two are used only when
+    # the method has none of its own and instead calls a helper that makes the native call
+    # (see ``_resolve_indirect_native``).
+    native_references: list[str] = field(default_factory=list)  # listed in the docstring
+    native_calls: list[str] = field(default_factory=list)  # written in the method's own code
+    native_indirect: list[str] = field(default_factory=list)  # copied from a helper it calls
+    native_dispatch: list[str] = field(default_factory=list)  # rebuilt from a type name string
     tokens: Counter = field(default_factory=Counter)
     length: int = 0
+    # Extra words to include when building this entry's search index (for a class, the
+    # names of its base classes). Stored so the search index can be built again later if
+    # a native call is added after the entry was first created.
+    _extra_text: str = field(default="", repr=False)
+
+    @property
+    def is_indirect(self) -> bool:
+        """True when the native call comes from a helper, not from the method itself."""
+        return bool(self.native_indirect or self.native_dispatch) and not (
+            self.native_references or self.native_calls
+        )
 
     @property
     def native_methods(self) -> set[str]:
@@ -130,9 +154,19 @@ class ApiEntry:
 
     @property
     def native_api(self) -> list[str]:
-        """Native AEDT calls from the docstring references and the function body."""
+        """All native AEDT calls for this method, from the method itself and from helpers.
+
+        Calls from the method itself (docstring and own code) come first, so if the same
+        call also comes from a helper, the method's own spelling is the one kept after
+        duplicates are removed.
+        """
         seen: dict[str, str] = {}
-        for ref in [*self.native_references, *self.native_calls]:
+        for ref in [
+            *self.native_references,
+            *self.native_calls,
+            *self.native_indirect,
+            *self.native_dispatch,
+        ]:
             seen.setdefault(ref.lower(), ref)
         return list(seen.values())
 
@@ -167,6 +201,14 @@ class PyAEDTApiIndex:
         self._subclasses: dict[str, set[str]] = {}
         self.version: str | None = None
         self.parse_errors: list[str] = []
+        # Notes gathered while reading the code, used afterward to fill in native calls
+        # for methods that delegate their work (see ``_resolve_indirect_native``):
+        # for each helper method, the native calls found inside it:
+        self._protected_native: dict[str, list[str]] = {}
+        # native names seen inside create() methods, used to confirm a rebuilt guess is real:
+        self._dispatch_native: set[str] = set()
+        # the parsed code of each method, so a method's body can be re-examined later:
+        self._body_index: dict[str, ast.AST] = {}
 
     # ------------------------------------------------------------------
     # Building
@@ -217,6 +259,8 @@ class PyAEDTApiIndex:
             for base in cls.bases:
                 self._subclasses.setdefault(base, set()).add(cls.name)
 
+        self._resolve_indirect_native()
+
         for entry in self.entries:
             self._df.update(set(entry.tokens))
         total = sum(e.length for e in self.entries)
@@ -238,6 +282,21 @@ class PyAEDTApiIndex:
                         if not item.name.startswith("_") or item.name == "__init__":
                             if item.name != "__init__":
                                 self._add_function(item, module, node.name, file)
+                        else:
+                            # A private helper method (name starts with "_"). It is not
+                            # searchable itself, but a public method may call it and rely on
+                            # the native call inside it, so record that native call now so
+                            # the public method can pick it up later.
+                            calls = _native_calls(item)
+                            if calls:
+                                self._protected_native.setdefault(item.name, []).extend(calls)
+                        # A create() method (such as BoundaryObject.create) is where a type
+                        # string is turned into a real native call. Remember those native
+                        # names so a later guess can be checked against names that exist.
+                        if item.name in ("create", "update", "_create"):
+                            self._dispatch_native.update(
+                                c.rsplit(".", 1)[-1] for c in _native_calls(item)
+                            )
 
     def _add_class(self, node: ast.ClassDef, module: str, file: str) -> None:
         doc = ast.get_docstring(node) or ""
@@ -266,6 +325,7 @@ class PyAEDTApiIndex:
             line=node.lineno,
             native_references=_doc_references(doc),
         )
+        self._body_index[entry.qualname] = node
         self._finalize(entry, extra_text=bases)
 
     def _add_function(
@@ -300,9 +360,20 @@ class PyAEDTApiIndex:
             native_references=_doc_references(doc),
             native_calls=_native_calls(node),
         )
+        self._body_index[entry.qualname] = node
         self._finalize(entry)
 
     def _finalize(self, entry: ApiEntry, extra_text: str = "") -> None:
+        entry._extra_text = extra_text
+        self._compute_tokens(entry)
+        self.entries.append(entry)
+
+    def _compute_tokens(self, entry: ApiEntry) -> None:
+        """Build the search words for an entry and count them, from its current fields.
+
+        Can be called a second time after a method copies a native call from a helper,
+        so the new native name is also added to the search words.
+        """
         name_tokens = tokenize(entry.name) + [entry.name.lower()]
         native_tokens: list[str] = []
         for ref in entry.native_api:
@@ -317,12 +388,63 @@ class PyAEDTApiIndex:
             tokens[token] += 3
         for token in tokenize(entry.summary):
             tokens[token] += 2
-        for token in owner_tokens + tokenize(extra_text):
+        for token in owner_tokens + tokenize(entry._extra_text):
             tokens[token] += 1
         tokens.update(doc_tokens)
         entry.tokens = tokens
         entry.length = sum(tokens.values())
-        self.entries.append(entry)
+
+    def _resolve_indirect_native(self) -> None:
+        """Find native calls for methods that make them through a helper.
+
+        Some PyAEDT methods do not call a native AEDT function themselves; they call a
+        helper method that does. Without this step, such a method would appear to use no
+        native call. This runs once, after every method has been read, and only looks at
+        methods that have no native call of their own yet (nothing in the docstring and
+        nothing in their own code), so methods that already have one are left untouched.
+
+        Two cases are handled:
+
+        * The method calls a helper, and the helper itself contains the native call. The
+          helper's native calls are copied onto the method. Example: ``export_csv`` calls
+          ``_export_to_csv``, which calls ``odesign.ExportToCsv``.
+        * The method calls ``_create_boundary(name, props, "Current")``. The native name is
+          rebuilt as ``"Assign" + "Current"`` -> ``AssignCurrent``, and kept only if a real
+          create() method was seen using that exact name.
+        """
+        for entry in self.entries:
+            if entry.native_references or entry.native_calls:
+                continue
+            node = self._body_index.get(entry.qualname)
+            if node is None:
+                continue
+            copied: list[str] = []  # native calls copied from a helper method
+            rebuilt: list[str] = []  # native names rebuilt from a type name string
+            for call in ast.walk(node):
+                if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)):
+                    continue
+                recv = call.func.value
+                if not (isinstance(recv, ast.Name) and recv.id in ("self", "cls")):
+                    continue
+                helper = call.func.attr
+                if not helper.startswith("_"):
+                    continue
+                # Case 1: this method calls a helper; copy the helper's native calls
+                # (e.g. export_csv -> _export_to_csv -> odesign.ExportToCsv).
+                copied.extend(self._protected_native.get(helper, []))
+                # Case 2: this method calls _create_boundary(.., "Current"); rebuild the
+                # native name as "Assign" + "Current", keeping it only if it really exists.
+                prefix = _DISPATCH_HELPERS.get(helper)
+                if prefix:
+                    literal = _dispatch_literal(call)
+                    if literal:
+                        guess = prefix + literal.replace(" ", "")
+                        if not self._dispatch_native or guess in self._dispatch_native:
+                            rebuilt.append(f"oboundary.{guess}")
+            if copied or rebuilt:
+                entry.native_indirect = list(dict.fromkeys(copied))
+                entry.native_dispatch = list(dict.fromkeys(rebuilt))
+                self._compute_tokens(entry)  # redo search words now that a call was added
 
     # ------------------------------------------------------------------
     # Searching
@@ -429,6 +551,10 @@ class PyAEDTApiIndex:
                 out["available_on_subclasses"] = subclasses
         if entry.native_api:
             out["native_api"] = entry.native_api[:12]
+        if entry.is_indirect:
+            # Tell the caller the native call comes from a helper, not from the method
+            # itself, so it can be treated as a best-effort match.
+            out["native_api_indirect"] = True
         out["source"] = f"{entry.file}:{entry.line}"
         out["docs_search_url"] = f"{DOCS_BASE_URL}/search.html?q={entry.name}"
         if include_doc and entry.doc:
@@ -522,6 +648,22 @@ def _is_native_receiver(name: str) -> bool:
     if lower.startswith("o") and len(lower) > 2:
         return True
     return any(hint in lower for hint in _NATIVE_RECEIVER_HINTS)
+
+
+def _dispatch_literal(call: ast.Call) -> str | None:
+    """Return the boundary-type string literal of a ``_create_boundary(...)`` call.
+
+    Handles both the positional (3rd argument) and keyword (``boundary_type=``) forms.
+    """
+    if len(call.args) >= 3 and isinstance(call.args[2], ast.Constant):
+        value = call.args[2].value
+        if isinstance(value, str):
+            return value
+    for kw in call.keywords:
+        if kw.arg == "boundary_type" and isinstance(kw.value, ast.Constant):
+            if isinstance(kw.value.value, str):
+                return kw.value.value
+    return None
 
 
 def _native_calls(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:

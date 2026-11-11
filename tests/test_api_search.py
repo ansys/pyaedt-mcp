@@ -63,6 +63,31 @@ FAKE_MODULE = textwrap.dedent(
             """
             return self.omodule.AssignRadiation([])
 
+        def assign_current(self, assignment, amplitude=1):
+            """Assign current excitation."""
+
+            return self._create_boundary("c", {}, "Current")
+
+        def export_csv(self, path):
+            """Export results to CSV."""
+
+            return self._export_to_csv(path)
+
+        def _export_to_csv(self, path):
+            return self.odesign.ExportToCsv(path)
+
+        def _create_boundary(self, name, props, boundary_type):
+            return Boundary(self, name, props, boundary_type).create()
+
+
+    class Boundary:
+        """Turns a boundary type into the matching native AssignXxx call."""
+
+        def create(self):
+            if self.type == "Current":
+                return self._app.oboundary.AssignCurrent([])
+            return False
+
 
     def helper_function(value):
         """Do something unrelated."""
@@ -141,10 +166,56 @@ class TestPyAEDTApiIndex:
         assert fake_index.search("  ") == []
 
 
+class TestIndirectNative:
+    def test_native_call_copied_from_helper(self, fake_index):
+        # export_csv has no native call of its own; it calls _export_to_csv, which calls
+        # odesign.ExportToCsv. That native call should be copied onto export_csv.
+        fake_index.ensure_loaded()
+        entry = next(e for e in fake_index.entries if e.name == "export_csv")
+        assert any("ExportToCsv" in c for c in entry.native_api)
+        assert entry.native_indirect and not entry.native_calls
+        assert entry.is_indirect
+
+    def test_native_name_rebuilt_from_type_string(self, fake_index):
+        # assign_current reaches AssignCurrent only via _create_boundary(.., "Current"),
+        # so its native name is rebuilt from the "Current" text. The Boundary.create()
+        # method calls AssignCurrent directly and may rank first, so look for the top hit
+        # whose native call comes from a helper rather than from the method itself.
+        hits = fake_index.search("AssignCurrent", scope="native", top_k=5)
+        from_helper = [e for e, _ in hits if e.is_indirect]
+        assert from_helper and from_helper[0].name == "assign_current"
+
+    def test_direct_match_ranks_above_helper_match(self, fake_index):
+        # The method that literally calls AssignCurrent (Boundary.create) must rank above
+        # the method that only reaches it through a helper (assign_current).
+        hits = fake_index.search("AssignCurrent", scope="native", top_k=5)
+        assert hits and hits[0][0].name == "create"
+        assert not hits[0][0].is_indirect
+
+    def test_direct_match_not_flagged_as_helper_match(self, fake_index):
+        # A method whose native call is in its docstring/own code must not be flagged
+        # as coming from a helper.
+        hits = fake_index.search("AssignRadiation", scope="native")
+        assert hits and hits[0][0].name == "assign_radiation_boundary_to_objects"
+        assert not hits[0][0].is_indirect
+
+    def test_describe_flags_helper_match(self, fake_index):
+        # The tool output flags a native call that comes from a helper.
+        hits = fake_index.search("AssignCurrent", scope="native", top_k=5)
+        entry, score = next((e, s) for e, s in hits if e.name == "assign_current")
+        assert fake_index.describe(entry, score).get("native_api_indirect") is True
+
+
 class TestRealPyAEDTIndex:
     def test_maps_native_create_box(self):
         hits = get_api_index().search("oEditor.CreateBox", top_k=3, scope="native")
         assert any(e.name == "create_box" for e, _ in hits)
+
+    def test_finds_assign_current_by_native_name(self):
+        # In real pyaedt, assign_current calls _create_boundary(.., "Current") to reach
+        # the native AssignCurrent. Searching for that native name must still find it.
+        hits = get_api_index().search("AssignCurrent", top_k=5, scope="native")
+        assert any(e.name == "assign_current" for e, _ in hits)
 
 
 class TestFindApiTool:
