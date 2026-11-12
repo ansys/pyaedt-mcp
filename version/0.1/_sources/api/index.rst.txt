@@ -1,0 +1,11 @@
+API reference
+=============
+
+This section describes pyaedt-mcp endpoints, their capabilities, and how
+to interact with them programmatically.
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 3
+
+   <span class="nf nf-md-package"></span> ansys.aedt.mcp</api/ansys/aedt/mcp/index>
