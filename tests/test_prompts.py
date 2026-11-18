@@ -49,5 +49,6 @@ def test_build_system_prompt_dynamic_discovery_language():
     assert "include the option to open a new session instead" in prompt
     assert "launch_aedt(confirm_new_session=True)" in prompt
     assert "skip the question and call" in prompt
-    assert "If the connected session has no open projects" in prompt
-    assert "call `create_design` with the matching `app_type`" in prompt
+    assert "If the user asked for a specific" in prompt
+    assert "pass `app_type` to `connect_to_aedt`" in prompt
+    assert "do not call `list_designs`" in prompt

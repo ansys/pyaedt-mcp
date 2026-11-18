@@ -80,11 +80,13 @@ you can plan workflows before connecting.
    explicitly confirms they want a new AEDT instance. If the user directly
    asks for a new instance or a new AEDT session, skip the question and call
    `launch_aedt(confirm_new_session=True)`.
-3. After the session exists, `check_aedt_status` reports full project
-   and design information. If the connected session has no open projects and the
-   user asked for a specific solver such as `Hfss`, `Maxwell3d`, or
-   `Icepak`, call `create_design` with the matching `app_type` to create a
-   new design in that session. Prefer direct MCP tools for supported AEDT
+3. `connect_to_aedt` and `launch_aedt` already return the open projects and
+   designs, so do not call `list_designs`, `list_projects`, or
+   `check_aedt_status` right after them. If the user asked for a specific
+   solver such as `Hfss`, `Maxwell3d`, or `Icepak` and the session has no
+   matching design, pass `app_type` to `connect_to_aedt` (or `application`
+   to `launch_aedt`) to create the design in the same call instead of calling
+   `create_design` afterwards. Prefer direct MCP tools for supported AEDT
    operations.
 4. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
    directly and prefer `run_python_code` over `run_python_script` unless the
@@ -162,11 +164,13 @@ call depends on whether an AEDT session is connected.
    explicitly confirms they want a new AEDT instance. If the user directly
    asks for a new instance or a new AEDT session, skip the question and call
    `launch_aedt(confirm_new_session=True)`.
-3. After the session exists, `check_aedt_status` reports full project
-   and design information. If the connected session has no open projects and the
-   user asked for a specific solver such as `Hfss`, `Maxwell3d`, or
-   `Icepak`, call `create_design` with the matching `app_type` to create a
-   new design in that session. Prefer direct MCP tools for supported AEDT
+3. `connect_to_aedt` and `launch_aedt` already return the open projects and
+   designs, so do not call `list_designs`, `list_projects`, or
+   `check_aedt_status` right after them. If the user asked for a specific
+   solver such as `Hfss`, `Maxwell3d`, or `Icepak` and the session has no
+   matching design, pass `app_type` to `connect_to_aedt` (or `application`
+   to `launch_aedt`) to create the design in the same call instead of calling
+   `create_design` afterwards. Prefer direct MCP tools for supported AEDT
    operations.
 4. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
    directly and prefer `run_python_code` over `run_python_script` unless the

@@ -125,8 +125,8 @@ class TestToolsetsResource:
         assert "First call check_aedt_status before every workflow" in lifecycle_skill
         assert "include the option to open a new session instead" in lifecycle_skill
         assert "launch_aedt(confirm_new_session=True)" in lifecycle_skill
-        assert "connected session has no open projects" in lifecycle_skill
-        assert "call create_design with the matching app_type" in lifecycle_skill
+        assert "skip list_designs right after them" in lifecycle_skill
+        assert "pass app_type to connect_to_aedt" in lifecycle_skill
 
     def test_simulation_toolset_includes_design_validation(self):
         simulation_tools = _TOOLSET_CATALOGUE["simulation"]["tools"]

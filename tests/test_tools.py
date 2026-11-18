@@ -2002,6 +2002,8 @@ class TestLaunchAEDTExtended:
             )
 
         assert "Successfully launched Hfss" in result
+        assert f"Design Name: {mock_app_instance.design_name}" in result
+        assert "Session: " in result
 
     @pytest.mark.asyncio
     async def test_launch_unsupported_application(self, mock_context_no_desktop):
@@ -2097,6 +2099,101 @@ class TestConnectToAEDTExtended:
         assert "No open projects are available in this AEDT session" in result
         assert "call create_design" in result
         assert "Hfss" in result
+
+    @pytest.mark.asyncio
+    async def test_connect_returns_session_projects_and_designs(self, mock_context_no_desktop):
+        """connect_to_aedt should include projects and designs to skip list_designs."""
+        from ansys.aedt.mcp.tools import connect_to_aedt
+
+        fake_desktop = MagicMock()
+        fake_desktop.aedt_version_id = "2026.1"
+        fake_desktop.is_grpc_api = True
+        fake_desktop.project_list = ["Project1"]
+        fake_desktop.design_list = MagicMock(return_value=["HFSSDesign1"])
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.core.Desktop", return_value=fake_desktop),
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
+        ):
+            result = await connect_to_aedt(mock_context_no_desktop, port=50051)
+
+        session_line = next(line for line in result.splitlines() if line.startswith("Session: "))
+        session = json.loads(session_line.removeprefix("Session: "))
+        assert session["projects"] == [
+            {"project": "Project1", "designs": ["HFSSDesign1"], "count": 1}
+        ]
+
+    @pytest.mark.asyncio
+    async def test_connect_with_app_type_creates_design(self, mock_context_no_desktop):
+        """connect_to_aedt(app_type=...) should create the design in the same call."""
+        from ansys.aedt.mcp.tools import connect_to_aedt
+
+        fake_desktop = MagicMock()
+        fake_desktop.aedt_version_id = "2026.1"
+        fake_desktop.is_grpc_api = True
+        fake_desktop.project_list = []
+        fake_app = MagicMock(design_name="Antenna", project_name="Project1", solution_type="Modal")
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.core.Desktop", return_value=fake_desktop),
+            patch("ansys.aedt.core.Hfss", return_value=fake_app) as mock_hfss,
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
+        ):
+            result = await connect_to_aedt(
+                mock_context_no_desktop,
+                port=50051,
+                app_type="Hfss",
+                design_name="Antenna",
+                solution_type="Modal",
+            )
+
+        mock_hfss.assert_called_once_with(design="Antenna", solution_type="Modal")
+        assert "Created Hfss design" in result
+        assert "Design Name: Antenna" in result
+        assert "call create_design" not in result
+        assert mock_context_no_desktop.request_context.lifespan_context.desktop is fake_desktop
+
+    @pytest.mark.asyncio
+    async def test_connect_keeps_connection_when_design_creation_fails(
+        self, mock_context_no_desktop
+    ):
+        """A failed design creation should be reported without dropping the connection."""
+        from ansys.aedt.mcp.tools import connect_to_aedt
+
+        fake_desktop = MagicMock()
+        fake_desktop.aedt_version_id = "2026.1"
+        fake_desktop.is_grpc_api = True
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.core.Desktop", return_value=fake_desktop),
+            patch("ansys.aedt.core.Maxwell3d", side_effect=RuntimeError("license")),
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
+        ):
+            result = await connect_to_aedt(
+                mock_context_no_desktop, port=50051, app_type="Maxwell3d"
+            )
+
+        assert "Successfully connected" in result
+        assert "failed to create Maxwell3d design: license" in result
+        assert mock_context_no_desktop.request_context.lifespan_context.desktop is fake_desktop
+
+    @pytest.mark.asyncio
+    async def test_connect_rejects_unsupported_app_type_before_connecting(
+        self, mock_context_no_desktop
+    ):
+        """An invalid app_type should fail fast without attaching to AEDT."""
+        from ansys.aedt.mcp.tools import connect_to_aedt
+
+        with patch("ansys.aedt.core.Desktop") as mock_desktop:
+            result = await connect_to_aedt(
+                mock_context_no_desktop, port=50051, app_type="InvalidApp"
+            )  # type: ignore
+
+        assert "Unsupported application type" in result
+        mock_desktop.assert_not_called()
 
 
 @pytest.mark.unit
