@@ -93,7 +93,14 @@ extensions = [
 # Intersphinx mapping
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "pyaedt": ("https://aedt.docs.pyansys.com/version/stable/", None),
+    "pyaedt": (
+        "https://aedt.docs.pyansys.com/version/stable/",
+        (
+            None,
+            # Fallback inventory in case the docs domain is unreachable.
+            "https://raw.githubusercontent.com/ansys/pyaedt/gh-pages/version/stable/objects.inv",
+        ),
+    ),
 }
 
 # numpydoc configuration
