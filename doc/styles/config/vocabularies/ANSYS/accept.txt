@@ -12,6 +12,8 @@
 [Mm]atplotlib
 [Nn]ginx
 [Uu]nescaped
+CPython
+url
 ansys
 Ansys
 [Ss]ynopsys
