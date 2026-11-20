@@ -16,6 +16,7 @@
 
 """Tests for the desktop control panel theme behavior."""
 
+import asyncio
 import importlib.util
 import io
 import json
@@ -65,6 +66,12 @@ def desktop_ui():
         monkeypatch.syspath_prepend(str(desktop_app_directory))
         spec.loader.exec_module(module)
     return module
+
+
+@pytest.fixture(autouse=True)
+def isolated_lanes_state(tmp_path, monkeypatch):
+    """Keep the lanes panel away from the real per-user lanes registry."""
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "LocalAppData"))
 
 
 def test_control_panel_starts_in_system_theme_mode(monkeypatch, tmp_path, desktop_ui):
@@ -748,6 +755,75 @@ def test_server_arguments_include_http_transport_options(monkeypatch, tmp_path, 
         "--http-port",
         "8080",
     ]
+
+
+def test_lanes_profiles_start_the_lanes_proxy(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path / "AppData"))
+    app_directory = tmp_path / "installed-mcp"
+    _, command = desktop_ui.command_paths(app_directory)
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    panel.profile_directories["copilot"].value = str(tmp_path / "mcp-config.json")
+    panel.profile_transport.value = "stdio"
+    panel.use_lanes.value = True
+    panel.graphical.value = True
+    for profile, checkbox in panel.profiles.items():
+        checkbox.value = profile == "copilot"
+    paths = []
+    monkeypatch.setattr(desktop_ui, "application_directory", lambda: app_directory)
+    monkeypatch.setattr(panel, "_run_background", lambda action, _complete: paths.extend(action()))
+
+    panel.install_profiles(None)
+
+    profile = json.loads(paths[0].read_text())["mcpServers"]["pyaedt-mcp"]
+    assert profile["command"] == str(command)
+    assert profile["args"] == ["--lanes", "--", "--graphical"]
+
+
+@pytest.mark.parametrize(
+    ("transport", "dynamic_tools", "message"),
+    [
+        ("http", False, "Lanes require the Stdio profile transport"),
+        ("stdio", True, "Dynamic tools are not supported with lanes"),
+    ],
+)
+def test_lanes_profiles_reject_unsupported_options(
+    monkeypatch, tmp_path, desktop_ui, transport, dynamic_tools, message
+):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+    panel.profile_transport.value = transport
+    panel.use_lanes.value = True
+    panel.dynamic_tools.value = dynamic_tools
+    monkeypatch.setattr(
+        panel, "_run_background", lambda *_args: pytest.fail("profiles must not be written")
+    )
+
+    panel.install_profiles(None)
+
+    assert panel.status.value.startswith(message)
+
+
+def test_server_tab_shows_lanes_panel_after_the_log(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    panel = desktop_ui.McpControlPanel(FakePage(), load_versions=False)
+
+    server_tab = panel._server_tab()
+
+    assert server_tab.controls[2] is panel.lanes_panel.container
+    assert not panel.lanes_panel.container.visible
+
+
+def test_exit_closes_the_lanes_dashboard(monkeypatch, tmp_path, desktop_ui):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    page = FakePage()
+    page.window.destroy = AsyncMock()
+    panel = desktop_ui.McpControlPanel(page, load_versions=False)
+    closed = []
+    monkeypatch.setattr(panel.lanes_panel, "close", lambda: closed.append(True))
+
+    asyncio.run(panel._exit_application())
+
+    assert closed == [True]
 
 
 def test_server_tab_contains_a_read_only_log_window(monkeypatch, tmp_path, desktop_ui):

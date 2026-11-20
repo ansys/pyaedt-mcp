@@ -40,6 +40,12 @@ Learn how to use PyAEDT-MCP effectively.
 
         Guide to deploying PyAEDT-MCP in a containerized environment.
 
+    .. grid-item-card:: Lanes
+        :link: lanes
+        :link-type: doc
+
+        Share or isolate AEDT sessions across several MCP clients.
+
 
 .. toctree::
    :hidden:
@@ -49,3 +55,4 @@ Learn how to use PyAEDT-MCP effectively.
    workflows
    best_practices
    docker
+   lanes

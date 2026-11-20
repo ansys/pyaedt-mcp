@@ -1426,6 +1426,7 @@ async def test_tools_registered():
     expected_tools = [
         "check_aedt_status",
         "get_pyaedt_logs",
+        "find_api",
         "check_aedt_installed",
         "launch_aedt",
         "connect_to_aedt",
@@ -2315,6 +2316,7 @@ class TestRequiresAEDTVisibility:
             "launch_aedt",
             "connect_to_aedt",
             "get_pyaedt_logs",
+            "find_api",
             "get_guidelines_for",
         }
 

@@ -38,6 +38,9 @@ Always available (no AEDT connection required)
    * - ``display_html``
      - Display self-contained HTML inline in an MCP Apps-compatible client, or
        in a detached window for other clients.
+   * - ``find_api``
+     - Search the installed PyAEDT API offline with up to 10 parallel queries.
+       Maps native AEDT calls (such as ``oEditor.CreateBox``) to PyAEDT methods.
 
 Available after connecting to AEDT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -96,6 +99,14 @@ Optional (enabled only with ``--include-context``)
        (``workflow``, ``hfss``, ``maxwell``, ``icepak``, ``circuit``,
        ``geometry``, ``mesh``, ``boundaries``, ``postprocessing``,
        and ``parametric``).
+
+Optional (enabled only with ``--lanes``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With ``ansys-aedt-mcp --lanes``, all the preceding tools are routed to the
+selected lane, and lane management tools (``list_lanes``, ``spawn_lane``,
+``switch_lane``, ``stop_lane``, ``check_lane``, ``recycle_lane``, and others)
+are added. For details, see :ref:`ref_lanes`.
 
 .. note::
    When ``--connect`` is used on startup, the connection is locked and
@@ -190,6 +201,25 @@ such as ``oDesktop`` are not injected. The response contains the process ID
 and an output log path, not a completion result; check the log before running
 dependent operations. If a script is large, you can split it into smaller
 chunks and run them with ``run_python_code``.
+
+Search the PyAEDT API
+~~~~~~~~~~~~~~~~~~~~~
+
+Use ``find_api`` to locate PyAEDT classes, methods, and properties without
+an AEDT connection. The tool indexes the installed PyAEDT package, so results
+always match the version that runs your code. Each call accepts up to 10
+queries, which run in parallel. A query can be free text, a PyAEDT name, or a
+native AEDT scripting call. Each hit lists the signature, a summary, the native
+AEDT calls that the method uses, and the subclasses (such as ``Hfss``) that
+expose it.
+
+Set ``scope="native"`` to find the PyAEDT equivalent of native calls such as
+``oEditor.CreateBox`` or ``oModule.InsertFrequencySweep``. Set
+``include_docstring=True`` to get the full parameter documentation of the hits.
+
+"Find the PyAEDT methods for ``oModule.AssignRadiation`` and ``oDesign.ExportNetworkData``."
+
+*"Search the PyAEDT API for length-based mesh operations and far-field exports."*
 
 Run an analysis
 ~~~~~~~~~~~~~~~
