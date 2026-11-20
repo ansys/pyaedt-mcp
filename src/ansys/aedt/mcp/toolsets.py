@@ -43,10 +43,14 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
         ),
         "skill": (
             "Call check_aedt_installed once at startup to confirm the AEDT "
-            "binary is on disk. First call check_aedt_status before every "
-            "workflow to see whether this MCP already has a live AEDT "
+            "binary is on disk. Call check_aedt_status once at the start of "
+            "the conversation to see whether this MCP already has a live AEDT "
             "connection and to discover local AEDT sessions that can be "
-            "attached. If multiple connectable sessions are reported, ask the "
+            "attached. Once connected, the session stays alive between calls: "
+            "do not call check_aedt_status again between steps, and call it "
+            "again only after a tool reports a missing AEDT connection or a "
+            "connection error, or the user restarted AEDT. If multiple "
+            "connectable sessions are reported, ask the "
             "user which session to connect to and include the option to open "
             "a new session instead. If one connectable session is reported, "
             "ask whether to connect to it or open a new instance. Prefer "

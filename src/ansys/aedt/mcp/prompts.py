@@ -69,9 +69,9 @@ you can plan workflows before connecting.
 
 ## Rules
 
-1. Start with `check_aedt_status`. Call `check_aedt_installed` only when no
-   session is connected or discoverable and you need to launch AEDT, or after a
-   failed launch.
+1. Start with `check_aedt_status` once, at the beginning of the conversation.
+   Call `check_aedt_installed` only when no session is connected or
+   discoverable and you need to launch AEDT, or after a failed launch.
 2. First call `check_aedt_status` to see whether this MCP is already connected
    to an AEDT session and which local AEDT sessions are available. If the
    tool reports multiple connectable sessions, ask the user which session to
@@ -90,25 +90,35 @@ you can plan workflows before connecting.
    to `launch_aedt`) to create the design in the same call instead of calling
    `create_design` afterwards. Prefer direct MCP tools for supported AEDT
    operations.
-4. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
+4. Once connected, the AEDT session stays alive between tool calls. Do not
+   call `check_aedt_status`, `list_projects`, `list_designs`, or
+   `get_model_info` between steps to confirm the connection or a step that
+   already succeeded: tool results already report failures, and the
+   `connect_to_aedt`, `launch_aedt`, and `create_design` results tell you
+   the active project and design. Check the status again
+   only when a tool reports that no AEDT connection is available, fails with a
+   connection or gRPC error, or when the user says AEDT was closed or
+   restarted. Call `get_model_info` or `list_designs` only when you need
+   information you do not already have.
+5. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
    directly and prefer `run_python_code` over `run_python_script` unless the
    user already has a script file. When unsure of a PyAEDT method name or
    signature, or when translating native AEDT scripting calls, call `find_api`
    first, batching related lookups into a single call.
-5. When the user asks to build, modify, or troubleshoot a specific design,
+6. When the user asks to build, modify, or troubleshoot a specific design,
    call `validate_design` programmatically after design changes and before
    calling `analyze_design`.
-6. Call `get_pyaedt_logs` after a failed AEDT operation, validation failure,
+7. Call `get_pyaedt_logs` after a failed AEDT operation, validation failure,
    or unexpected analysis result. Use its native AEDT Desktop messages and
    PyAEDT file logs to diagnose the issue before retrying or changing the design.
-7. `run_python_code` already sets `settings.release_on_exception = False`.
+8. `run_python_code` already sets `settings.release_on_exception = False`.
    Variables and app objects persist between `run_python_code` calls until
    AEDT is disconnected: create an app once (for example
    `hfss = Hfss(..., port=aedt_port, new_desktop=False)`) and reuse it, and batch
    related operations into one call instead of many small calls. Assign `result`
    or `print` values to return them. For EDB work, set
    `settings.pyedb_use_grpc = True` first.
-8. Use the correct PyAEDT app class for the solver: `Hfss`, `Maxwell3d`, `Maxwell2d`,
+9. Use the correct PyAEDT app class for the solver: `Hfss`, `Maxwell3d`, `Maxwell2d`,
    `Icepak`, `Circuit`, `Q3d`, `Q2d`, `TwinBuilder`, `Mechanical`, `Emit`, `RMXprt`,
    `Hfss3dLayout`.
 """
@@ -157,9 +167,9 @@ call depends on whether an AEDT session is connected.
 
 ## Rules
 
-1. Start with `check_aedt_status`. Call `check_aedt_installed` only when no
-   session is connected or discoverable and you need to launch AEDT, or after a
-   failed launch.
+1. Start with `check_aedt_status` once, at the beginning of the conversation.
+   Call `check_aedt_installed` only when no session is connected or
+   discoverable and you need to launch AEDT, or after a failed launch.
 2. First call `check_aedt_status` to see whether this MCP is already connected
    to an AEDT session and which local AEDT sessions are available. If the
    tool reports multiple connectable sessions, ask the user which session to
@@ -178,25 +188,35 @@ call depends on whether an AEDT session is connected.
    to `launch_aedt`) to create the design in the same call instead of calling
    `create_design` afterwards. Prefer direct MCP tools for supported AEDT
    operations.
-4. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
+4. Once connected, the AEDT session stays alive between tool calls. Do not
+   call `check_aedt_status`, `list_projects`, `list_designs`, or
+   `get_model_info` between steps to confirm the connection or a step that
+   already succeeded: tool results already report failures, and the
+   `connect_to_aedt`, `launch_aedt`, and `create_design` results tell you
+   the active project and design. Check the status again
+   only when a tool reports that no AEDT connection is available, fails with a
+   connection or gRPC error, or when the user says AEDT was closed or
+   restarted. Call `get_model_info` or `list_designs` only when you need
+   information you do not already have.
+5. If the MCP lacks a tool for the requested AEDT step, write PyAEDT code
    directly and prefer `run_python_code` over `run_python_script` unless the
    user already has a script file. When unsure of a PyAEDT method name or
    signature, or when translating native AEDT scripting calls, call `find_api`
    first, batching related lookups into a single call.
-5. When the user asks to build, modify, or troubleshoot a specific design,
+6. When the user asks to build, modify, or troubleshoot a specific design,
    call `validate_design` programmatically after design changes and before
    calling `analyze_design`.
-6. Call `get_pyaedt_logs` after a failed AEDT operation, validation failure,
+7. Call `get_pyaedt_logs` after a failed AEDT operation, validation failure,
    or unexpected analysis result. Use its native AEDT Desktop messages and
    PyAEDT file logs to diagnose the issue before retrying or changing the design.
-7. `run_python_code` already sets `settings.release_on_exception = False`.
+8. `run_python_code` already sets `settings.release_on_exception = False`.
    Variables and app objects persist between `run_python_code` calls until
    AEDT is disconnected: create an app once (for example
    `hfss = Hfss(..., port=aedt_port, new_desktop=False)`) and reuse it, and batch
    related operations into one call instead of many small calls. Assign `result`
    or `print` values to return them. For EDB work, set
    `settings.pyedb_use_grpc = True` first.
-8. Use the correct PyAEDT app class for the solver: `Hfss`, `Maxwell3d`, `Maxwell2d`,
+9. Use the correct PyAEDT app class for the solver: `Hfss`, `Maxwell3d`, `Maxwell2d`,
    `Icepak`, `Circuit`, `Q3d`, `Q2d`, `TwinBuilder`, `Mechanical`, `Emit`, `RMXprt`,
    `Hfss3dLayout`.
 """

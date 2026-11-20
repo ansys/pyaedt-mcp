@@ -573,7 +573,10 @@ def check_aedt_status(ctx: Context) -> str:
 
     This makes the tool the recommended pre-flight call to decide whether to
     ``launch_aedt`` (no active session) or ``connect_to_aedt`` (existing
-    session detected).
+    session detected). Call it once at the start of a conversation. Once
+    connected, the session stays alive between tool calls, so call it again
+    only after a tool reports a missing AEDT connection or a connection error,
+    not between steps.
 
     This tool retrieves comprehensive information from the connected AEDT
     instance including version, active projects, designs, and

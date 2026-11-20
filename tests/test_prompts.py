@@ -52,3 +52,16 @@ def test_build_system_prompt_dynamic_discovery_language():
     assert "If the user asked for a specific" in prompt
     assert "pass `app_type` to `connect_to_aedt`" in prompt
     assert "do not call `list_designs`" in prompt
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("dynamic", [False, True])
+def test_build_system_prompt_avoids_redundant_status_checks(dynamic):
+    """Both prompts should limit status checks to the start and to connection failures."""
+    from ansys.aedt.mcp.prompts import build_system_prompt
+
+    prompt = build_system_prompt(dynamic_tool_discovery=dynamic)
+
+    assert "Start with `check_aedt_status` once" in prompt
+    assert "the AEDT session stays alive between tool calls" in prompt
+    assert "Check the status again\n   only when a tool reports" in prompt

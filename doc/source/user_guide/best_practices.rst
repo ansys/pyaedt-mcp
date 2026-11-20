@@ -14,11 +14,13 @@ Session management
     ``launch_aedt`` or ``connect_to_aedt`` call incurs a non-trivial startup
     cost; only reconnect when genuinely necessary.
 
-**Check AEDT status before every workflow.**
-    Always call ``check_aedt_status`` at the start of a workflow to confirm
+**Check AEDT status once, at the start.**
+    Call ``check_aedt_status`` at the start of a conversation to confirm
     whether an AEDT connection already exists. Use the result to decide
     between ``launch_aedt`` (no session) and ``connect_to_aedt`` (existing
-    session).
+    session). Once connected, the session stays alive between tool calls, so
+    do not check the status again after every step. Check it again only when
+    a tool reports a missing AEDT connection or a connection error.
 
 **Shut down cleanly.**
     Disconnect properly when done. Abrupt termination can leave AEDT processes

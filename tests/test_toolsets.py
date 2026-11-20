@@ -122,7 +122,8 @@ class TestToolsetsResource:
     def test_lifecycle_skill_prefers_existing_sessions(self):
         lifecycle_skill = _TOOLSET_CATALOGUE["lifecycle"]["skill"]
 
-        assert "First call check_aedt_status before every workflow" in lifecycle_skill
+        assert "Call check_aedt_status once at the start" in lifecycle_skill
+        assert "do not call check_aedt_status again between steps" in lifecycle_skill
         assert "include the option to open a new session instead" in lifecycle_skill
         assert "launch_aedt(confirm_new_session=True)" in lifecycle_skill
         assert "skip list_designs right after them" in lifecycle_skill
