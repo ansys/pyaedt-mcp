@@ -54,10 +54,12 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
             "port). Only use launch_aedt(confirm_new_session=True) after the "
             "user explicitly confirms a new instance is needed. If the user "
             "directly asks for a new instance or new AEDT session, skip the "
-            "question and call launch_aedt(confirm_new_session=True). If the "
-            "connected session has no open projects and the user asked for a "
-            "specific solver such as Hfss or Maxwell3d, call create_design "
-            "with the matching app_type. Call "
+            "question and call launch_aedt(confirm_new_session=True). Both "
+            "connect_to_aedt and launch_aedt return the open projects and "
+            "designs, so skip list_designs right after them. If the user asked "
+            "for a specific solver such as Hfss or Maxwell3d, pass app_type to "
+            "connect_to_aedt (or application to launch_aedt) to create the "
+            "design in the same call. Call "
             "disconnect_from_aedt for a graceful detach "
             "and clear_aedt to fully release the AEDT process."
         ),
@@ -112,10 +114,12 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
         ),
         "skill": (
             "Use run_python_code to execute a short inline snippet "
-            "(introspection, parameter tweaks, custom geometry). Use "
-            "run_python_script to execute a full .py file from disk. Both "
-            "share the same persistent Python session, so variables and "
-            "imports defined in one call remain available in subsequent calls."
+            "(introspection, parameter tweaks, custom geometry). Variables, "
+            "imports, and app objects defined in one run_python_code call remain "
+            "available in subsequent calls until AEDT is disconnected, so create "
+            "an app such as hfss once and reuse it. Assign result or print to "
+            "return values. Use run_python_script to launch a full .py file from "
+            "disk in a separate process that attaches to the same AEDT session."
         ),
         "tools": [
             "run_python_code",

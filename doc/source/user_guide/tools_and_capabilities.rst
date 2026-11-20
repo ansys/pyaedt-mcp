@@ -25,9 +25,13 @@ Always available (no AEDT connection required)
      - Report current connection state. Use before every workflow to decide
        between ``launch_aedt`` and ``connect_to_aedt``.
    * - ``launch_aedt``
-     - Start a new AEDT instance.
+     - Start a new AEDT instance. Pass ``application`` to create a design of
+       that type in the same call. The reply includes the open projects and
+       designs.
    * - ``connect_to_aedt``
-     - Connect to an already-running AEDT instance via gRPC.
+     - Connect to an already-running AEDT instance via gRPC. Pass ``app_type``
+       to create a design in the same call. The reply includes the open
+       projects and designs.
    * - ``get_pyaedt_logs``
      - Read the local PyAEDT log file (useful for startup and environment
        debugging).
@@ -96,7 +100,7 @@ Optional (enabled only with ``--include-context``)
 .. note::
    When ``--connect`` is used on startup, the connection is locked and
    ``launch_aedt``, ``connect_to_aedt``, and ``disconnect_from_aedt`` are
-   disabled for the lifetime of the server.
+   unavailable for the lifetime of the server.
 
 Tool usage
 ----------

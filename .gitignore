@@ -125,3 +125,6 @@ temp/
 desktop_app/.desktop-runtime/
 configs/*
 !configs/test.json
+
+# Benchmarks
+benchmarks/

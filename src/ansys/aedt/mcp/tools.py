@@ -22,6 +22,8 @@ Icepak, Circuit, and Q3D.
 """
 
 import base64
+from contextlib import redirect_stderr, redirect_stdout
+import io
 import json
 import os
 from pathlib import Path
@@ -29,9 +31,12 @@ import shutil
 import subprocess  # nosec B404
 import sys
 import tempfile
+import threading
+import traceback
 from typing import Annotated, Any, Literal
 
 from ansys.aedt.core.internal.aedt_versions import aedt_versions
+import anyio.to_thread
 from fastmcp.apps import UI_EXTENSION_ID, AppConfig, ResourceCSP
 from fastmcp.server import Context
 from fastmcp.server.server import get_logger
@@ -44,6 +49,7 @@ from ansys.aedt.mcp.helpers import (
     _probe_grpc_endpoint,
     discover_available_aedt_sessions,
     get_aedt_info,
+    install_fast_process_lookup,
 )
 from ansys.aedt.mcp.html_window import open_html_window
 from ansys.aedt.mcp.server import session
@@ -64,6 +70,14 @@ _TIMEOUT_LONG = 600  # launch, script execution, analysis, exports
 
 _HTML_APP_URI = "ui://pyaedt-mcp/html-view.html"
 _DEFAULT_INLINE_HEIGHT = 480
+
+
+def _to_json(payload: Any) -> str:
+    """Serialize a tool payload as compact JSON.
+
+    Tool results are consumed by an LLM, so indentation only adds tokens.
+    """
+    return json.dumps(payload, separators=(",", ":"), default=str)
 
 
 @app.tool(
@@ -290,6 +304,9 @@ def _configure_pyaedt_runtime_settings(enable_grpc: bool = False) -> None:
     # Prevent AEDT shutdown when user-provided code raises.
     settings.release_on_exception = False
 
+    # Avoid multi-second ``tasklist`` calls inside PyAEDT launch/attach/release loops.
+    install_fast_process_lookup()
+
 
 def _resolve_pyaedt_log_file() -> str | None:
     """Resolve the active PyAEDT global log file path.
@@ -339,6 +356,82 @@ def _resolve_pyaedt_log_file() -> str | None:
         )
 
     return None
+
+
+_LOG_TAIL_BYTES = 2 * 1024 * 1024
+
+_USER_CODE_FILENAME = "<run_python_code>"
+_MAX_CAPTURED_OUTPUT_CHARS = 20000
+_RUN_CODE_LOCK = threading.Lock()
+
+
+def _get_code_namespace(lifespan_context: Any) -> dict[str, Any]:
+    """Return the ``run_python_code`` namespace that persists for the current connection."""
+    namespace = getattr(lifespan_context, "code_namespace", None)
+    if not isinstance(namespace, dict):
+        namespace = {}
+        try:
+            lifespan_context.code_namespace = namespace
+        except Exception:
+            logger.debug("Unable to persist the run_python_code namespace.", exc_info=True)
+    return namespace
+
+
+def _reset_code_namespace(lifespan_context: Any) -> None:
+    """Drop objects created by ``run_python_code`` (they reference the old session)."""
+    namespace = getattr(lifespan_context, "code_namespace", None)
+    if isinstance(namespace, dict):
+        namespace.clear()
+
+
+def _truncate_output(text: str, limit: int = _MAX_CAPTURED_OUTPUT_CHARS) -> str:
+    """Keep the tail of captured output within ``limit`` characters."""
+    text = text.rstrip()
+    if len(text) <= limit:
+        return text
+    return f"[... {len(text) - limit} characters truncated ...]\n" + text[-limit:]
+
+
+def _user_code_error_location(error: BaseException, code: str) -> str | None:
+    """Return the line of user code that raised ``error``, if it can be resolved."""
+    line_number = None
+    if isinstance(error, SyntaxError) and error.filename == _USER_CODE_FILENAME:
+        line_number = error.lineno
+    else:
+        for frame in reversed(traceback.extract_tb(error.__traceback__)):
+            if frame.filename == _USER_CODE_FILENAME:
+                line_number = frame.lineno
+                break
+    if not line_number:
+        return None
+    lines = code.splitlines()
+    source = lines[line_number - 1].strip() if 0 < line_number <= len(lines) else ""
+    return f"Line {line_number}: {source}"
+
+
+def _read_log_tail(path: Path, need_all_lines: bool) -> tuple[list[str], int]:
+    """Read log lines efficiently.
+
+    Without a filter only the last ``_LOG_TAIL_BYTES`` are decoded and split, which
+    is enough for the maximum of 5000 lines or 200000 characters returned by
+    ``get_pyaedt_logs``. The total line count is still computed on the raw bytes.
+
+    Returns
+    -------
+    tuple[list[str], int]
+        Selected lines and total number of lines in the file.
+    """
+    data = path.read_bytes()
+    total_lines = data.count(b"\n") + (1 if data and not data.endswith(b"\n") else 0)
+    if need_all_lines or len(data) <= _LOG_TAIL_BYTES:
+        chunk = data
+    else:
+        chunk = data[-_LOG_TAIL_BYTES:]
+        # Drop the partial first line.
+        newline = chunk.find(b"\n")
+        chunk = chunk[newline + 1 :] if newline >= 0 else chunk
+    text = chunk.decode("utf-8", errors="replace").replace("\r\n", "\n")
+    return text.splitlines(keepends=True), total_lines
 
 
 def _get_native_aedt_messages(desktop: Any) -> dict[str, Any]:
@@ -394,6 +487,81 @@ def _get_aedt_app_class(app_type: AEDTAppType) -> Any | None:
     return app_map.get(app_type)
 
 
+def _collect_projects_and_designs(desktop: Any, project_name: str | None = None) -> dict[str, Any]:
+    """Return open projects, their designs, and the active project and design."""
+    projects = [project_name] if project_name is not None else list(desktop.project_list)
+
+    project_entries = []
+    total_design_count = 0
+    for project in projects:
+        designs = desktop.design_list(project)
+        project_entries.append({"project": project, "designs": designs, "count": len(designs)})
+        total_design_count += len(designs)
+
+    active_project = None
+    if callable(getattr(desktop, "active_project", None)):
+        current_project = desktop.active_project()
+        if current_project is not None and hasattr(current_project, "GetName"):
+            active_project = str(current_project.GetName())
+
+    active_design = None
+    if callable(getattr(desktop, "active_design", None)):
+        current_design = desktop.active_design()
+        if current_design is not None and hasattr(current_design, "GetName"):
+            active_design = str(current_design.GetName())
+
+    return {
+        "active_project": active_project,
+        "active_design": active_design,
+        "projects": project_entries,
+        "project_count": len(project_entries),
+        "design_count": total_design_count,
+    }
+
+
+def _describe_session(desktop: Any) -> str:
+    """Return the session's projects and designs as a JSON line for tool replies.
+
+    Including this in connect and launch replies avoids a follow-up
+    ``list_designs`` or ``list_projects`` round trip.
+    """
+    try:
+        return "Session: " + _to_json(_collect_projects_and_designs(desktop)) + "\n"
+    except Exception as exc:
+        logger.debug("Unable to list projects and designs for the session.", exc_info=True)
+        return f"Session: unable to list projects and designs ({exc}).\n"
+
+
+def _create_design_in_session(
+    app_type: AEDTAppType,
+    design_name: str | None = None,
+    project_name: str | None = None,
+    solution_type: str | None = None,
+) -> Any:
+    """Create a design of ``app_type`` in the connected session and return the app."""
+    app_class = _get_aedt_app_class(app_type)
+    if app_class is None:
+        raise ValueError(f"Unsupported application type: {app_type}")
+
+    kwargs: dict[str, Any] = {}
+    if design_name:
+        kwargs["design"] = design_name
+    if project_name:
+        kwargs["project"] = project_name
+    if solution_type:
+        kwargs["solution_type"] = solution_type
+    return app_class(**kwargs)
+
+
+def _describe_design(app_instance: Any) -> str:
+    """Return the name, project, and solution type of a design."""
+    return (
+        f"Design Name: {app_instance.design_name}\n"
+        f"Project: {app_instance.project_name}\n"
+        f"Solution Type: {app_instance.solution_type}\n"
+    )
+
+
 @app.tool(tags={"aedt_tools"}, timeout=_TIMEOUT_QUICK)
 def check_aedt_status(ctx: Context) -> str:
     """Check the status of AEDT initialization.
@@ -444,14 +612,14 @@ def check_aedt_status(ctx: Context) -> str:
             "session_count": len(available_sessions),
             "connectable_session_count": len(connectable_sessions),
         }
-        return json.dumps(payload, indent=2)
+        return _to_json(payload)
 
     try:
         info = get_aedt_info(desktop)
         info["connected"] = True
         info["available_sessions"] = available_sessions
         info["connectable_sessions"] = connectable_sessions
-        return json.dumps(info, indent=2)
+        return _to_json(info)
 
     except Exception as e:
         error_msg = f"Error checking AEDT status: {str(e)}"
@@ -514,9 +682,7 @@ def get_pyaedt_logs(
         }
 
         if log_file is not None:
-            with Path(log_file).open("r", encoding="utf-8", errors="replace") as file_handle:
-                all_lines = file_handle.readlines()
-
+            all_lines, total_lines = _read_log_tail(Path(log_file), contains is not None)
             filtered_lines = all_lines
             if contains:
                 filter_token = contains.lower()
@@ -531,7 +697,7 @@ def get_pyaedt_logs(
 
             payload.update(
                 {
-                    "total_lines": len(all_lines),
+                    "total_lines": total_lines,
                     "matched_lines": len(filtered_lines),
                     "returned_lines": len(selected_lines),
                     "logs": log_text,
@@ -553,7 +719,7 @@ def get_pyaedt_logs(
         if log_file is None and desktop is None:
             return payload["file_log_error"]
 
-        return json.dumps(payload, indent=2)
+        return _to_json(payload)
 
     except Exception as e:
         error_msg = f"Error reading PyAEDT logs: {str(e)}"
@@ -622,6 +788,7 @@ async def launch_aedt(
     non_graphical: bool = False,
     confirm_new_session: bool = False,
     application: AEDTAppType | None = None,
+    student_version: bool = False,
 ) -> str:
     """Launch a new AEDT instance.
 
@@ -645,12 +812,18 @@ async def launch_aedt(
         when one or more connectable AEDT sessions are already available.
     application : AEDTAppType, default: None
         AEDT application to launch directly, such as ``"Hfss"`` or ``"Maxwell3d"``.
-        If ``None``, AEDT launches in desktop mode.
+        A new design of this type is created, so a separate ``create_design``
+        call is not needed. If ``None``, AEDT launches in desktop mode.
+    student_version : bool, default: False
+        Whether to use the AEDT Student edition. For example, use
+        ``launch_aedt(student_version=True)`` on a Student installation.
 
     Returns
     -------
     str
-        Launch status message with AEDT version and connection information.
+        Launch status message with AEDT version and connection information,
+        the created design (when ``application`` is set), and the open projects
+        and designs, so ``list_designs`` is not needed afterwards.
     """
     launch_target = application or "Desktop"
     logger.info(f"Launching new AEDT {launch_target} instance...")
@@ -674,47 +847,52 @@ async def launch_aedt(
         if not confirm_new_session:
             discovered_sessions = [
                 session_info
-                for session_info in discover_available_aedt_sessions()
+                for session_info in await anyio.to_thread.run_sync(discover_available_aedt_sessions)
                 if session_info.get("connectable")
             ]
             launch_blocked_message = _build_launch_blocked_message(discovered_sessions)
             if launch_blocked_message is not None:
                 return launch_blocked_message
 
-        from ansys.aedt.core import Desktop
-
-        _configure_pyaedt_runtime_settings()
-
         kwargs: dict[str, Any] = {
             "non_graphical": non_graphical,
             "new_desktop": True,
+            "student_version": student_version,
         }
 
-        if application is None:
-            if version is None:
-                version = aedt_versions.current_version or aedt_versions.latest_version
-                if not version:
-                    raise RuntimeError("No AEDT versions found installed on this system.")
-            kwargs["version"] = version
-            desktop = Desktop(**kwargs)
-            launched_target = "AEDT"
-        else:
+        app_class = None
+        if application is not None:
             app_class = _get_aedt_app_class(application)
             if app_class is None:
                 return f"Unsupported application type: {application}"
 
-            if version is None:
-                version = aedt_versions.current_version or aedt_versions.latest_version
-                if not version:
-                    raise RuntimeError("No AEDT versions found installed on this system.")
-            kwargs["version"] = version
+        if version is None:
+            version = (
+                aedt_versions.current_student_version
+                if student_version
+                else aedt_versions.current_version or aedt_versions.latest_version
+            )
+            if not version:
+                raise RuntimeError("No AEDT versions found installed on this system.")
+        kwargs["version"] = version
+
+        def _launch() -> tuple[Any, Any]:
+            from ansys.aedt.core import Desktop
+
+            _configure_pyaedt_runtime_settings()
+            if app_class is None:
+                return Desktop(**kwargs), None
             app_instance = app_class(**kwargs)
-            desktop = getattr(app_instance, "desktop_class", None)
-            if desktop is None:
+            launched_desktop = getattr(app_instance, "desktop_class", None)
+            if launched_desktop is None:
                 raise RuntimeError(
                     f"Unable to resolve AEDT handle from launched {application} session."
                 )
-            launched_target = application
+            return launched_desktop, app_instance
+
+        # Launching takes tens of seconds; keep the MCP event loop responsive meanwhile.
+        desktop, launched_app = await anyio.to_thread.run_sync(_launch)
+        launched_target = application or "AEDT"
 
         # Store in context for later use
         ctx.request_context.lifespan_context.desktop = desktop
@@ -722,13 +900,16 @@ async def launch_aedt(
 
         await ctx.enable_components(tags={REQUIRES_AEDT_TAG})
         logger.info(f"AEDT launched successfully! Target: {launched_target}")
-        return (
+        message = (
             f"Successfully launched {launched_target}\n"
             f"Version: {desktop.aedt_version_id}\n"
             f"Installation Directory: {desktop.aedt_install_dir}\n"
             f"Non-graphical Mode: {non_graphical}\n"
             f"gRPC Mode: {desktop.is_grpc_api}\n"
         )
+        if launched_app is not None:
+            message += _describe_design(launched_app)
+        return message + await anyio.to_thread.run_sync(_describe_session, desktop)
 
     except Exception as e:
         error_msg = f"Failed to launch AEDT: {str(e)}"
@@ -745,6 +926,9 @@ async def connect_to_aedt(
     non_graphical: bool = True,
     project_name: str | None = None,
     design_name: str | None = None,
+    student_version: bool = False,
+    app_type: AEDTAppType | None = None,
+    solution_type: str | None = None,
 ) -> str:
     """Connect to an existing AEDT instance via gRPC.
 
@@ -767,15 +951,27 @@ async def connect_to_aedt(
     non_graphical : bool, default: ``True``
         Whether AEDT is running in non-graphical mode.
     project_name : str, default: ``None``
-        Project name to activate when connecting directly to a design.
+        Project name to activate when connecting directly to a design, or the
+        project to create the design in when ``app_type`` is set.
     design_name : str, default: ``None``
-        Design name to attach directly to a PyAEDT application session.
+        Design name to attach directly to a PyAEDT application session, or the
+        name of the new design when ``app_type`` is set.
         If ``None``, the connection remains at the AEDT level.
+    student_version : bool, default: False
+        Whether the target session uses the AEDT Student edition.
+    app_type : AEDTAppType, default: ``None``
+        Create a new design of this type, such as ``"Hfss"`` or ``"Maxwell3d"``,
+        right after connecting, so a separate ``create_design`` call is not needed.
+        If ``None``, no design is created.
+    solution_type : str, default: ``None``
+        Solution type for the design created with ``app_type`` (app-specific).
 
     Returns
     -------
     str
-        Connection status message with AEDT version information.
+        Connection status message with AEDT version information, the created
+        or attached design, and the open projects and designs, so
+        ``list_designs`` is not needed afterwards.
     """
     logger.info("Connecting to AEDT instance at %s:%s...", machine, port or 50051)
 
@@ -784,6 +980,9 @@ async def connect_to_aedt(
         return (
             "Already connected to an AEDT session. Disconnect first using 'disconnect_from_aedt'."
         )
+
+    if app_type is not None and _get_aedt_app_class(app_type) is None:
+        return f"Unsupported application type: {app_type}"
 
     # Docker env-var override: when defaults are used and we are inside a
     # container, prefer AEDT_MACHINE / AEDT_PORT from the environment so
@@ -797,7 +996,7 @@ async def connect_to_aedt(
     elif machine == "localhost" and port is None:
         discovered_sessions = [
             session_info
-            for session_info in discover_available_aedt_sessions()
+            for session_info in await anyio.to_thread.run_sync(discover_available_aedt_sessions)
             if session_info.get("connectable")
         ]
         if len(discovered_sessions) == 1:
@@ -816,38 +1015,68 @@ async def connect_to_aedt(
         port = 50051
 
     try:
-        from ansys.aedt.core import Desktop, get_pyaedt_app
-
-        _configure_pyaedt_runtime_settings(enable_grpc=True)
-
         # Connect to existing AEDT instance
         kwargs: dict[str, Any] = {
             "non_graphical": non_graphical,
             "new_desktop": False,
             "machine": machine,
             "port": port,
+            "student_version": student_version,
         }
 
         if version is not None:
             kwargs["version"] = version
 
-        desktop = Desktop(**kwargs)
+        def _connect() -> tuple[Any, list[str], Any, Any, str | None, str]:
+            from ansys.aedt.core import Desktop, get_pyaedt_app
 
-        open_projects: list[str] = []
-        try:
-            project_list = getattr(desktop, "project_list", None)
-            if project_list is not None:
-                open_projects = list(project_list)
-        except TypeError:
-            open_projects = []
+            _configure_pyaedt_runtime_settings(enable_grpc=True)
+            connected_desktop = Desktop(**kwargs)
 
-        aedt_app = None
-        if design_name is not None:
-            aedt_app = get_pyaedt_app(
-                project_name=project_name,
-                design_name=design_name,
-                desktop=desktop,
+            projects: list[str] = []
+            try:
+                project_list = getattr(connected_desktop, "project_list", None)
+                if project_list is not None:
+                    projects = list(project_list)
+            except TypeError:
+                projects = []
+
+            design_app = None
+            created_app = None
+            creation_error = None
+            if app_type is not None:
+                # Keep the connection even if the design cannot be created.
+                try:
+                    created_app = _create_design_in_session(
+                        app_type, design_name, project_name, solution_type
+                    )
+                except Exception as exc:
+                    creation_error = f"Connected, but failed to create {app_type} design: {exc}"
+                    logger.error(creation_error)
+            elif design_name is not None:
+                design_app = get_pyaedt_app(
+                    project_name=project_name,
+                    design_name=design_name,
+                    desktop=connected_desktop,
+                )
+            return (
+                connected_desktop,
+                projects,
+                design_app,
+                created_app,
+                creation_error,
+                _describe_session(connected_desktop),
             )
+
+        # Attaching performs blocking gRPC calls; keep the MCP event loop responsive.
+        (
+            desktop,
+            open_projects,
+            aedt_app,
+            created_app,
+            creation_error,
+            session_summary,
+        ) = await anyio.to_thread.run_sync(_connect)
 
         # Store in context for later use
         ctx.request_context.lifespan_context.desktop = desktop
@@ -860,7 +1089,11 @@ async def connect_to_aedt(
             f"Version: {desktop.aedt_version_id}\n"
             f"gRPC Mode: {desktop.is_grpc_api}\n"
         )
-        if aedt_app is not None:
+        if created_app is not None:
+            message += f"Created {app_type} design\n" + _describe_design(created_app)
+        elif creation_error is not None:
+            message += creation_error + "\n"
+        elif aedt_app is not None:
             message += (
                 f"Project: {aedt_app.project_name}\n"
                 f"Design: {aedt_app.design_name}\n"
@@ -886,7 +1119,7 @@ async def connect_to_aedt(
                 + (" and project_name" if project_name is None else "")
                 + " if you want to connect directly to a specific AEDT design.\n"
             )
-        return message
+        return message + session_summary
 
     except Exception as e:
         error_msg = f"Failed to connect to AEDT at {machine}:{port}: {str(e)}"
@@ -937,10 +1170,15 @@ async def disconnect_from_aedt(
     try:
         logger.info("Disconnecting from AEDT...")
 
-        # Release AEDT
-        desktop.release_desktop(close_projects=close_projects, close_on_exit=close_desktop)
+        # Release AEDT (closing the desktop can take several seconds).
+        await anyio.to_thread.run_sync(
+            lambda: desktop.release_desktop(
+                close_projects=close_projects, close_on_exit=close_desktop
+            )
+        )
         ctx.request_context.lifespan_context.desktop = None
         ctx.request_context.lifespan_context.aedt_port = None
+        _reset_code_namespace(ctx.request_context.lifespan_context)
 
         await ctx.disable_components(tags={REQUIRES_AEDT_TAG})
         logger.info("Disconnected from AEDT successfully!")
@@ -953,6 +1191,7 @@ async def disconnect_from_aedt(
         logger.error(error_msg)
         ctx.request_context.lifespan_context.desktop = None
         ctx.request_context.lifespan_context.aedt_port = None
+        _reset_code_namespace(ctx.request_context.lifespan_context)
         return error_msg
 
 
@@ -1051,6 +1290,11 @@ def run_python_code(ctx: Context, code: str) -> str:
         - `odesktop`: Native AEDT oDesktop COM object
         - `aedt_port`: gRPC port of the connected AEDT instance
 
+        Variables, imports, and app objects (for example ``hfss``) persist
+        between calls until AEDT is disconnected, so reuse them instead of
+        re-creating apps. Assign ``result`` to return a value; anything printed
+        is also returned. Errors report the failing line.
+
     Returns
     -------
     str
@@ -1067,18 +1311,48 @@ def run_python_code(ctx: Context, code: str) -> str:
         _configure_pyaedt_runtime_settings()
 
         # Include aedt_port so user code can do Hfss(..., port=aedt_port)
-        local_ns = {
-            "desktop": desktop,
-            "odesktop": desktop.odesktop,
-            "aedt_port": getattr(desktop, "port", ctx.request_context.lifespan_context.aedt_port),
-        }
+        lifespan_context = ctx.request_context.lifespan_context
+        local_ns = _get_code_namespace(lifespan_context)
+        local_ns.update(
+            {
+                "desktop": desktop,
+                "odesktop": desktop.odesktop,
+                "aedt_port": getattr(desktop, "port", lifespan_context.aedt_port),
+            }
+        )
+        # ``result`` is the per-call return channel; never return a stale value.
+        local_ns.pop("result", None)
 
-        # This tool's explicit contract is to execute user-provided Python inside AEDT.
-        exec(code, local_ns)  # nosec B102
-        result = local_ns.get("result", "Code executed successfully. (No result variable set.)")
-        return str(result)
+        output = io.StringIO()
+        try:
+            # Serialize executions: stdout redirection is process-wide and AEDT
+            # handles one scripted operation at a time.
+            with _RUN_CODE_LOCK, redirect_stdout(output), redirect_stderr(output):
+                # This tool's explicit contract is to execute user-provided Python inside AEDT.
+                exec(compile(code, _USER_CODE_FILENAME, "exec"), local_ns)  # nosec B102
+        except Exception as e:
+            error_msg = f"Error executing code: {type(e).__name__}: {e}"
+            location = _user_code_error_location(e, code)
+            if location:
+                error_msg += f"\n{location}"
+            printed = _truncate_output(output.getvalue())
+            if printed:
+                error_msg += f"\nOutput before the error:\n{printed}"
+            logger.error(error_msg)
+            return error_msg
+
+        printed = _truncate_output(output.getvalue())
+        if "result" in local_ns:
+            result = str(local_ns["result"])
+            return f"{result}\nOutput:\n{printed}" if printed else result
+        if printed:
+            return printed
+        return "Code executed successfully. (No result variable set.)"
 
     except Exception as e:
+        error_msg = f"Error executing code: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
         error_msg = f"Error executing code: {str(e)}"
         logger.error(error_msg)
         return error_msg
@@ -1107,48 +1381,13 @@ def list_designs(ctx: Context, project_name: str | None = None) -> str:
         return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
-        if project_name is not None:
-            projects = [project_name]
-        else:
-            projects = list(desktop.project_list)
-
-        project_entries = []
-        total_design_count = 0
-        for project in projects:
-            designs = desktop.design_list(project)
-            project_entries.append(
-                {
-                    "project": project,
-                    "designs": designs,
-                    "count": len(designs),
-                }
-            )
-            total_design_count += len(designs)
-
-        active_project = None
-        if callable(getattr(desktop, "active_project", None)):
-            current_project = desktop.active_project()
-            if current_project is not None and hasattr(current_project, "GetName"):
-                active_project = str(current_project.GetName())
-
-        active_design = None
-        if callable(getattr(desktop, "active_design", None)):
-            current_design = desktop.active_design()
-            if current_design is not None and hasattr(current_design, "GetName"):
-                active_design = str(current_design.GetName())
-
-        result = {
-            "active_project": active_project,
-            "active_design": active_design,
-            "projects": project_entries,
-            "project_count": len(project_entries),
-            "design_count": total_design_count,
-        }
+        result = _collect_projects_and_designs(desktop, project_name)
+        project_entries = result["projects"]
         if project_name is not None and project_entries:
             result["project"] = project_entries[0]["project"]
             result["designs"] = project_entries[0]["designs"]
             result["count"] = project_entries[0]["count"]
-        return json.dumps(result, indent=2)
+        return _to_json(result)
 
     except Exception as e:
         error_msg = f"Error listing designs: {str(e)}"
@@ -1181,7 +1420,7 @@ def list_projects(ctx: Context) -> str:
             "open_projects": projects,
             "count": len(projects),
         }
-        return json.dumps(result, indent=2)
+        return _to_json(result)
 
     except Exception as e:
         error_msg = f"Error listing projects: {str(e)}"
@@ -1307,28 +1546,15 @@ def create_design(
         return "No AEDT connection is available. Use 'connect_to_aedt' or 'launch_aedt' first."
 
     try:
-        app_class = _get_aedt_app_class(app_type)
-        if app_class is None:
-            return f"Unsupported application type: {app_type}"
-
         logger.info(f"Creating {app_type} design: {design_name}")
+        try:
+            app_instance = _create_design_in_session(
+                app_type, design_name, project_name, solution_type
+            )
+        except ValueError as exc:
+            return str(exc)
 
-        kwargs: dict[str, Any] = {}
-        if design_name:
-            kwargs["design"] = design_name
-        if project_name:
-            kwargs["project"] = project_name
-        if solution_type:
-            kwargs["solution_type"] = solution_type
-
-        app_instance = app_class(**kwargs)
-
-        return (
-            f"Successfully created {app_type} design\n"
-            f"Design Name: {app_instance.design_name}\n"
-            f"Project: {app_instance.project_name}\n"
-            f"Solution Type: {app_instance.solution_type}\n"
-        )
+        return f"Successfully created {app_type} design\n" + _describe_design(app_instance)
 
     except Exception as e:
         error_msg = f"Error creating design: {str(e)}"
@@ -1847,7 +2073,7 @@ def export_config(
         if output:
             data["config_file"] = config_file
 
-        return json.dumps(data, indent=2)
+        return _to_json(data)
 
     except Exception as e:
         error_msg = f"Error: {str(e)}"
@@ -1883,6 +2109,8 @@ def clear_aedt(ctx: Context, close_projects: bool = True) -> str:
         logger.info("Clearing AEDT state...")
 
         if close_projects:
+            # App objects created by run_python_code reference the closed projects.
+            _reset_code_namespace(ctx.request_context.lifespan_context)
             projects = desktop.project_list
             for proj in projects:
                 desktop.odesktop.CloseProject(proj)
@@ -1928,7 +2156,7 @@ def get_model_info(ctx: Context, design_name: str | None = None) -> str:
             "design_type": design_type,
             "project_path": project_path,
         }
-        return json.dumps(result, indent=2)
+        return _to_json(result)
 
     except Exception as e:
         error_msg = f"Error getting model info: {str(e)}"

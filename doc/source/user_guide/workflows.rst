@@ -15,8 +15,9 @@ workflow that covers geometry creation, setup, solve, reporting, and screenshots
 Maxwell motor analysis
 ~~~~~~~~~~~~~~~~~~~~~~
 
-#. Run ``connect_to_aedt`` or ``launch_aedt`` to connect to or launch AEDT.
-#. Create a design with ``create_design`` and ``app_type="Maxwell3d"``.
+#. Run ``connect_to_aedt`` with ``app_type="Maxwell3d"`` or ``launch_aedt`` with
+   ``application="Maxwell3d"`` to connect to or launch AEDT and create the design
+   in one call.
 #. Run ``run_python_code`` to build the motor geometry and assign materials.
 #. Run ``run_python_code`` to assign windings, excitations, and motion setup.
 #. Run ``validate_design`` to catch model/setup issues before solving.
@@ -26,8 +27,9 @@ Maxwell motor analysis
 Icepak thermal analysis
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-#. Run ``connect_to_aedt`` or ``launch_aedt`` to connect to or launch AEDT.
-#. Create a design with ``create_design`` and ``app_type="Icepak"``.
+#. Run ``connect_to_aedt`` with ``app_type="Icepak"`` or ``launch_aedt`` with
+   ``application="Icepak"`` to connect to or launch AEDT and create the design
+   in one call.
 #. Run ``run_python_code`` to create the PCB, components, and heat sources.
 #. Run ``run_python_code`` to assign boundary conditions.
 #. Run ``validate_design`` to catch model/setup issues before solving.
