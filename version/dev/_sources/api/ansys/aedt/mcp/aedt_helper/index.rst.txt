@@ -1,0 +1,92 @@
+
+
+
+
+
+
+The ``aedt_helper`` package
+===============================
+
+.. py:module:: ansys.aedt.mcp.aedt_helper
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: aedt_helper
+.. tab-set::
+
+
+    .. tab-item:: Submodules
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.aedt_helper.startup_code`
+            - Startup code for a persistent Python session in PyAEDT-MCP.
+
+
+
+
+
+
+
+
+
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-fa-file"></span> startup_code</api/ansys/aedt/mcp/aedt_helper/startup_code/index>
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+
+Helper functions for PyAEDT-MCP.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+

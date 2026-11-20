@@ -1,0 +1,49 @@
+
+
+
+
+
+
+:class:`BackendAuthError`
+=========================
+
+
+.. py:exception:: ansys.aedt.mcp.lanes.client.BackendAuthError
+
+   Bases: :py:obj:`RuntimeError`
+
+
+   
+   Raised when a lane answers HTTP 401 because the token is wrong or missing.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.lanes.client import BackendAuthError
+
+
+
+
+

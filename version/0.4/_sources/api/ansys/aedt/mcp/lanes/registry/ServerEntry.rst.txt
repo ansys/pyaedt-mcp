@@ -1,0 +1,298 @@
+
+
+
+
+
+
+:class:`ServerEntry`
+====================
+
+
+.. py:class:: ansys.aedt.mcp.lanes.registry.ServerEntry
+
+   
+   One lane backend recorded in the registry.
+
+
+   :Parameters:
+
+       **server_id** : :class:`python:str`
+           Lane name, unique within the registry.
+
+       **http_port** : :class:`python:int`
+           Loopback port the lane serves MCP over HTTP on.
+
+       **pid** : :class:`python:int`, :obj:`optional`
+           Process ID of the lane backend.
+
+       **aedt_gpc_port** : :class:`python:int`, :obj:`optional`
+           gRPC port of the AEDT session the lane owns, if known.
+
+       **log_path** : :class:`python:str`, :obj:`optional`
+           File capturing the lane's stdout and stderr.
+
+       **started_at** : :class:`python:float`
+           Creation time as a POSIX timestamp.
+
+       **python** : :class:`python:str`, :obj:`optional`
+           Interpreter running the lane, which identifies its installation.
+
+       **auth_token** : :class:`python:str`, :obj:`optional`
+           Bearer secret the lane requires on every HTTP request. It is never
+           exposed to clients; use :meth:`public_dict` for display.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+.. py:currentmodule:: ServerEntry
+
+Overview
+--------
+
+.. tab-set::
+
+
+   .. tab-item:: Constructors
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~from_dict`
+            - Rebuild an entry from JSON data, ignoring unknown fields.
+
+
+   .. tab-item:: Methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~to_dict`
+            - Return a JSON-serializable representation, including the secret.
+          * - :py:attr:`~public_dict`
+            - Return a representation safe to show to clients.
+
+
+   .. tab-item:: Properties
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~auth_mode`
+            - Authentication mode of the lane: ``"token"`` or ``"none"``.
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~server_id`
+            - 
+          * - :py:attr:`~http_port`
+            - 
+          * - :py:attr:`~pid`
+            - 
+          * - :py:attr:`~aedt_gpc_port`
+            - 
+          * - :py:attr:`~log_path`
+            - 
+          * - :py:attr:`~started_at`
+            - 
+          * - :py:attr:`~python`
+            - 
+          * - :py:attr:`~auth_token`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.lanes.registry import ServerEntry
+
+Property detail
+---------------
+
+.. py:property:: auth_mode
+   :type: str
+
+
+   
+   Authentication mode of the lane: ``"token"`` or ``"none"``.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: server_id
+   :type:  str
+
+.. py:attribute:: http_port
+   :type:  int
+
+.. py:attribute:: pid
+   :type:  int | None
+   :value: None
+
+
+.. py:attribute:: aedt_gpc_port
+   :type:  int | None
+   :value: None
+
+
+.. py:attribute:: log_path
+   :type:  str | None
+   :value: None
+
+
+.. py:attribute:: started_at
+   :type:  float
+
+.. py:attribute:: python
+   :type:  str | None
+   :value: None
+
+
+.. py:attribute:: auth_token
+   :type:  str | None
+   :value: None
+
+
+
+
+Method detail
+-------------
+
+.. py:method:: to_dict() -> dict[str, Any]
+
+   
+   Return a JSON-serializable representation, including the secret.
+
+
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           All entry fields.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: public_dict() -> dict[str, Any]
+
+   
+   Return a representation safe to show to clients.
+
+
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Entry fields with ``auth_token`` replaced by ``auth``.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: from_dict(data: dict[str, Any]) -> ServerEntry
+   :classmethod:
+
+
+   
+   Rebuild an entry from JSON data, ignoring unknown fields.
+
+
+   :Parameters:
+
+       **data** : :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Serialized entry.
+
+
+
+   :Returns:
+
+       :obj:`ServerEntry`
+           Rebuilt entry.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+

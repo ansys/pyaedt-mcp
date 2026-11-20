@@ -1,0 +1,294 @@
+
+
+
+
+
+
+:class:`ApiEntry`
+=================
+
+
+.. py:class:: ansys.aedt.mcp.api_search.ApiEntry
+
+   
+   One searchable PyAEDT API object.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. py:currentmodule:: ApiEntry
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+   .. tab-item:: Methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~native_match_strength`
+            - Return how many sources (docstring references, body calls) use ``method``.
+
+
+   .. tab-item:: Properties
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~is_indirect`
+            - True when the native call comes from a helper, not from the method itself.
+          * - :py:attr:`~native_methods`
+            - Lowercase native method names (without receiver) used by this entry.
+          * - :py:attr:`~native_api`
+            - All native AEDT calls for this method, from the method itself and from helpers.
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~name`
+            - 
+          * - :py:attr:`~qualname`
+            - 
+          * - :py:attr:`~kind`
+            - 
+          * - :py:attr:`~module`
+            - 
+          * - :py:attr:`~class_name`
+            - 
+          * - :py:attr:`~signature`
+            - 
+          * - :py:attr:`~summary`
+            - 
+          * - :py:attr:`~doc`
+            - 
+          * - :py:attr:`~file`
+            - 
+          * - :py:attr:`~line`
+            - 
+          * - :py:attr:`~native_references`
+            - 
+          * - :py:attr:`~native_calls`
+            - 
+          * - :py:attr:`~native_indirect`
+            - 
+          * - :py:attr:`~native_dispatch`
+            - 
+          * - :py:attr:`~tokens`
+            - 
+          * - :py:attr:`~length`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.api_search import ApiEntry
+
+Property detail
+---------------
+
+.. py:property:: is_indirect
+   :type: bool
+
+
+   
+   True when the native call comes from a helper, not from the method itself.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:property:: native_methods
+   :type: set[str]
+
+
+   
+   Lowercase native method names (without receiver) used by this entry.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:property:: native_api
+   :type: list[str]
+
+
+   
+   All native AEDT calls for this method, from the method itself and from helpers.
+
+   Calls from the method itself (docstring and own code) come first, so if the same
+   call also comes from a helper, the method's own spelling is the one kept after
+   duplicates are removed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: name
+   :type:  str
+
+.. py:attribute:: qualname
+   :type:  str
+
+.. py:attribute:: kind
+   :type:  EntryKind
+
+.. py:attribute:: module
+   :type:  str
+
+.. py:attribute:: class_name
+   :type:  str | None
+
+.. py:attribute:: signature
+   :type:  str
+
+.. py:attribute:: summary
+   :type:  str
+
+.. py:attribute:: doc
+   :type:  str
+
+.. py:attribute:: file
+   :type:  str
+
+.. py:attribute:: line
+   :type:  int
+
+.. py:attribute:: native_references
+   :type:  list[str]
+   :value: []
+
+
+.. py:attribute:: native_calls
+   :type:  list[str]
+   :value: []
+
+
+.. py:attribute:: native_indirect
+   :type:  list[str]
+   :value: []
+
+
+.. py:attribute:: native_dispatch
+   :type:  list[str]
+   :value: []
+
+
+.. py:attribute:: tokens
+   :type:  collections.Counter
+
+.. py:attribute:: length
+   :type:  int
+   :value: 0
+
+
+
+
+Method detail
+-------------
+
+.. py:method:: native_match_strength(method: str) -> int
+
+   
+   Return how many sources (docstring references, body calls) use ``method``.
+
+   Calls found only through a helper count 0, so direct matches rank above them.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+

@@ -1,0 +1,100 @@
+
+
+
+
+
+
+:class:`ResetReport`
+====================
+
+
+.. py:class:: ansys.aedt.mcp.lanes.registry.ResetReport
+
+   
+   Summary of :func:`reset_registry`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. py:currentmodule:: ResetReport
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~dropped`
+            - 
+          * - :py:attr:`~killed`
+            - 
+          * - :py:attr:`~failed_to_kill`
+            - 
+          * - :py:attr:`~unlocked`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.lanes.registry import ResetReport
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: dropped
+   :type:  list[str]
+   :value: []
+
+
+.. py:attribute:: killed
+   :type:  list[int]
+   :value: []
+
+
+.. py:attribute:: failed_to_kill
+   :type:  list[int]
+   :value: []
+
+
+.. py:attribute:: unlocked
+   :type:  bool
+   :value: False
+
+
+
+
+
+

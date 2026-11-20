@@ -1,0 +1,201 @@
+
+
+
+
+
+
+The ``cli.py`` module
+=====================
+
+.. py:module:: ansys.aedt.mcp.lanes.cli
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: cli
+.. tab-set::
+
+
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~run_proxy`
+            - Parse the proxy options and serve the routing proxy over stdio.
+
+
+          * - :py:obj:`~main`
+            - Run the lanes command line.
+
+
+
+
+    .. tab-item:: Constants
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~PROG`
+            - 
+
+
+          * - :py:obj:`~SUBCOMMANDS`
+            - 
+
+
+          * - :py:obj:`~RESERVED_BACKEND_ARGS`
+            - Backend arguments the spawner sets itself, so they cannot be forwarded.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Command line of the opt-in lanes mode (``ansys-aedt-mcp --lanes``).
+
+``ansys-aedt-mcp --lanes [options] [-- backend args]``
+    Run the stdio routing proxy. Arguments after ``--`` are forwarded to
+    every lane backend, for example ``-- --graphical --include-context``.
+
+``ansys-aedt-mcp --lanes status|reap|reset|unlock|dashboard``
+    Inspect or recover the lane registry without starting the proxy, which
+    works even when the whole MCP stack is unreachable.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: run_proxy(argv: list[str]) -> int
+
+   
+   Parse the proxy options and serve the routing proxy over stdio.
+
+
+   :Parameters:
+
+       **argv** : :class:`python:list`\[:class:`python:str`]
+           Proxy options, optionally followed by ``--`` and backend arguments.
+
+
+
+   :Returns:
+
+       :class:`python:int`
+           Process exit code.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: main(argv: list[str]) -> int
+
+   
+   Run the lanes command line.
+
+
+   :Parameters:
+
+       **argv** : :class:`python:list`\[:class:`python:str`]
+           Arguments following ``--lanes``.
+
+
+
+   :Returns:
+
+       :class:`python:int`
+           Process exit code.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: PROG
+   :value: 'ansys-aedt-mcp --lanes'
+
+
+.. py:data:: SUBCOMMANDS
+   :value: ('status', 'stop', 'reap', 'reset', 'unlock', 'dashboard')
+
+
+.. py:data:: RESERVED_BACKEND_ARGS
+   :value: ('--transport', '--http-host', '--http-port', '--lanes')
+
+
+   
+   Backend arguments the spawner sets itself, so they cannot be forwarded.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+

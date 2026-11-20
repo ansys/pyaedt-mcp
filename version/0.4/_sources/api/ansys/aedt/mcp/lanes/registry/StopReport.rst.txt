@@ -1,0 +1,92 @@
+
+
+
+
+
+
+:class:`StopReport`
+===================
+
+
+.. py:class:: ansys.aedt.mcp.lanes.registry.StopReport
+
+   
+   Outcome of :func:`stop_entry`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. py:currentmodule:: StopReport
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~server_id`
+            - 
+          * - :py:attr:`~pid`
+            - 
+          * - :py:attr:`~killed`
+            - 
+          * - :py:attr:`~removed`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.lanes.registry import StopReport
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: server_id
+   :type:  str
+
+.. py:attribute:: pid
+   :type:  int | None
+
+.. py:attribute:: killed
+   :type:  bool
+
+.. py:attribute:: removed
+   :type:  bool
+
+
+
+
+

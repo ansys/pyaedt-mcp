@@ -1,0 +1,312 @@
+
+
+
+
+
+
+:class:`BackendClient`
+======================
+
+
+.. py:class:: ansys.aedt.mcp.lanes.client.BackendClient(port: int, host: str = '127.0.0.1', path: str = DEFAULT_PATH, auth_token: str | None = None)
+
+   
+   MCP client bound to one lane backend.
+
+   Use it as an async context manager:
+
+   >>> async with BackendClient(port=8090, auth_token=token) as backend:  # doctest: +SKIP
+   ...     port = await backend.discover_aedt_port()
+
+   :Parameters:
+
+       **port** : :class:`python:int`
+           HTTP port of the lane.
+
+       **host** : :class:`python:str`, default: "127.0.0.1"
+           Host of the lane.
+
+       **path** : :class:`python:str`, default: "/mcp/"
+           MCP endpoint path.
+
+       **auth_token** : :class:`python:str`, :obj:`optional`
+           Bearer token of the lane.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+
+.. py:currentmodule:: BackendClient
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+   .. tab-item:: Methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~call`
+            - Call a tool on the lane.
+          * - :py:attr:`~check_status`
+            - Return the parsed ``check_aedt_status`` payload.
+          * - :py:attr:`~discover_aedt_port`
+            - Return the gRPC port of the AEDT session the lane is connected to.
+          * - :py:attr:`~connect_aedt`
+            - Connect the lane to an existing AEDT session.
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~url`
+            - 
+
+
+
+   .. tab-item:: Special methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~__aenter__`
+            - Open the MCP session.
+          * - :py:attr:`~__aexit__`
+            - Close the MCP session.
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.lanes.client import BackendClient
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: url
+
+
+
+Method detail
+-------------
+
+.. py:method:: __aenter__() -> BackendClient
+   :async:
+
+
+   
+   Open the MCP session.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: __aexit__(exc_type: type[BaseException] | None, exc: BaseException | None, tb: types.TracebackType | None) -> None
+   :async:
+
+
+   
+   Close the MCP session.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: call(tool_name: str, arguments: dict[str, Any] | None = None) -> str
+   :async:
+
+
+   
+   Call a tool on the lane.
+
+
+   :Parameters:
+
+       **tool_name** : :class:`python:str`
+           Tool name.
+
+       **arguments** : :class:`python:dict`\[:class:`python:str`, :obj:`Any`], :obj:`optional`
+           Tool arguments.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Text payload of the result.
+
+
+
+
+   :Raises:
+
+       :obj:`BackendAuthError`
+           If the lane rejected the token.
+
+       :obj:`RuntimeError`
+           If the client is not open or the call fails.
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: check_status() -> dict[str, Any]
+   :async:
+
+
+   
+   Return the parsed ``check_aedt_status`` payload.
+
+
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Status payload, or ``{"raw": text}`` when the lane returned plain text.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: discover_aedt_port() -> int | None
+   :async:
+
+
+   
+   Return the gRPC port of the AEDT session the lane is connected to.
+
+
+
+
+
+   :Returns:
+
+       :class:`python:int` or :data:`python:None`
+           AEDT gRPC port, or ``None`` when the lane is not connected.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: connect_aedt(port: int, non_graphical: bool = True) -> str
+   :async:
+
+
+   
+   Connect the lane to an existing AEDT session.
+
+
+   :Parameters:
+
+       **port** : :class:`python:int`
+           AEDT gRPC port.
+
+       **non_graphical** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:True`
+           Whether the session runs without a UI.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Output of ``connect_to_aedt``.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+

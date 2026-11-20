@@ -1,0 +1,133 @@
+
+
+
+
+
+
+The ``lanes`` package
+=========================
+
+.. py:module:: ansys.aedt.mcp.lanes
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: lanes
+.. tab-set::
+
+
+    .. tab-item:: Submodules
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.aedt_compat`
+            - In-process PyAEDT version fixes applied by lane backends.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.backend`
+            - Hooks that turn a regular HTTP server into a token-protected lane backend.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.cli`
+            - Command line of the opt-in lanes mode (``ansys-aedt-mcp --lanes``).
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.client`
+            - Async MCP client used to drive one lane backend.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.dashboard`
+            - Local, read-only status dashboard for lanes.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.proxy`
+            - Stdio routing proxy that multiplexes AEDT sessions ("lanes").
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.registry`
+            - File-backed registry of lane backends.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.spawner`
+            - Spawn lane backends and record them in the registry.
+
+
+
+
+
+
+
+
+
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-fa-file"></span> aedt_compat</api/ansys/aedt/mcp/lanes/aedt_compat/index>
+    <span class="nf nf-fa-file"></span> backend</api/ansys/aedt/mcp/lanes/backend/index>
+    <span class="nf nf-fa-file"></span> cli</api/ansys/aedt/mcp/lanes/cli/index>
+    <span class="nf nf-fa-file"></span> client</api/ansys/aedt/mcp/lanes/client/index>
+    <span class="nf nf-fa-file"></span> dashboard</api/ansys/aedt/mcp/lanes/dashboard/index>
+    <span class="nf nf-fa-file"></span> proxy</api/ansys/aedt/mcp/lanes/proxy/index>
+    <span class="nf nf-fa-file"></span> registry</api/ansys/aedt/mcp/lanes/registry/index>
+    <span class="nf nf-fa-file"></span> spawner</api/ansys/aedt/mcp/lanes/spawner/index>
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+
+Opt-in lanes mode: share or isolate AEDT sessions across MCP clients.
+
+Enabled with ``ansys-aedt-mcp --lanes``. Without that flag none of these
+modules is imported and the server behaves exactly as before.
+
+A lane is a long-lived ``ansys-aedt-mcp`` HTTP backend that owns at most one
+AEDT session. A stdio routing proxy exposes the regular tools plus lane
+management tools and forwards each call to the selected lane.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
