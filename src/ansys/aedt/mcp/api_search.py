@@ -77,10 +77,35 @@ _DOC_TOKEN_LIMIT = 400
 
 # Some PyAEDT methods never name the native AEDT call directly. Instead, they pass a
 # type string to a shared helper (for example ``self._create_boundary(name, props,
-# "Current")``), and that helper makes the real native call (``oboundary.AssignCurrent``).
-# This maps such a helper to the text that is prepended to the type string to rebuild the
-# native name: "Assign" + "Current" -> "AssignCurrent".
-_DISPATCH_HELPERS = {"_create_boundary": "Assign"}
+# "Current")``), and a ``create()`` method later turns that string into the real native
+# call (``if self.type == "Current": oboundary.AssignCurrent(...)``). This maps each such
+# helper to where the type string is passed: (positional index, keyword name).
+_DISPATCH_HELPERS = {"_create_boundary": (2, "boundary_type")}
+
+# Methods whose ``if <attr> == "<type>"`` branches map a type string to a native call.
+_DISPATCH_TARGETS = frozenset({"create"})
+
+# How deep to follow helpers that call other helpers.
+_MAX_HELPER_DEPTH = 3
+
+# Native calls that read state, edit a generic property, or manage the session/window.
+# They are common inside helpers and say nothing about what a method does, so they are
+# not copied from helpers.
+_GENERIC_NATIVE_PREFIXES = ("Get", "Is", "Has", "Exist", "SetActive", "Refresh")
+_GENERIC_NATIVE_NAMES = frozenset(
+    {
+        "ChangeProperty",
+        "SetPropValue",
+        "CloseProject",
+        "NewProject",
+        "InsertDesign",
+        "Save",
+        "SaveAs",
+        "TileWindows",
+        "AddMessage",
+        "ClearMessages",
+    }
+)
 
 SearchScope = Literal["all", "pyaedt", "native"]
 EntryKind = Literal["class", "method", "property", "function"]
@@ -126,13 +151,13 @@ class ApiEntry:
     file: str
     line: int
     # Native AEDT calls that this PyAEDT method maps to, grouped by how they were found.
-    # The first two come straight from the method itself. The last two are used only when
-    # the method has none of its own and instead calls a helper that makes the native call
-    # (see ``_resolve_indirect_native``).
+    # The first two come straight from the method itself. The last two are used only for
+    # methods (never classes) that have none of their own and instead call a helper that
+    # makes the native call (see ``_resolve_indirect_native``).
     native_references: list[str] = field(default_factory=list)  # listed in the docstring
     native_calls: list[str] = field(default_factory=list)  # written in the method's own code
     native_indirect: list[str] = field(default_factory=list)  # copied from a helper it calls
-    native_dispatch: list[str] = field(default_factory=list)  # rebuilt from a type name string
+    native_dispatch: list[str] = field(default_factory=list)  # mapped from a type string
     tokens: Counter = field(default_factory=Counter)
     length: int = 0
     # Extra words to include when building this entry's search index (for a class, the
@@ -171,7 +196,10 @@ class ApiEntry:
         return list(seen.values())
 
     def native_match_strength(self, method: str) -> int:
-        """Return how many sources (docstring references, body calls) use ``method``."""
+        """Return how many sources (docstring references, body calls) use ``method``.
+
+        Calls found only through a helper count 0, so direct matches rank above them.
+        """
         method = method.lower()
         in_refs = any(r.rsplit(".", 1)[-1].lower() == method for r in self.native_references)
         in_body = any(c.rsplit(".", 1)[-1].lower() == method for c in self.native_calls)
@@ -202,13 +230,16 @@ class PyAEDTApiIndex:
         self.version: str | None = None
         self.parse_errors: list[str] = []
         # Notes gathered while reading the code, used afterward to fill in native calls
-        # for methods that delegate their work (see ``_resolve_indirect_native``):
-        # for each helper method, the native calls found inside it:
-        self._protected_native: dict[str, list[str]] = {}
-        # native names seen inside create() methods, used to confirm a rebuilt guess is real:
-        self._dispatch_native: set[str] = set()
-        # the parsed code of each method, so a method's body can be re-examined later:
-        self._body_index: dict[str, ast.AST] = {}
+        # for methods that delegate their work (see ``_resolve_indirect_native``). They
+        # are released once the index is built.
+        # Private helper methods, per class name:
+        self._class_helpers: dict[str, dict[str, ast.FunctionDef | ast.AsyncFunctionDef]] = {}
+        # Base class names, per class name, to look up helpers inherited from a base:
+        self._class_bases: dict[str, list[str]] = {}
+        # Type string -> native calls, read from ``if self.type == "...":`` branches:
+        self._dispatch_map: dict[str, list[str]] = {}
+        # The parsed code of each method or function entry:
+        self._body_index: dict[str, ast.FunctionDef | ast.AsyncFunctionDef] = {}
 
     # ------------------------------------------------------------------
     # Building
@@ -276,27 +307,24 @@ class PyAEDTApiIndex:
             elif isinstance(node, ast.ClassDef) and not node.name.startswith("_"):
                 bases = [_base_name(b) for b in node.bases]
                 classes.append(_ClassInfo(node.name, f"{module}.{node.name}", bases))
+                self._class_bases.setdefault(node.name, []).extend(
+                    b.rsplit(".", 1)[-1] for b in bases if b
+                )
                 self._add_class(node, module, file)
+                helpers = self._class_helpers.setdefault(node.name, {})
                 for item in node.body:
-                    if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        if not item.name.startswith("_") or item.name == "__init__":
-                            if item.name != "__init__":
-                                self._add_function(item, module, node.name, file)
-                        else:
-                            # A private helper method (name starts with "_"). It is not
-                            # searchable itself, but a public method may call it and rely on
-                            # the native call inside it, so record that native call now so
-                            # the public method can pick it up later.
-                            calls = _native_calls(item)
-                            if calls:
-                                self._protected_native.setdefault(item.name, []).extend(calls)
-                        # A create() method (such as BoundaryObject.create) is where a type
-                        # string is turned into a real native call. Remember those native
-                        # names so a later guess can be checked against names that exist.
-                        if item.name in ("create", "update", "_create"):
-                            self._dispatch_native.update(
-                                c.rsplit(".", 1)[-1] for c in _native_calls(item)
-                            )
+                    if not isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        continue
+                    if not item.name.startswith("_"):
+                        self._add_function(item, module, node.name, file)
+                    elif not _is_dunder(item.name):
+                        # A private helper is not searchable itself, but a public method
+                        # of this class (or a subclass) may rely on the native call in it.
+                        helpers.setdefault(item.name, item)
+                    if item.name in _DISPATCH_TARGETS:
+                        for literal, calls in _dispatch_branches(item).items():
+                            known = self._dispatch_map.setdefault(literal, [])
+                            known.extend(c for c in calls if c not in known)
 
     def _add_class(self, node: ast.ClassDef, module: str, file: str) -> None:
         doc = ast.get_docstring(node) or ""
@@ -325,7 +353,6 @@ class PyAEDTApiIndex:
             line=node.lineno,
             native_references=_doc_references(doc),
         )
-        self._body_index[entry.qualname] = node
         self._finalize(entry, extra_text=bases)
 
     def _add_function(
@@ -398,53 +425,102 @@ class PyAEDTApiIndex:
         """Find native calls for methods that make them through a helper.
 
         Some PyAEDT methods do not call a native AEDT function themselves; they call a
-        helper method that does. Without this step, such a method would appear to use no
-        native call. This runs once, after every method has been read, and only looks at
-        methods that have no native call of their own yet (nothing in the docstring and
-        nothing in their own code), so methods that already have one are left untouched.
+        private helper that does. Without this step, such a method would appear to use no
+        native call. This runs once, after every class has been read, and only looks at
+        methods and properties (never classes) that have no native call of their own
+        (nothing in the docstring and nothing in their own code).
 
         Two cases are handled:
 
-        * The method calls a helper, and the helper itself contains the native call. The
-          helper's native calls are copied onto the method. Example: ``export_csv`` calls
-          ``_export_to_csv``, which calls ``odesign.ExportToCsv``.
-        * The method calls ``_create_boundary(name, props, "Current")``. The native name is
-          rebuilt as ``"Assign" + "Current"`` -> ``AssignCurrent``, and kept only if a real
-          create() method was seen using that exact name.
+        * The method calls ``self._helper(...)``. The helper is looked up on the method's
+          own class and then on its base classes, the same way Python resolves ``self``.
+          Its native calls are copied onto the method, following helpers that call other
+          helpers up to ``_MAX_HELPER_DEPTH`` levels. Read-only and generic calls
+          (``Get*``, ``ChangeProperty``, ...) are skipped because they do not describe
+          what the method does. Example: ``export_csv`` -> ``_export_to_csv`` ->
+          ``odesign.ExportToCsv``.
+        * The method calls ``self._create_boundary(name, props, "Current")``. The type
+          string is looked up in the ``if self.type == "Current":`` branches of the
+          ``create()`` methods, which give the exact native call
+          (``oboundary.AssignCurrent``). Unknown type strings are ignored.
         """
         for entry in self.entries:
+            if entry.kind == "class" or entry.class_name is None:
+                continue
             if entry.native_references or entry.native_calls:
                 continue
             node = self._body_index.get(entry.qualname)
             if node is None:
                 continue
-            copied: list[str] = []  # native calls copied from a helper method
-            rebuilt: list[str] = []  # native names rebuilt from a type name string
-            for call in ast.walk(node):
-                if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)):
-                    continue
-                recv = call.func.value
-                if not (isinstance(recv, ast.Name) and recv.id in ("self", "cls")):
-                    continue
-                helper = call.func.attr
-                if not helper.startswith("_"):
-                    continue
-                # Case 1: this method calls a helper; copy the helper's native calls
-                # (e.g. export_csv -> _export_to_csv -> odesign.ExportToCsv).
-                copied.extend(self._protected_native.get(helper, []))
-                # Case 2: this method calls _create_boundary(.., "Current"); rebuild the
-                # native name as "Assign" + "Current", keeping it only if it really exists.
-                prefix = _DISPATCH_HELPERS.get(helper)
-                if prefix:
-                    literal = _dispatch_literal(call)
-                    if literal:
-                        guess = prefix + literal.replace(" ", "")
-                        if not self._dispatch_native or guess in self._dispatch_native:
-                            rebuilt.append(f"oboundary.{guess}")
-            if copied or rebuilt:
-                entry.native_indirect = list(dict.fromkeys(copied))
-                entry.native_dispatch = list(dict.fromkeys(rebuilt))
+            copied: list[str] = []  # native calls copied from helper methods
+            mapped: list[str] = []  # native calls mapped from a type string
+            self._collect_helper_native(
+                node, entry.class_name, copied, mapped, depth=0, visited=set()
+            )
+            if copied or mapped:
+                entry.native_dispatch = list(dict.fromkeys(mapped))
+                entry.native_indirect = [
+                    c for c in dict.fromkeys(copied) if c not in entry.native_dispatch
+                ]
                 self._compute_tokens(entry)  # redo search words now that a call was added
+
+        # The parsed code is only needed while resolving; release it.
+        self._class_helpers.clear()
+        self._class_bases.clear()
+        self._dispatch_map.clear()
+        self._body_index.clear()
+
+    def _collect_helper_native(
+        self,
+        node: ast.AST,
+        class_name: str,
+        copied: list[str],
+        mapped: list[str],
+        depth: int,
+        visited: set[int],
+    ) -> None:
+        """Collect native calls reached from ``node`` through ``self._helper(...)`` calls."""
+        for call in ast.walk(node):
+            if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)):
+                continue
+            recv = call.func.value
+            if not (isinstance(recv, ast.Name) and recv.id in ("self", "cls")):
+                continue
+            name = call.func.attr
+            if not name.startswith("_") or _is_dunder(name):
+                continue
+            literal = (
+                _dispatch_literal(call, *_DISPATCH_HELPERS[name])
+                if (name in _DISPATCH_HELPERS)
+                else None
+            )
+            if literal is not None:
+                mapped.extend(self._dispatch_map.get(literal, ()))
+                continue
+            helper = self._find_helper(class_name, name)
+            if helper is None or id(helper) in visited:
+                continue
+            visited.add(id(helper))
+            copied.extend(c for c in _native_calls(helper) if not _is_generic_native(c))
+            if depth + 1 < _MAX_HELPER_DEPTH:
+                self._collect_helper_native(helper, class_name, copied, mapped, depth + 1, visited)
+
+    def _find_helper(
+        self, class_name: str, helper: str
+    ) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+        """Return ``helper`` as defined on ``class_name`` or its nearest base class."""
+        queue = [class_name]
+        seen: set[str] = set()
+        while queue:
+            current = queue.pop(0)
+            if current in seen:
+                continue
+            seen.add(current)
+            found = self._class_helpers.get(current, {}).get(helper)
+            if found is not None:
+                return found
+            queue.extend(self._class_bases.get(current, ()))
+        return None
 
     # ------------------------------------------------------------------
     # Searching
@@ -650,25 +726,78 @@ def _is_native_receiver(name: str) -> bool:
     return any(hint in lower for hint in _NATIVE_RECEIVER_HINTS)
 
 
-def _dispatch_literal(call: ast.Call) -> str | None:
-    """Return the boundary-type string literal of a ``_create_boundary(...)`` call.
+def _is_dunder(name: str) -> bool:
+    return name.startswith("__") and name.endswith("__")
 
-    Handles both the positional (3rd argument) and keyword (``boundary_type=``) forms.
+
+def _is_generic_native(call: str) -> bool:
+    """Return whether a native call only reads state or edits a generic property."""
+    method = call.rsplit(".", 1)[-1]
+    return method in _GENERIC_NATIVE_NAMES or method.startswith(_GENERIC_NATIVE_PREFIXES)
+
+
+def _dispatch_literal(call: ast.Call, position: int, keyword: str) -> str | None:
+    """Return the type-string literal passed to a dispatch helper call, if any.
+
+    Handles both the positional and the keyword form, for example
+    ``_create_boundary(name, props, "Current")`` and ``boundary_type="Current"``.
     """
-    if len(call.args) >= 3 and isinstance(call.args[2], ast.Constant):
-        value = call.args[2].value
-        if isinstance(value, str):
-            return value
-    for kw in call.keywords:
-        if kw.arg == "boundary_type" and isinstance(kw.value, ast.Constant):
-            if isinstance(kw.value.value, str):
-                return kw.value.value
+    candidates: list[ast.expr] = []
+    if len(call.args) > position:
+        candidates.append(call.args[position])
+    candidates.extend(kw.value for kw in call.keywords if kw.arg == keyword)
+    for value in candidates:
+        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+            return value.value
     return None
 
 
-def _native_calls(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
-    calls: dict[str, None] = {}
+def _branch_literals(test: ast.expr) -> list[str]:
+    """Return the strings compared in ``x == "A"``, ``x in ("A", "B")``, or ``... or ...``."""
+    if isinstance(test, ast.BoolOp) and isinstance(test.op, ast.Or):
+        return [lit for value in test.values for lit in _branch_literals(value)]
+    if not (isinstance(test, ast.Compare) and len(test.ops) == 1):
+        return []
+    op, right = test.ops[0], test.comparators[0]
+    if isinstance(op, ast.Eq) and isinstance(right, ast.Constant):
+        return [right.value] if isinstance(right.value, str) else []
+    if isinstance(op, ast.In) and isinstance(right, (ast.List, ast.Tuple, ast.Set)):
+        return [
+            e.value for e in right.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)
+        ]
+    return []
+
+
+def _dispatch_branches(node: ast.FunctionDef | ast.AsyncFunctionDef) -> dict[str, list[str]]:
+    """Map each type string tested in ``node`` to the native calls made in its branch.
+
+    For ``if self.type == "Current": self._app.oboundary.AssignCurrent(...)`` this returns
+    ``{"Current": ["oboundary.AssignCurrent"]}``. Only the branch body is read, not the
+    following ``elif`` branches.
+    """
+    found: dict[str, list[str]] = {}
     for sub in ast.walk(node):
+        if not isinstance(sub, ast.If):
+            continue
+        literals = _branch_literals(sub.test)
+        if not literals:
+            continue
+        calls = _native_calls_in(sub.body)
+        if not calls:
+            continue
+        for literal in literals:
+            known = found.setdefault(literal, [])
+            known.extend(c for c in calls if c not in known)
+    return found
+
+
+def _native_calls(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
+    return _native_calls_in([node])
+
+
+def _native_calls_in(nodes: Iterable[ast.AST]) -> list[str]:
+    calls: dict[str, None] = {}
+    for sub in (n for root in nodes for n in ast.walk(root)):
         if not (isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute)):
             continue
         method = sub.func.attr

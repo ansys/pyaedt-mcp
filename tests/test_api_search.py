@@ -50,6 +50,9 @@ FAKE_MODULE = textwrap.dedent(
         def _private(self):
             return self.oeditor.Delete()
 
+        def _export_report_inner(self, path):
+            return self.omodule.ExportReport(path)
+
 
     class Hfss(Modeler):
         """HFSS application."""
@@ -73,11 +76,53 @@ FAKE_MODULE = textwrap.dedent(
 
             return self._export_to_csv(path)
 
+        def export_report(self, path):
+            """Export a report through two helpers."""
+
+            return self._export_report_outer(path)
+
+        def assign_port(self, assignment):
+            """Assign a port."""
+
+            return self._create_boundary("o", {}, boundary_type="Wave Port")
+
+        def assign_unknown(self, assignment):
+            """Assign a type with no native mapping."""
+
+            return self._create_boundary("u", {}, "Unknown Type")
+
+        def refresh_names(self):
+            """Only reads state through a helper."""
+
+            return self._read_names()
+
         def _export_to_csv(self, path):
             return self.odesign.ExportToCsv(path)
 
+        def _export_report_outer(self, path):
+            self._export_report_inner(path)
+
+        def _read_names(self):
+            self.odesign.ChangeProperty([])
+            return self.oeditor.GetObjectsInGroup("Solids")
+
+        def __getitem__(self, key):
+            return self.oeditor.Delete(key)
+
         def _create_boundary(self, name, props, boundary_type):
             return Boundary(self, name, props, boundary_type).create()
+
+
+    class Icepak:
+        """Icepak application with a same-named helper making a different call."""
+
+        def export_csv(self, path):
+            """Export Icepak results to CSV."""
+
+            return self._export_to_csv(path)
+
+        def _export_to_csv(self, path):
+            return self.odesign.ExportFieldsSummary(path)
 
 
     class Boundary:
@@ -86,6 +131,8 @@ FAKE_MODULE = textwrap.dedent(
         def create(self):
             if self.type == "Current":
                 return self._app.oboundary.AssignCurrent([])
+            elif self.type in ("Wave Port", "Floquet Port"):
+                return self._app.oboundary.AssignWavePort([])
             return False
 
 
@@ -205,6 +252,41 @@ class TestIndirectNative:
         entry, score = next((e, s) for e, s in hits if e.name == "assign_current")
         assert fake_index.describe(entry, score).get("native_api_indirect") is True
 
+    def _entry(self, index, qualname_suffix):
+        index.ensure_loaded()
+        return next(e for e in index.entries if e.qualname.endswith(qualname_suffix))
+
+    def test_type_string_maps_to_exact_native_call(self, fake_index):
+        # The keyword form and an ``in (...)`` branch both resolve to the exact call made
+        # by Boundary.create, not to a guessed "Assign" + type name.
+        entry = self._entry(fake_index, "Hfss.assign_port")
+        assert entry.native_dispatch == ["oboundary.AssignWavePort"]
+
+    def test_unknown_type_string_is_ignored(self, fake_index):
+        assert self._entry(fake_index, "Hfss.assign_unknown").native_api == []
+
+    def test_classes_never_inherit_helper_calls(self, fake_index):
+        fake_index.ensure_loaded()
+        assert not [e for e in fake_index.entries if e.kind == "class" and e.is_indirect]
+
+    def test_helper_resolved_on_own_class(self, fake_index):
+        # Hfss and Icepak both define _export_to_csv with different native calls; each
+        # export_csv must only get the call from its own class.
+        hfss = self._entry(fake_index, "Hfss.export_csv")
+        icepak = self._entry(fake_index, "Icepak.export_csv")
+        assert hfss.native_api == ["odesign.ExportToCsv"]
+        assert icepak.native_api == ["odesign.ExportFieldsSummary"]
+
+    def test_helper_chain_through_base_class(self, fake_index):
+        # export_report -> _export_report_outer (on Hfss) -> _export_report_inner (only
+        # defined on the base class Modeler) -> omodule.ExportReport.
+        entry = self._entry(fake_index, "Hfss.export_report")
+        assert entry.native_api == ["omodule.ExportReport"]
+
+    def test_generic_and_dunder_calls_are_not_copied(self, fake_index):
+        # _read_names only calls ChangeProperty and Get*; __getitem__ is not a helper.
+        assert self._entry(fake_index, "Hfss.refresh_names").native_api == []
+
 
 class TestRealPyAEDTIndex:
     def test_maps_native_create_box(self):
@@ -216,6 +298,25 @@ class TestRealPyAEDTIndex:
         # the native AssignCurrent. Searching for that native name must still find it.
         hits = get_api_index().search("AssignCurrent", top_k=5, scope="native")
         assert any(e.name == "assign_current" for e, _ in hits)
+
+    @pytest.mark.parametrize(
+        ("query", "method"),
+        [
+            ("oModule.AssignOpeningBoundary", "assign_free_opening"),
+            ("oModule.AssignConductingPlateBoundary", "assign_conducting_plate"),
+            ("InsertSphereSetup", "insert_near_field_sphere"),
+        ],
+    )
+    def test_type_string_methods_found_by_native_name(self, query, method):
+        # These methods only reach their native call through _create_boundary with a type
+        # string whose native name is not "Assign" + the type.
+        hits = get_api_index().search(query, top_k=5, scope="native")
+        assert any(e.name == method and e.is_indirect for e, _ in hits)
+
+    def test_no_class_gets_helper_calls(self):
+        index = get_api_index()
+        index.ensure_loaded()
+        assert not [e.name for e in index.entries if e.kind == "class" and e.is_indirect]
 
 
 class TestFindApiTool:
