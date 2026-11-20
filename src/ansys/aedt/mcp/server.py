@@ -17,7 +17,7 @@
 """Lifespan and CLI entry for PyAEDT-MCP with startup options."""
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import importlib
 import sys
 from typing import Any, Optional
@@ -47,6 +47,8 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
         Version of AEDT to use.
     non_graphical : bool
         Whether to run AEDT in non-graphical mode.
+    student_version : bool
+        Whether the startup connection uses the AEDT Student edition.
     connect_on_startup : bool
         Whether to attempt AEDT connection on MCP startup.
     include_context_tools : bool
@@ -59,6 +61,8 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
         Port number for HTTP transport.
     cors_origins : Optional[list[str]]
         List of allowed CORS origins for HTTP transport.
+    code_namespace : dict[str, Any]
+        Variables shared between ``run_python_code`` calls for the active connection.
     """
 
     desktop: Any | None = None  # Using 'Any' to avoid type issues with AEDT variants
@@ -67,12 +71,14 @@ class PyAEDTAppContext(PyAnsysBaseAppContext):
     aedt_port: int | None = None
     aedt_version: str | None = None
     non_graphical: bool = True
+    student_version: bool = False
     connect_on_startup: bool = False
     include_context_tools: bool = False
     dynamic_tool_discovery: bool = False
     http_host: str = "127.0.0.1"
     http_port: int = 8080
     cors_origins: list[str] | None = None
+    code_namespace: dict[str, Any] = field(default_factory=dict)
 
     @property
     def product_instance(self) -> Optional[Any]:
@@ -95,6 +101,11 @@ class PyAEDTMCP(PyAnsysBaseMCP):
     """FastMCP server for managing AEDT instances."""
 
     def __init__(self, name: str = "PyAEDT-MCP", *args, **kwargs):
+        # PyAEDT-MCP executes user code in-process (``run_python_code``) so that it can
+        # share the live ``Desktop`` handle. The persistent Python subprocess offered by
+        # the base class is never used, and starting it imports Matplotlib and PyVista in
+        # an extra interpreter on every server start. Skip it unless explicitly requested.
+        kwargs.setdefault("need_python", False)
         super().__init__(name=name, *args, **kwargs)
 
     def create_context(self) -> PyAEDTAppContext:
@@ -127,6 +138,7 @@ class PyAEDTMCP(PyAnsysBaseMCP):
             context.aedt_port = cli_cfg.get("aedt_port", context.aedt_port)
             context.aedt_version = cli_cfg.get("aedt_version", context.aedt_version)
             context.non_graphical = cli_cfg.get("non_graphical", context.non_graphical)
+            context.student_version = cli_cfg.get("student_version", context.student_version)
             context.connect_on_startup = cli_cfg.get(
                 "connect_on_startup", context.connect_on_startup
             )
@@ -154,8 +166,11 @@ class PyAEDTMCP(PyAnsysBaseMCP):
                 from ansys.aedt.core import Desktop
                 from ansys.aedt.core.generic.settings import settings
 
+                from ansys.aedt.mcp.helpers import install_fast_process_lookup
+
                 # Enable gRPC API
                 settings.use_grpc_api = True
+                install_fast_process_lookup()
 
                 logger.info(
                     "Attempting to connect to AEDT at "
@@ -169,6 +184,7 @@ class PyAEDTMCP(PyAnsysBaseMCP):
                     new_desktop=False,
                     machine=context.aedt_machine,
                     port=context.aedt_port,
+                    student_version=context.student_version,
                 )
                 logger.info("Successfully connected to AEDT on startup.")
 
@@ -301,6 +317,11 @@ def launcher(argv: list[str] | None = None) -> None:
         help="Run AEDT in graphical mode",
     )
     parser.add_argument(
+        "--student-version",
+        action="store_true",
+        help="Use AEDT Student edition for the startup connection",
+    )
+    parser.add_argument(
         "--connect",
         dest="connect_on_startup",
         action="store_true",
@@ -365,6 +386,7 @@ def launcher(argv: list[str] | None = None) -> None:
             "aedt_port": args.aedt_port,
             "aedt_version": args.aedt_version,
             "non_graphical": args.non_graphical,
+            "student_version": args.student_version,
             "connect_on_startup": session.connect_on_startup,
             "include_context_tools": bool(args.include_context_tools),
             "dynamic_tool_discovery": bool(args.dynamic_tool_discovery),

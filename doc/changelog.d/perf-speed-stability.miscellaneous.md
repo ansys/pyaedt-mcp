@@ -1,0 +1,1 @@
+Improve MCP server speed, footprint and event-loop responsiveness; add reusable benchmarks; return open projects and designs from connect_to_aedt and launch_aedt, and add app_type to connect_to_aedt to create a design in the same call
