@@ -100,7 +100,7 @@ Optional (enabled only with ``--include-context``)
 .. note::
    When ``--connect`` is used on startup, the connection is locked and
    ``launch_aedt``, ``connect_to_aedt``, and ``disconnect_from_aedt`` are
-   disabled for the lifetime of the server.
+   unavailable for the lifetime of the server.
 
 Tool usage
 ----------
