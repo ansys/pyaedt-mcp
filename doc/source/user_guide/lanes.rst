@@ -152,8 +152,8 @@ These commands work even when no MCP client is running:
    ansys-aedt-mcp --lanes dashboard [--port 8765] [--refresh 30] [--no-browser]
 
 The dashboard is a read-only local web page served on ``127.0.0.1``. It shows
-whether each lane is up, busy, or degraded, together with its AEDT port and
-recent log activity. It never opens an MCP session, so it cannot block a busy
+whether each lane is up, busy, or degraded. It also shows the AEDT port and
+recent log activity of each lane. It never opens an MCP session, so it cannot block a busy
 lane.
 
 State and logs

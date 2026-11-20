@@ -103,7 +103,7 @@ Optional (enabled only with ``--include-context``)
 Optional (enabled only with ``--lanes``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With ``ansys-aedt-mcp --lanes``, all the tools above are routed to the
+With ``ansys-aedt-mcp --lanes``, all the preceding tools are routed to the
 selected lane, and lane management tools (``list_lanes``, ``spawn_lane``,
 ``switch_lane``, ``stop_lane``, ``check_lane``, ``recycle_lane``, and others)
 are added. For details, see :ref:`ref_lanes`.
