@@ -9,67 +9,6 @@ This section contains the release notes for PyAEDT-MCP.
 
 .. towncrier release notes start
 
-`0.4.0 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.4.0>`_ - November 20, 2026
-======================================================================================
-
-.. tab-set::
-
-
-  .. tab-item:: Added
-
-    .. list-table::
-        :header-rows: 0
-        :widths: auto
-
-        * - Find api indirect native
-          - `#175 <https://github.com/ansys/pyaedt-mcp/pull/175>`_
-
-
-  .. tab-item:: Dependencies
-
-    .. list-table::
-        :header-rows: 0
-        :widths: auto
-
-        * - Bump the actions group with 18 updates
-          - `#158 <https://github.com/ansys/pyaedt-mcp/pull/158>`_
-
-        * - Bump https://github.com/pre-commit/mirrors-mypy from v2.4.0 to 2.4.1 in the pre-commit group
-          - `#170 <https://github.com/ansys/pyaedt-mcp/pull/170>`_
-
-        * - Bump the pip-deps group with 2 updates
-          - `#171 <https://github.com/ansys/pyaedt-mcp/pull/171>`_, `#173 <https://github.com/ansys/pyaedt-mcp/pull/173>`_
-
-        * - Bump the pre-commit group with 2 updates
-          - `#172 <https://github.com/ansys/pyaedt-mcp/pull/172>`_
-
-        * - Bump the actions group with 15 updates
-          - `#174 <https://github.com/ansys/pyaedt-mcp/pull/174>`_
-
-
-  .. tab-item:: Maintenance
-
-    .. list-table::
-        :header-rows: 0
-        :widths: auto
-
-        * - Update CHANGELOG for v0.3.2
-          - `#167 <https://github.com/ansys/pyaedt-mcp/pull/167>`_
-
-
-  .. tab-item:: Miscellaneous
-
-    .. list-table::
-        :header-rows: 0
-        :widths: auto
-
-        * - Improve MCP server speed, footprint and event-loop responsiveness; add reusable benchmarks; return open projects and designs from connect_to_aedt and launch_aedt, and add app_type to connect_to_aedt to create a design in the same call
-          - `#perf-speed-stability <https://github.com/ansys/pyaedt-mcp/pull/perf-speed-stability>`_
-
-        * - Improve MCP server speed and stability
-          - `#176 <https://github.com/ansys/pyaedt-mcp/pull/176>`_
-
-
 `0.3.2 <https://github.com/ansys/pyaedt-mcp/releases/tag/v0.3.2>`_ - November 05, 2026
 ======================================================================================
 
