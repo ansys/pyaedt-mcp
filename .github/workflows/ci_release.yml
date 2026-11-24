@@ -248,8 +248,8 @@ jobs:
           $filename = (get-ChildItem installer -recurse | where {$_.name -like "*MCP-Installer*"}).Name
           $jobname = $filename -replace ".{4}$"
           .\SynSign.exe sign `
-            --signUrl https://csign.ansys.com `
-            -r gh_signtool_account `
+            --signUrl https://csign.internal.synopsys.com `
+            -r svc-gh_signtool `
             -s $env:SIGNTOOL_PWD `
             -n $jobname `
             -i installer/$filename `
