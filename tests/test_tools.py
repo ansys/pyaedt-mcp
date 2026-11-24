@@ -316,6 +316,48 @@ class TestCheckAEDTStatus:
             assert data["connection"]["version"] == "2026.1"
             assert data["connection"]["is_grpc"] is True
 
+    @pytest.mark.asyncio
+    async def test_waits_for_in_flight_disconnect(self, mock_context):
+        """A status check issued in parallel with disconnect reports the final state."""
+        import threading
+
+        import anyio
+
+        from ansys.aedt.mcp.tools import check_aedt_status, disconnect_from_aedt
+
+        release_started = threading.Event()
+        finish_release = threading.Event()
+
+        def slow_release(**_kwargs):
+            release_started.set()
+            finish_release.wait(5)
+
+        mock_context.request_context.lifespan_context.desktop.release_desktop.side_effect = (
+            slow_release
+        )
+        results = {}
+
+        async def run_disconnect():
+            results["disconnect"] = await disconnect_from_aedt(mock_context, close_desktop=False)
+
+        async def run_status():
+            await anyio.to_thread.run_sync(release_started.wait, 5)
+            results["status"] = await anyio.to_thread.run_sync(check_aedt_status, mock_context)
+
+        async def finish_later():
+            await anyio.to_thread.run_sync(release_started.wait, 5)
+            await anyio.sleep(0.3)
+            finish_release.set()
+
+        with patch("ansys.aedt.mcp.tools.discover_available_aedt_sessions", return_value=[]):
+            async with anyio.create_task_group() as tg:
+                tg.start_soon(run_disconnect)
+                tg.start_soon(run_status)
+                tg.start_soon(finish_later)
+
+        assert "Successfully disconnected" in results["disconnect"]
+        assert json.loads(results["status"])["connected"] is False
+
 
 @pytest.mark.unit
 class TestLaunchAEDT:
@@ -593,7 +635,66 @@ class TestConnectToAEDT:
 
         mock_cfg.assert_called_once_with(enable_grpc=True)
         assert mock_desktop.call_args[1]["port"] == 50051
+        # The version of the session on the target port is used, not the latest stable one.
+        assert mock_desktop.call_args[1]["version"] == "2027.1"
         assert "Successfully connected to AEDT" in result
+        assert "WARNING" not in result
+
+    @pytest.mark.asyncio
+    async def test_connect_warns_when_pyaedt_starts_new_session(self, mock_context_no_desktop):
+        """connect_to_aedt reports when PyAEDT launched a new AEDT instead of attaching."""
+        from ansys.aedt.mcp.tools import connect_to_aedt
+
+        fake_desktop = MagicMock()
+        fake_desktop.aedt_version_id = "2026.1"
+        fake_desktop.is_grpc_api = True
+        fake_desktop.port = 55693
+        fake_desktop.aedt_process_id = 33652
+        fake_desktop.launched_by_pyaedt = True
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch(
+                "ansys.aedt.mcp.tools.discover_available_aedt_sessions",
+                return_value=[
+                    {
+                        "pid": 3624,
+                        "port": 50051,
+                        "mode": "grpc",
+                        "version": "2027.1",
+                        "non_graphical": False,
+                        "student_version": False,
+                        "connectable": True,
+                    }
+                ],
+            ),
+            patch("ansys.aedt.mcp.connection.loaded_aedt_client_version", return_value=None),
+            patch("ansys.aedt.core.Desktop", return_value=fake_desktop),
+            patch("ansys.aedt.mcp.tools._configure_pyaedt_runtime_settings"),
+        ):
+            result = await connect_to_aedt(mock_context_no_desktop, port=50051)
+
+        assert result.startswith("WARNING: PyAEDT did not attach to the session on port 50051")
+        assert "PID 33652, port 55693" in result
+        assert "Successfully connected to AEDT at localhost:55693" in result
+        assert mock_context_no_desktop.request_context.lifespan_context.aedt_port == 55693
+
+    @pytest.mark.asyncio
+    async def test_connect_refuses_other_version_after_client_loaded(self, mock_context_no_desktop):
+        """connect_to_aedt explains the restart instead of hitting WinError 127."""
+        from ansys.aedt.mcp.tools import connect_to_aedt
+
+        with (
+            patch("ansys.aedt.mcp.tools._is_docker", return_value=False),
+            patch("ansys.aedt.mcp.tools.discover_available_aedt_sessions", return_value=[]),
+            patch("ansys.aedt.mcp.connection.loaded_aedt_client_version", return_value="2026.1"),
+            patch("ansys.aedt.core.Desktop") as mock_desktop,
+        ):
+            result = await connect_to_aedt(mock_context_no_desktop, port=50051, version="271")
+
+        mock_desktop.assert_not_called()
+        assert "already loaded the AEDT 2026.1 gRPC client library" in result
+        assert "Restart the MCP server" in result
 
 
 @pytest.mark.unit

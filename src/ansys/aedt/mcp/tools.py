@@ -44,6 +44,16 @@ from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from ansys.aedt.mcp import app
+from ansys.aedt.mcp.connection import (
+    actual_desktop_port,
+    check_client_version,
+    connection_change,
+    describe_connection_mismatch,
+    explain_connection_error,
+    find_session_on_port,
+    resolve_connect_version,
+    wait_for_connection_changes,
+)
 from ansys.aedt.mcp.helpers import (
     _is_docker,
     _probe_grpc_endpoint,
@@ -597,6 +607,7 @@ def check_aedt_status(ctx: Context) -> str:
 
         Returns an error message if AEDT is not available.
     """
+    wait_for_connection_changes(timeout=_TIMEOUT_QUICK - 10)
     desktop = ctx.request_context.lifespan_context.desktop
     available_sessions = discover_available_aedt_sessions()
     connectable_sessions = [
@@ -878,6 +889,7 @@ def check_aedt_installed(ctx: Context) -> str:
 
 
 @app.tool(tags={"aedt_tools", "locked_connection"}, timeout=_TIMEOUT_MEDIUM)
+@connection_change
 async def launch_aedt(
     ctx: Context,
     version: str | None = None,
@@ -971,6 +983,8 @@ async def launch_aedt(
             if not version:
                 raise RuntimeError("No AEDT versions found installed on this system.")
         kwargs["version"] = version
+        if conflict := check_client_version(version):
+            return conflict
 
         def _launch() -> tuple[Any, Any]:
             from ansys.aedt.core import Desktop
@@ -1008,12 +1022,13 @@ async def launch_aedt(
         return message + await anyio.to_thread.run_sync(_describe_session, desktop)
 
     except Exception as e:
-        error_msg = f"Failed to launch AEDT: {str(e)}"
+        error_msg = explain_connection_error(f"Failed to launch AEDT: {str(e)}", e)
         logger.error(error_msg)
         return error_msg
 
 
 @app.tool(tags={"aedt_tools", "locked_connection"}, timeout=_TIMEOUT_MEDIUM)
+@connection_change
 async def connect_to_aedt(
     ctx: Context,
     port: int | None = None,
@@ -1042,8 +1057,9 @@ async def connect_to_aedt(
     machine : str, default: ``"localhost"``
         Machine hostname or IP address where AEDT is running.
     version : str, default: ``None``
-        AEDT version to connect to. If ``None``, the tool automatically detects
-        the version.
+        AEDT version to connect to. If ``None``, the version of the discovered
+        local session on the target port is used, so PyAEDT loads the matching
+        gRPC client instead of starting a new AEDT session.
     non_graphical : bool, default: ``True``
         Whether AEDT is running in non-graphical mode.
     project_name : str, default: ``None``
@@ -1089,16 +1105,17 @@ async def connect_to_aedt(
         if port is None:
             port = int(os.environ.get("AEDT_PORT", "50051"))
         logger.info(f"Docker detected – using AEDT endpoint {machine}:{port}")
-    elif machine == "localhost" and port is None:
+        discovered_sessions: list[dict[str, Any]] = []
+    elif machine == "localhost":
         discovered_sessions = [
             session_info
             for session_info in await anyio.to_thread.run_sync(discover_available_aedt_sessions)
             if session_info.get("connectable")
         ]
-        if len(discovered_sessions) == 1:
+        if port is None and len(discovered_sessions) == 1:
             port = int(discovered_sessions[0]["port"])
             logger.info("Auto-selected local AEDT gRPC session on port %s", port)
-        elif len(discovered_sessions) > 1:
+        elif port is None and len(discovered_sessions) > 1:
             return (
                 "Multiple running AEDT gRPC sessions are available. "
                 "Ask the user which one to attach, or whether to open a new session. "
@@ -1106,9 +1123,16 @@ async def connect_to_aedt(
                 "launch_aedt(confirm_new_session=True).\n"
                 + _summarize_available_sessions(discovered_sessions)
             )
+    else:
+        discovered_sessions = []
 
     if port is None:
         port = 50051
+
+    target_session = find_session_on_port(discovered_sessions, port)
+    version = resolve_connect_version(version, target_session)
+    if conflict := check_client_version(version):
+        return conflict
 
     try:
         # Connect to existing AEDT instance
@@ -1175,16 +1199,20 @@ async def connect_to_aedt(
         ) = await anyio.to_thread.run_sync(_connect)
 
         # Store in context for later use
+        actual_port = actual_desktop_port(desktop, port)
         ctx.request_context.lifespan_context.desktop = desktop
-        ctx.request_context.lifespan_context.aedt_port = port
+        ctx.request_context.lifespan_context.aedt_port = actual_port
 
         await ctx.enable_components(tags={REQUIRES_AEDT_TAG})
-        logger.info(f"Connected to AEDT successfully at {machine}:{port}!")
+        logger.info(f"Connected to AEDT successfully at {machine}:{actual_port}!")
         message = (
-            f"Successfully connected to AEDT at {machine}:{port}\n."
+            f"Successfully connected to AEDT at {machine}:{actual_port}\n"
             f"Version: {desktop.aedt_version_id}\n"
             f"gRPC Mode: {desktop.is_grpc_api}\n"
         )
+        if mismatch := describe_connection_mismatch(desktop, port, target_session):
+            logger.warning(mismatch)
+            message = f"{mismatch}\n{message}"
         if created_app is not None:
             message += f"Created {app_type} design\n" + _describe_design(created_app)
         elif creation_error is not None:
@@ -1218,12 +1246,15 @@ async def connect_to_aedt(
         return message + session_summary
 
     except Exception as e:
-        error_msg = f"Failed to connect to AEDT at {machine}:{port}: {str(e)}"
+        error_msg = explain_connection_error(
+            f"Failed to connect to AEDT at {machine}:{port}: {str(e)}", e
+        )
         logger.error(error_msg)
         return error_msg
 
 
 @app.tool(tags={"aedt_tools", "locked_connection", REQUIRES_AEDT_TAG}, timeout=_TIMEOUT_MEDIUM)
+@connection_change
 async def disconnect_from_aedt(
     ctx: Context,
     close_projects: bool = False,
