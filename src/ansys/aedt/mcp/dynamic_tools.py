@@ -90,7 +90,7 @@ async def _describe_tools(provider: FileSystemProvider) -> list[dict[str, Any]]:
             {
                 "name": mcp_tool.name,
                 "description": mcp_tool.description,
-                "inputSchema": mcp_tool.inputSchema,
+                "inputSchema": mcp_tool.input_schema,
             }
         )
     return definitions
