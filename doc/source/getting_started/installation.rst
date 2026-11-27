@@ -11,7 +11,7 @@ You can run PyAEDT-MCP in two modes:
 Check prerequisites
 -------------------
 
-- Python 3.13 or later (3.13 recommended)
+- Python 3.13 through 3.15 (3.13 recommended)
 - `Git <https://git-scm.com/downloads>`_ to install or run PyAEDT-MCP directly
    from this repository with ``uv``
 - AEDT 2022 R2 or later for gRPC workflows

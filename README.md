@@ -7,7 +7,7 @@
 </p>
 
 [![PyAnsys](https://img.shields.io/badge/Py-Ansys-ffc107.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAABDklEQVQ4jWNgoDfg5mD8vE7q/3bpVyskbW0sMRUwofHD7Dh5OBkZGBgW7/3W2tZpa2tLQEOyOzeEsfumlK2tbVpaGj4N6jIs1lpsDAwMJ278sveMY2BgCA0NFRISwqkhyQ1q/Nyd3zg4OBgYGNjZ2ePi4rB5loGBhZnhxTLJ/9ulv26Q4uVk1NXV/f///////69du4Zdg78lx//t0v+3S88rFISInD59GqIH2esIJ8G9O2/XVwhjzpw5EAam1xkkBJn/bJX+v1365hxxuCAfH9+3b9/+////48cPuNehNsS7cDEzMTAwMMzb+Q2u4dOnT2vWrMHu9ZtzxP9vl/69RVpCkBlZ3N7enoDXBwEAAA+YYitOilMVAAAAAElFTkSuQmCC)](https://docs.pyansys.com/)
-[![Python](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.13%20%7C%203.14%20%7C%203.15-blue.svg)](https://www.python.org/)
 [![License: Apache%202.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -40,7 +40,7 @@ uvx --python 3.13 --from git+https://github.com/ansys/pyaedt-mcp.git ansys-aedt-
 
 ### Install locally
 
-Use a Python 3.13 or later environment (3.13 recommended).
+Use a Python 3.13 through 3.15 environment (3.13 recommended).
 
 ```bash
 pip install git+https://github.com/ansys/pyaedt-mcp.git
@@ -84,7 +84,7 @@ pre-commit install
 
 ## Requirements
 
-- Python 3.13 or later (3.13 recommended)
+- Python 3.13 through 3.15 (3.13 recommended)
 - [Git](https://git-scm.com/downloads) to install or run PyAEDT-MCP directly from this repository with `uv`
 - AEDT 2022 R2 or later for gRPC workflows
 - A local AEDT installation or a reachable remote AEDT gRPC endpoint

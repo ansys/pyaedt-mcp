@@ -16,7 +16,7 @@ downloads and runs PyAEDT-MCP directly from this repository. Follow the `uv
 installation instructions <https://docs.astral.sh/uv/getting-started/installation/>`_.
 
 The examples explicitly select Python 3.13, the recommended version. uv downloads
-it if needed. PyAEDT-MCP requires Python 3.13 or later.
+it if needed. PyAEDT-MCP supports Python 3.13 through 3.15.
 
 For example, on Windows:
 
