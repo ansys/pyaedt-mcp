@@ -54,6 +54,7 @@ from ansys.aedt.mcp.connection import (
     resolve_connect_version,
     wait_for_connection_changes,
 )
+from ansys.aedt.mcp.dynamic_tools import DynamicToolError, call_dynamic_tool, load_dynamic_tools
 from ansys.aedt.mcp.helpers import (
     _is_docker,
     _probe_grpc_endpoint,
@@ -63,7 +64,7 @@ from ansys.aedt.mcp.helpers import (
 )
 from ansys.aedt.mcp.html_window import open_html_window
 from ansys.aedt.mcp.server import session
-from mcp.types import ImageContent, TextContent
+from mcp.types import ImageContent, TextContent, ToolListChangedNotification
 
 logger = get_logger(__name__)
 
@@ -2287,6 +2288,84 @@ def get_model_info(ctx: Context, design_name: str | None = None) -> str:
 
     except Exception as e:
         error_msg = f"Error getting model info: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+
+@app.tool(tags={"dynamic_tools"}, timeout=_TIMEOUT_MEDIUM)
+async def load_tools(
+    ctx: Context,
+    path: Annotated[str, Field(min_length=1)],
+) -> str:
+    """Load extra MCP tools from a folder into this server.
+
+    Call this only when your instructions give you a folder to load. Every
+    Python function in the folder decorated with ``fastmcp.tools.tool``
+    becomes a tool of this server. Loading the same folder again does nothing.
+
+    If the new tools do not appear in your tool list, call them through
+    ``call_loaded_tool`` with the names and input schemas this tool returns.
+
+    Parameters
+    ----------
+    ctx : Context
+        MCP context used to notify the client that the tool list changed.
+    path : str
+        Absolute path or ``file://`` URI of the folder.
+
+    Returns
+    -------
+    str
+        JSON with the loaded folder, the tool definitions, and any files that
+        failed to load.
+    """
+    try:
+        summary, added = await load_dynamic_tools(app, path)
+    except DynamicToolError as e:
+        return f"Error loading tools: {e}"
+    except Exception as e:
+        error_msg = f"Error loading tools: {type(e).__name__}: {e}"
+        logger.error(error_msg)
+        return error_msg
+
+    if added:
+        names = ", ".join(tool["name"] for tool in summary["tools"])
+        logger.info(f"Loaded dynamic tools from {summary['folder']}: {names}")
+        try:
+            await ctx.send_notification(ToolListChangedNotification())
+        except Exception as e:
+            logger.warning(f"Could not notify the client that the tool list changed: {e}")
+    return _to_json(summary)
+
+
+@app.tool(tags={"dynamic_tools"}, timeout=_TIMEOUT_LONG)
+async def call_loaded_tool(
+    name: Annotated[str, Field(min_length=1)],
+    arguments: dict[str, Any] | None = None,
+) -> ToolResult | str:
+    """Call a tool added by ``load_tools`` when it is not in your tool list.
+
+    Use this only if your client did not refresh its tool list after
+    ``load_tools``. Prefer calling the loaded tool directly when you can.
+
+    Parameters
+    ----------
+    name : str
+        Name of a tool returned by ``load_tools``.
+    arguments : dict, default: None
+        Arguments that match the tool input schema returned by ``load_tools``.
+
+    Returns
+    -------
+    ToolResult or str
+        Result of the loaded tool, or an error message.
+    """
+    try:
+        return await call_dynamic_tool(app, name, arguments or {})
+    except DynamicToolError as e:
+        return f"Error: {e}"
+    except Exception as e:
+        error_msg = f"Error calling {name}: {type(e).__name__}: {e}"
         logger.error(error_msg)
         return error_msg
 

@@ -21,6 +21,9 @@ PyAEDT-MCP supports this runtime loop:
 2. Launch AEDT or connect to an existing gRPC session.
 3. Open projects, create designs, run analyses, inspect the model, and export results.
 4. Use `run_python_code` or `run_python_script` for custom PyAEDT work.
+5. Use `load_tools` to add extra tools from a folder of Python files at runtime.
+
+Dynamic tools are functions decorated with `fastmcp.tools.tool` in the Python files of a folder. Set the `PYAEDT_MCP_DYNAMIC_TOOL_ROOTS` environment variable, with folders separated by the OS path separator, to accept only folders under those roots. If a client does not refresh its tool list after loading, call the new tools through `call_loaded_tool`.
 
 Supported AEDT applications include HFSS, Maxwell 2D/3D, Q2D, Q3D, Icepak, Circuit, TwinBuilder, Mechanical, EMIT, RMXprt, and HFSS 3D Layout.
 

@@ -188,6 +188,24 @@ _TOOLSET_CATALOGUE: dict[str, dict[str, Any]] = {
             "get_guidelines_for",
         ],
     },
+    "dynamic-tools": {
+        "description": (
+            "Tools for loading extra MCP tools from a folder at runtime, and "
+            "for calling them when the client does not refresh its tool list."
+        ),
+        "skill": (
+            "Call load_tools only when your instructions give you a folder to "
+            "load, and pass that exact folder. It adds the tools in that "
+            "folder to this server and returns their names and input schemas. "
+            "Call the new tools directly. If they do not appear in your tool "
+            "list, call them through call_loaded_tool with a name and "
+            "arguments from the load_tools result. Never guess folders."
+        ),
+        "tools": [
+            "load_tools",
+            "call_loaded_tool",
+        ],
+    },
 }
 
 

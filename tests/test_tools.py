@@ -26,7 +26,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from ansys.aedt.mcp import tools  # noqa: F401 - import to register tools
+from ansys.aedt.mcp import dynamic_tools, tools  # noqa: F401 - import to register tools
 from ansys.aedt.mcp.server import PyAEDTAppContext
 
 
@@ -2419,6 +2419,8 @@ class TestRequiresAEDTVisibility:
             "get_pyaedt_logs",
             "find_api",
             "get_guidelines_for",
+            "load_tools",
+            "call_loaded_tool",
         }
 
         async def _list():
@@ -2441,3 +2443,91 @@ class TestRequiresAEDTVisibility:
             "case) or — if the tool genuinely does not need an AEDT "
             "session — add it to ALWAYS_AVAILABLE_TOOLS in this test."
         )
+
+
+_DYNAMIC_TOOL_SOURCE = '''
+from fastmcp.tools import tool
+
+
+@tool
+def dynamic_echo(text: str) -> str:
+    """Echo text back."""
+    return f"echo: {text}"
+'''
+
+
+@pytest.mark.unit
+class TestLoadTools:
+    """Tests for loading MCP tools dynamically from a folder."""
+
+    @pytest.fixture
+    def tool_folder(self, tmp_path, monkeypatch):
+        """Create a folder with one dynamic tool and no root restriction."""
+        folder = tmp_path / "extra" / "tools"
+        folder.mkdir(parents=True)
+        (folder / "echo.py").write_text(_DYNAMIC_TOOL_SOURCE)
+        monkeypatch.delenv(dynamic_tools.DYNAMIC_TOOL_ROOTS_ENV, raising=False)
+        yield folder
+
+        from ansys.aedt.mcp import app
+
+        dynamic_tools.unload_all_dynamic_tools(app)
+
+    async def test_load_and_call_dynamic_tools(self, tool_folder):
+        from fastmcp import Client
+
+        from ansys.aedt.mcp import app
+
+        notifications = []
+
+        async def handler(message):
+            notifications.append(type(getattr(message, "root", message)).__name__)
+
+        async with Client(app, message_handler=handler) as client:
+            assert "dynamic_echo" not in {t.name for t in await client.list_tools()}
+
+            result = await client.call_tool("load_tools", {"path": tool_folder.as_uri()})
+            payload = json.loads(result.content[0].text)
+            assert payload["already_loaded"] is False
+            assert [t["name"] for t in payload["tools"]] == ["dynamic_echo"]
+            assert payload["tools"][0]["inputSchema"]["required"] == ["text"]
+            assert "ToolListChangedNotification" in notifications
+
+            assert "dynamic_echo" in {t.name for t in await client.list_tools()}
+            direct = await client.call_tool("dynamic_echo", {"text": "hi"})
+            assert direct.data == "echo: hi"
+
+            fallback = await client.call_tool(
+                "call_loaded_tool", {"name": "dynamic_echo", "arguments": {"text": "yo"}}
+            )
+            assert fallback.content[0].text == "echo: yo"
+
+            again = await client.call_tool("load_tools", {"path": str(tool_folder)})
+            assert json.loads(again.content[0].text)["already_loaded"] is True
+            assert len(dynamic_tools._loaded_dynamic_tools) == 1
+
+    async def test_roots_restrict_allowed_folders(self, tool_folder, monkeypatch):
+        allowed = tool_folder.parent.parent / "allowed"
+        allowed.mkdir()
+        monkeypatch.setenv(dynamic_tools.DYNAMIC_TOOL_ROOTS_ENV, str(allowed))
+
+        result = await tools.load_tools(MagicMock(), str(tool_folder))
+        assert "outside the allowed folders" in result
+        assert not dynamic_tools._loaded_dynamic_tools
+
+    async def test_rejects_missing_folder(self, tool_folder):
+        result = await tools.load_tools(MagicMock(), str(tool_folder / "missing"))
+        assert result.startswith("Error loading tools:")
+        assert "does not exist" in result
+
+    async def test_rejects_name_clash_with_server_tools(self, tool_folder):
+        (tool_folder / "echo.py").write_text(
+            _DYNAMIC_TOOL_SOURCE.replace("def dynamic_echo", "def list_projects")
+        )
+        result = await tools.load_tools(MagicMock(), str(tool_folder))
+        assert "Names already used by this server: list_projects" in result
+        assert not dynamic_tools._loaded_dynamic_tools
+
+    async def test_call_loaded_tool_rejects_server_tools(self, tool_folder):
+        result = await tools.call_loaded_tool("list_projects")
+        assert "is not a loaded dynamic tool" in result
