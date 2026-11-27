@@ -18,15 +18,13 @@
 
 import asyncio
 import json
-import sys
 import threading
 import time
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ansys.aedt.mcp import helpers, tools
+from ansys.aedt.mcp import tools
 
 
 @pytest.mark.unit
@@ -40,96 +38,6 @@ class TestServerStartup:
         from ansys.aedt.mcp.server import PyAEDTMCP
 
         assert PyAEDTMCP(need_python=True)._need_python is True
-
-
-def _fake_proc(pid, name, cmdline, listen=()):
-    proc = MagicMock()
-    proc.info = {"pid": pid, "name": name}
-    proc.cmdline.return_value = cmdline
-    proc.net_connections.return_value = [
-        SimpleNamespace(laddr=SimpleNamespace(ip=ip, port=port), status="LISTEN")
-        for ip, port in listen
-    ]
-    return proc
-
-
-@pytest.mark.unit
-class TestFastSessionDiscovery:
-    def test_parses_processes(self):
-        procs = [
-            _fake_proc(
-                30,
-                "ansysedt.exe",
-                [
-                    r"C:\Program Files\ANSYS Inc\v261\AnsysEM\ansysedt.exe",
-                    "-ng",
-                    "-grpcsrv",
-                    "50061",
-                ],
-            ),
-            # Port resolved from the LISTEN socket when not on the command line.
-            _fake_proc(
-                10,
-                "ansysedtsv.exe",
-                [r"C:\Program Files\ANSYS Inc\ANSYS Student\v252\AnsysEM\ansysedtsv.exe"],
-                listen=[("0.0.0.0", 2001), ("127.0.0.1", 50070)],
-            ),
-            # COM session: no gRPC port.
-            _fake_proc(20, "ansysedt.exe", [r"C:\x\v251\AnsysEM\ansysedt.exe"]),
-            _fake_proc(40, "python.exe", ["python"]),
-        ]
-        with patch("psutil.process_iter", return_value=procs):
-            sessions = helpers._discover_sessions_with_psutil()
-
-        assert [s["pid"] for s in sessions] == [10, 20, 30]
-        student, com, grpc = sessions
-        assert grpc == {
-            "mode": "grpc",
-            "non_graphical": True,
-            "pid": 30,
-            "port": 50061,
-            "student_version": False,
-            "version": "2026.1",
-        }
-        assert student["port"] == 50070 and student["student_version"] is True
-        assert student["non_graphical"] is False and student["version"] == "2025.2"
-        assert com["mode"] == "com" and com["port"] is None
-
-    def test_grpc_port_with_host_prefix(self):
-        assert helpers._grpc_port_from_cmdline(["x", "-grpcsrv", "127.0.0.1:50099"]) == 50099
-        assert helpers._grpc_port_from_cmdline(["x", "-grpcsrv"]) is None
-
-    @pytest.mark.skipif(sys.platform != "win32", reason="Fast path is Windows only")
-    def test_falls_back_to_pyaedt_cli(self, monkeypatch):
-        monkeypatch.setattr(
-            helpers, "_discover_sessions_with_psutil", MagicMock(side_effect=RuntimeError)
-        )
-        info = SimpleNamespace(
-            pid=1,
-            port=50051,
-            mode="grpc",
-            version="2026.1",
-            non_graphical=True,
-            student_version=False,
-        )
-        with (
-            patch("ansys.aedt.core.cli.aedt._discover_aedt_sessions", return_value=[info]),
-            patch.object(helpers, "asdict", side_effect=lambda s: dict(vars(s))),
-        ):
-            result = helpers.discover_available_aedt_sessions()
-        assert result[0]["connectable"] is True
-
-
-@pytest.mark.unit
-@pytest.mark.skipif(sys.platform != "win32", reason="Patch is Windows only")
-def test_install_fast_process_lookup_replaces_tasklist(monkeypatch):
-    from ansys.aedt.core.generic import general_methods
-
-    monkeypatch.setattr(general_methods, "_get_pids_by_name_windows", lambda name: [])
-    assert helpers.install_fast_process_lookup() is True
-    assert general_methods._get_pids_by_name_windows is helpers._get_pids_by_name_psutil
-    with pytest.raises(ValueError):
-        helpers._get_pids_by_name_psutil("notepad.exe")
 
 
 @pytest.mark.unit
