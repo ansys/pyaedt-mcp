@@ -1,0 +1,216 @@
+
+
+
+
+
+
+:class:`PyAEDTApiIndex`
+=======================
+
+
+.. py:class:: ansys.aedt.mcp.api_search.PyAEDTApiIndex(package_root: pathlib.Path | None = None)
+
+   
+   Lazily built, thread-safe BM25 index over the installed PyAEDT sources.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. py:currentmodule:: PyAEDTApiIndex
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+   .. tab-item:: Methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~ensure_loaded`
+            - Build the index on first use.
+          * - :py:attr:`~subclasses_of`
+            - Return public descendants of a class, concrete (leaf) classes first.
+          * - :py:attr:`~search`
+            - Rank entries for a free-text, PyAEDT-name, or native-API query.
+          * - :py:attr:`~describe`
+            - Serialize an entry for the tool response.
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~k1`
+            - 
+          * - :py:attr:`~b`
+            - 
+          * - :py:attr:`~entries`
+            - 
+          * - :py:attr:`~version`
+            - 
+          * - :py:attr:`~parse_errors`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.api_search import PyAEDTApiIndex
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: k1
+   :value: 1.4
+
+
+.. py:attribute:: b
+   :value: 0.6
+
+
+.. py:attribute:: entries
+   :type:  list[ApiEntry]
+   :value: []
+
+
+.. py:attribute:: version
+   :type:  str | None
+   :value: None
+
+
+.. py:attribute:: parse_errors
+   :type:  list[str]
+   :value: []
+
+
+
+
+Method detail
+-------------
+
+.. py:method:: ensure_loaded() -> None
+
+   
+   Build the index on first use.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: subclasses_of(class_name: str, limit: int = 8) -> list[str]
+
+   
+   Return public descendants of a class, concrete (leaf) classes first.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: search(query: str, *, top_k: int = 5, scope: SearchScope = 'all', kinds: Iterable[str] | None = None, module: str | None = None) -> list[tuple[ApiEntry, float]]
+
+   
+   Rank entries for a free-text, PyAEDT-name, or native-API query.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: describe(entry: ApiEntry, score: float, include_doc: bool = False) -> dict
+
+   
+   Serialize an entry for the tool response.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+

@@ -1,0 +1,139 @@
+
+
+
+
+
+
+:class:`ProxyState`
+===================
+
+
+.. py:class:: ansys.aedt.mcp.lanes.proxy.ProxyState
+
+   
+   Routing state of one proxy process.
+
+
+   :Parameters:
+
+       **host** : :class:`python:str`
+           Host every lane listens on.
+
+       **current_lane** : :class:`python:str`, :obj:`optional`
+           Selected lane, ``None`` until ``spawn_lane`` or ``switch_lane``.
+
+       **startup_timeout** : :class:`python:float`
+           Seconds a new lane gets to bind its port.
+
+       **probe_timeout** : :class:`python:float`, :obj:`optional`
+           Seconds a lane gets to answer a status probe. ``None`` waits forever.
+
+       **handshake_timeout** : :class:`python:float`
+           Seconds a lane gets to answer the MCP handshake of a routed call.
+
+       **backend_args** : :class:`python:list`\[:class:`python:str`]
+           Additional ``ansys-aedt-mcp`` arguments for spawned lanes.
+
+       **in_flight** : :class:`python:dict`\[:class:`python:int`, :class:`python:tuple`\[:class:`python:str`, :class:`python:str`, :class:`python:float`]]
+           Pending routed calls mapped to their lane, tool, and start time.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. py:currentmodule:: ProxyState
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~host`
+            - 
+          * - :py:attr:`~current_lane`
+            - 
+          * - :py:attr:`~startup_timeout`
+            - 
+          * - :py:attr:`~probe_timeout`
+            - 
+          * - :py:attr:`~handshake_timeout`
+            - 
+          * - :py:attr:`~backend_args`
+            - 
+          * - :py:attr:`~in_flight`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.lanes.proxy import ProxyState
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: host
+   :type:  str
+
+.. py:attribute:: current_lane
+   :type:  str | None
+   :value: None
+
+
+.. py:attribute:: startup_timeout
+   :type:  float
+   :value: 60.0
+
+
+.. py:attribute:: probe_timeout
+   :type:  float | None
+   :value: 10.0
+
+
+.. py:attribute:: handshake_timeout
+   :type:  float
+   :value: 5.0
+
+
+.. py:attribute:: backend_args
+   :type:  list[str]
+   :value: []
+
+
+.. py:attribute:: in_flight
+   :type:  dict[int, tuple[str, str, float]]
+
+
+
+
+

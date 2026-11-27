@@ -1,0 +1,187 @@
+
+
+
+
+
+
+The ``client.py`` module
+========================
+
+.. py:module:: ansys.aedt.mcp.lanes.client
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+
+
+
+
+.. py:currentmodule:: client
+.. tab-set::
+
+
+
+
+    .. tab-item:: Classes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.client.LaneAuth`
+            - Send a lane bearer token and record whether the lane rejected it.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.client.BackendClient`
+            - MCP client bound to one lane backend.
+
+
+
+
+    .. tab-item:: Exceptions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.client.BackendAuthError`
+            - Raised when a lane answers HTTP 401 because the token is wrong or missing.
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~aedt_port_from_status`
+            - Return the AEDT gRPC port from a ``check_aedt_status`` payload.
+
+
+
+
+    .. tab-item:: Constants
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~DEFAULT_PATH`
+            - Path of the MCP endpoint served by the HTTP transport.
+
+
+
+
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-cod-symbol_class"></span> LaneAuth</api/ansys/aedt/mcp/lanes/client/LaneAuth>
+    <span class="nf nf-cod-symbol_class"></span> BackendClient</api/ansys/aedt/mcp/lanes/client/BackendClient>
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-md-lightning_bolt"></span> BackendAuthError</api/ansys/aedt/mcp/lanes/client/BackendAuthError>
+
+
+
+
+
+
+
+Description
+-----------
+
+Async MCP client used to drive one lane backend.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: aedt_port_from_status(status: dict[str, Any]) -> int | None
+
+   
+   Return the AEDT gRPC port from a ``check_aedt_status`` payload.
+
+
+   :Parameters:
+
+       **status** : :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Parsed ``check_aedt_status`` output.
+
+
+
+   :Returns:
+
+       :class:`python:int` or :data:`python:None`
+           AEDT gRPC port, or ``None`` when the lane is not connected.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: DEFAULT_PATH
+   :value: '/mcp/'
+
+
+   
+   Path of the MCP endpoint served by the HTTP transport.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+

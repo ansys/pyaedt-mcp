@@ -1,0 +1,355 @@
+
+
+
+
+
+
+The ``dashboard.py`` module
+===========================
+
+.. py:module:: ansys.aedt.mcp.lanes.dashboard
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: dashboard
+.. tab-set::
+
+
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~summarize_log`
+            - Summarize the tail of a lane log.
+
+
+          * - :py:obj:`~collect_status`
+            - Build the status document served at ``/api/status``.
+
+
+          * - :py:obj:`~make_handler`
+            - Build the request handler serving the page and the status JSON.
+
+
+          * - :py:obj:`~make_server`
+            - Create the dashboard server on loopback without starting it.
+
+
+          * - :py:obj:`~add_arguments`
+            - Add the dashboard options to a parser.
+
+
+          * - :py:obj:`~run`
+            - Serve the dashboard until interrupted.
+
+
+
+
+    .. tab-item:: Constants
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~DEFAULT_PORT`
+            - 
+
+
+          * - :py:obj:`~DEFAULT_REFRESH_SECONDS`
+            - 
+
+
+          * - :py:obj:`~MIN_REFRESH_SECONDS`
+            - 
+
+
+          * - :py:obj:`~LOG_TAIL_BYTES`
+            - 
+
+
+          * - :py:obj:`~BUSY_WARN_SECONDS`
+            - 
+
+
+          * - :py:obj:`~HOST`
+            - 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Local, read-only status dashboard for lanes.
+
+Serves one HTML page and one JSON endpoint on ``127.0.0.1``. Status comes
+only from cheap, static sources: the registry file, process liveness, TCP
+connects to the registered ports, and the tail of each lane log. The
+dashboard never opens an MCP session, so it cannot load or be blocked by a
+busy lane.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: summarize_log(path: pathlib.Path, now: float | None = None) -> dict[str, Any]
+
+   
+   Summarize the tail of a lane log.
+
+   A call is considered in progress when the most recent MCP protocol event
+   in the log is a ``CallToolRequest``. This is a heuristic: the lane may
+   also be frozen inside the call.
+
+   :Parameters:
+
+       **path** : :obj:`pathlib.Path`
+           Lane log file.
+
+       **now** : :class:`python:float`, :obj:`optional`
+           Current POSIX time. Defaults to :func:`time.time`.
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Log size, idle time, last protocol event, running call, and last error.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: collect_status(refresh_seconds: int = DEFAULT_REFRESH_SECONDS) -> dict[str, Any]
+
+   
+   Build the status document served at ``/api/status``.
+
+   The registry is read without the lock: writers replace the file
+   atomically, and a monitor must never contend with the live registry.
+
+   :Parameters:
+
+       **refresh_seconds** : :class:`python:int`, default: 30
+           Refresh interval suggested to the page.
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Registry details and per-lane status. Lane tokens are never included.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: make_handler(refresh_seconds: int) -> type[http.server.BaseHTTPRequestHandler]
+
+   
+   Build the request handler serving the page and the status JSON.
+
+
+   :Parameters:
+
+       **refresh_seconds** : :class:`python:int`
+           Refresh interval suggested to the page.
+
+
+
+   :Returns:
+
+       :obj:`type`\[:obj:`http.server.BaseHTTPRequestHandler`]
+           Handler class.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: make_server(port: int, refresh_seconds: int) -> http.server.ThreadingHTTPServer
+
+   
+   Create the dashboard server on loopback without starting it.
+
+
+   :Parameters:
+
+       **port** : :class:`python:int`
+           Port to bind. ``0`` picks a free port.
+
+       **refresh_seconds** : :class:`python:int`
+           Refresh interval suggested to the page.
+
+
+
+   :Returns:
+
+       :obj:`http.server.ThreadingHTTPServer`
+           Dashboard server.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: add_arguments(parser: argparse.ArgumentParser) -> None
+
+   
+   Add the dashboard options to a parser.
+
+
+   :Parameters:
+
+       **parser** : :obj:`argparse.ArgumentParser`
+           Parser to extend.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: run(port: int, refresh_seconds: int, open_browser: bool = True) -> int
+
+   
+   Serve the dashboard until interrupted.
+
+
+   :Parameters:
+
+       **port** : :class:`python:int`
+           Port to bind.
+
+       **refresh_seconds** : :class:`python:int`
+           Refresh interval suggested to the page.
+
+       **open_browser** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:True`
+           Whether to open the page in a browser.
+
+
+
+   :Returns:
+
+       :class:`python:int`
+           Process exit code.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: DEFAULT_PORT
+   :value: 8765
+
+
+.. py:data:: DEFAULT_REFRESH_SECONDS
+   :value: 30
+
+
+.. py:data:: MIN_REFRESH_SECONDS
+   :value: 2
+
+
+.. py:data:: LOG_TAIL_BYTES
+   :value: 65536
+
+
+.. py:data:: BUSY_WARN_SECONDS
+   :value: 30.0
+
+
+.. py:data:: HOST
+   :value: '127.0.0.1'
+
+
+
+

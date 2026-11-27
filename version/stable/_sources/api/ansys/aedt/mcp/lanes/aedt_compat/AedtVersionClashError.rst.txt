@@ -1,0 +1,49 @@
+
+
+
+
+
+
+:class:`AedtVersionClashError`
+==============================
+
+
+.. py:exception:: ansys.aedt.mcp.lanes.aedt_compat.AedtVersionClashError
+
+   Bases: :py:obj:`RuntimeError`
+
+
+   
+   Raised when the process already loaded another AEDT version's gRPC client.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.lanes.aedt_compat import AedtVersionClashError
+
+
+
+
+

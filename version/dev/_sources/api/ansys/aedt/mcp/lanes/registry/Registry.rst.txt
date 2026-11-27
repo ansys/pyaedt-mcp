@@ -1,0 +1,169 @@
+
+
+
+
+
+
+:class:`Registry`
+=================
+
+
+.. py:class:: ansys.aedt.mcp.lanes.registry.Registry
+
+   
+   In-memory view of the on-disk registry.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+.. py:currentmodule:: Registry
+
+Overview
+--------
+
+.. tab-set::
+
+
+   .. tab-item:: Constructors
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~from_dict`
+            - Rebuild a registry from JSON data.
+
+
+   .. tab-item:: Methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~to_dict`
+            - Return a JSON-serializable representation.
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~schema_version`
+            - 
+          * - :py:attr:`~servers`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.lanes.registry import Registry
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: schema_version
+   :type:  int
+   :value: 1
+
+
+.. py:attribute:: servers
+   :type:  dict[str, ServerEntry]
+
+
+
+Method detail
+-------------
+
+.. py:method:: to_dict() -> dict[str, Any]
+
+   
+   Return a JSON-serializable representation.
+
+
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Serialized registry.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: from_dict(data: dict[str, Any]) -> Registry
+   :classmethod:
+
+
+   
+   Rebuild a registry from JSON data.
+
+   Files with another schema version start empty. Malformed entries are
+   skipped.
+
+   :Parameters:
+
+       **data** : :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Serialized registry.
+
+
+
+   :Returns:
+
+       :obj:`Registry`
+           Rebuilt registry.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+

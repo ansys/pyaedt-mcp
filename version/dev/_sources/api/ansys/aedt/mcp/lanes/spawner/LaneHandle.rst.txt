@@ -1,0 +1,135 @@
+
+
+
+
+
+
+:class:`LaneHandle`
+===================
+
+
+.. py:class:: ansys.aedt.mcp.lanes.spawner.LaneHandle
+
+   
+   Connection details of a running lane.
+
+
+   :Parameters:
+
+       **server_id** : :class:`python:str`
+           Lane name.
+
+       **host** : :class:`python:str`
+           Host the lane listens on.
+
+       **port** : :class:`python:int`
+           HTTP port of the lane.
+
+       **log_path** : :obj:`pathlib.Path`
+           Log file of the lane.
+
+       **pid** : :class:`python:int`, :obj:`optional`
+           Process ID of the lane.
+
+       **auth_token** : :class:`python:str`, :obj:`optional`
+           Bearer token of the lane.
+
+       **spawned** : :ref:`bool <python:bltin-boolean-values>`
+           ``True`` if this call started the lane, ``False`` if it was reused.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. py:currentmodule:: LaneHandle
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~server_id`
+            - 
+          * - :py:attr:`~host`
+            - 
+          * - :py:attr:`~port`
+            - 
+          * - :py:attr:`~log_path`
+            - 
+          * - :py:attr:`~pid`
+            - 
+          * - :py:attr:`~auth_token`
+            - 
+          * - :py:attr:`~spawned`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.lanes.spawner import LaneHandle
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: server_id
+   :type:  str
+
+.. py:attribute:: host
+   :type:  str
+
+.. py:attribute:: port
+   :type:  int
+
+.. py:attribute:: log_path
+   :type:  pathlib.Path
+
+.. py:attribute:: pid
+   :type:  int | None
+   :value: None
+
+
+.. py:attribute:: auth_token
+   :type:  str | None
+   :value: None
+
+
+.. py:attribute:: spawned
+   :type:  bool
+   :value: False
+
+
+
+
+
+

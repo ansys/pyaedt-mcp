@@ -1,0 +1,49 @@
+
+
+
+
+
+
+:class:`RegistryLockTimeoutError`
+=================================
+
+
+.. py:exception:: ansys.aedt.mcp.lanes.registry.RegistryLockTimeoutError
+
+   Bases: :py:obj:`RuntimeError`
+
+
+   
+   Raised when the registry lock cannot be acquired in time.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.lanes.registry import RegistryLockTimeoutError
+
+
+
+
+

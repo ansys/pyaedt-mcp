@@ -1,0 +1,399 @@
+
+
+
+
+
+
+The ``aedt_compat.py`` module
+=============================
+
+.. py:module:: ansys.aedt.mcp.lanes.aedt_compat
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: aedt_compat
+.. tab-set::
+
+
+
+
+
+
+    .. tab-item:: Exceptions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.aedt_compat.AedtVersionClashError`
+            - Raised when the process already loaded another AEDT version's gRPC client.
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~normalize_version`
+            - Normalize an AEDT version to the ``YYYY.R`` form.
+
+
+          * - :py:obj:`~validate_preference`
+            - Validate an ``--aedt-version`` value.
+
+
+          * - :py:obj:`~resolve_default_version`
+            - Map an ``--aedt-version`` preference to the version to pin.
+
+
+          * - :py:obj:`~pin_default_version`
+            - Make ``version`` the PyAEDT default for this process.
+
+
+          * - :py:obj:`~rewrite_desktop_arguments`
+            - Fix ``Desktop.__init__`` arguments in place.
+
+
+          * - :py:obj:`~install`
+            - Apply the version fixes to this process.
+
+
+
+    .. tab-item:: Attributes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~logger`
+            - 
+
+
+
+    .. tab-item:: Constants
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~VERSION_ENV`
+            - Environment variable forwarding ``--aedt-version`` to lane backends.
+
+
+          * - :py:obj:`~DEFAULT_PREFERENCE`
+            - 
+
+
+
+
+
+
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-md-lightning_bolt"></span> AedtVersionClashError</api/ansys/aedt/mcp/lanes/aedt_compat/AedtVersionClashError>
+
+
+
+
+
+
+
+Description
+-----------
+
+In-process PyAEDT version fixes applied by lane backends.
+
+PyAEDT treats the newest installed AEDT that is not newer than its
+``CURRENT_STABLE_AEDT_VERSION`` as the default. With a newer AEDT installed,
+``launch_aedt`` without a version starts the older release, and
+``connect_to_aedt(port=...)`` can decide the port belongs to another AEDT
+version and launch a new session instead of attaching. Also, once a process
+loads the gRPC client of one AEDT version it can never attach to another
+version (``[WinError 127] The specified procedure could not be found``).
+
+:func:`install` addresses this without modifying PyAEDT:
+
+* The default version becomes the newest installed AEDT, or the one chosen
+  with ``--aedt-version``.
+* Attaching to a local port uses the version of the AEDT process on that port.
+* Attaching to a version the process can no longer load fails fast with an
+  actionable message.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: normalize_version(value: Any) -> str
+
+   
+   Normalize an AEDT version to the ``YYYY.R`` form.
+
+
+   :Parameters:
+
+       **value** : :obj:`Any`
+           Version such as ``"271"``, ``"27.1"``, ``"2027.1"``, or ``"2027 R1"``.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Normalized version, for example ``"2027.1"``.
+
+
+
+
+   :Raises:
+
+       :obj:`ValueError`
+           If ``value`` is not a recognized AEDT version.
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: validate_preference(value: str) -> str
+
+   
+   Validate an ``--aedt-version`` value.
+
+
+   :Parameters:
+
+       **value** : :class:`python:str`
+           ``"latest"``, ``"pyaedt"``, or an AEDT version.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Normalized preference.
+
+
+
+
+   :Raises:
+
+       :obj:`ValueError`
+           If ``value`` is not a valid preference.
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: resolve_default_version(preference: str, installed: collections.abc.Iterable[str]) -> str | None
+
+   
+   Map an ``--aedt-version`` preference to the version to pin.
+
+
+   :Parameters:
+
+       **preference** : :class:`python:str`
+           ``"latest"`` picks the newest regular release in ``installed``,
+           ignoring student and client variants. ``"pyaedt"`` keeps the PyAEDT
+           default. Any other value is an explicit version.
+
+       **installed** : :obj:`Iterable`\[:class:`python:str`]
+           Installed version keys, as in ``aedt_versions.installed_versions``.
+
+
+
+   :Returns:
+
+       :class:`python:str` or :data:`python:None`
+           Version to pin, or ``None`` to leave PyAEDT unchanged.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: pin_default_version(version: str) -> None
+
+   
+   Make ``version`` the PyAEDT default for this process.
+
+
+   :Parameters:
+
+       **version** : :class:`python:str`
+           Normalized AEDT version.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: rewrite_desktop_arguments(arguments: dict[str, Any], *, find_session: collections.abc.Callable[[int], tuple[str, bool] | None], installed: dict[str, str], loaded_plugin_dir: str | None, reusing_session: bool) -> list[str]
+
+   
+   Fix ``Desktop.__init__`` arguments in place.
+
+
+   :Parameters:
+
+       **arguments** : :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Bound ``Desktop.__init__`` arguments with defaults applied.
+
+       **find_session** : :obj:`Callable`\[[:class:`python:int`], :class:`python:tuple`\[:class:`python:str`, :ref:`bool <python:bltin-boolean-values>`] | :data:`python:None`]
+           Returns the version and student flag of the AEDT serving a port.
+
+       **installed** : :class:`python:dict`\[:class:`python:str`, :class:`python:str`]
+           Installed versions mapped to their installation directories.
+
+       **loaded_plugin_dir** : :class:`python:str`, :obj:`optional`
+           Directory of the gRPC client already loaded by the process.
+
+       **reusing_session** : :ref:`bool <python:bltin-boolean-values>`
+           Whether PyAEDT is about to return an existing session. In that case
+           nothing is changed.
+
+
+
+   :Returns:
+
+       :class:`python:list`\[:class:`python:str`]
+           Log messages describing the changes.
+
+
+
+
+   :Raises:
+
+       :obj:`AedtVersionClashError`
+           If the target version cannot be loaded by this process.
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: install(preference: str | None = None) -> str | None
+
+   
+   Apply the version fixes to this process.
+
+   Calling it more than once is safe.
+
+   :Parameters:
+
+       **preference** : :class:`python:str`, :obj:`optional`
+           AEDT version preference. Defaults to :data:`VERSION_ENV`, then ``"latest"``.
+
+
+
+   :Returns:
+
+       :class:`python:str` or :data:`python:None`
+           Pinned default version, or ``None`` if the PyAEDT default is kept.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: VERSION_ENV
+   :value: 'ANSYS_AEDT_MCP_LANE_AEDT_VERSION'
+
+
+   
+   Environment variable forwarding ``--aedt-version`` to lane backends.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: DEFAULT_PREFERENCE
+   :value: 'latest'
+
+
+.. py:data:: logger
+
+
+

@@ -1,0 +1,249 @@
+
+
+
+
+
+
+The ``backend.py`` module
+=========================
+
+.. py:module:: ansys.aedt.mcp.lanes.backend
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: backend
+.. tab-set::
+
+
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~make_verifier`
+            - Create a token verifier that accepts exactly ``token``.
+
+
+          * - :py:obj:`~is_lane_backend`
+            - Check whether this process was spawned as a lane backend.
+
+
+          * - :py:obj:`~apply_lane_backend_hooks`
+            - Secure ``app`` with the lane token and apply the AEDT version fixes.
+
+
+
+
+    .. tab-item:: Constants
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~TOKEN_ENV`
+            - Environment variable holding the lane bearer token.
+
+
+          * - :py:obj:`~CLIENT_ID`
+            - Client ID attached to requests authenticated with the lane token.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Hooks that turn a regular HTTP server into a token-protected lane backend.
+
+The lane spawner starts ``python -m ansys.aedt.mcp --transport http ...``
+with a per-lane secret in :data:`TOKEN_ENV`. When :func:`server.launcher
+<ansys.aedt.mcp.server.launcher>` finds that variable, it calls
+:func:`apply_lane_backend_hooks`. That function:
+
+* removes the secret from the environment so AEDT and any other child
+  process never inherit it,
+* requires the lane bearer token on every HTTP request, and
+* applies the PyAEDT version fixes from :mod:`.aedt_compat`.
+
+Without the variable, the server behaves exactly as before.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: make_verifier(token: str) -> fastmcp.server.auth.TokenVerifier
+
+   
+   Create a token verifier that accepts exactly ``token``.
+
+
+   :Parameters:
+
+       **token** : :class:`python:str`
+           Expected bearer token.
+
+
+
+   :Returns:
+
+       :obj:`fastmcp.server.auth.TokenVerifier`
+           Verifier using a constant-time comparison.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: is_lane_backend() -> bool
+
+   
+   Check whether this process was spawned as a lane backend.
+
+
+
+
+
+   :Returns:
+
+       :ref:`bool <python:bltin-boolean-values>`
+           ``True`` if :data:`TOKEN_ENV` is set.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: apply_lane_backend_hooks(app: fastmcp.FastMCP) -> bool
+
+   
+   Secure ``app`` with the lane token and apply the AEDT version fixes.
+
+
+   :Parameters:
+
+       **app** : :obj:`fastmcp.FastMCP`
+           Server about to run as a lane backend.
+
+
+
+   :Returns:
+
+       :ref:`bool <python:bltin-boolean-values>`
+           ``True`` if the hooks were applied, ``False`` if :data:`TOKEN_ENV` is not set.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: TOKEN_ENV
+   :value: 'ANSYS_AEDT_MCP_LANE_TOKEN'
+
+
+   
+   Environment variable holding the lane bearer token.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: CLIENT_ID
+   :value: 'ansys-aedt-mcp-lanes'
+
+
+   
+   Client ID attached to requests authenticated with the lane token.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+

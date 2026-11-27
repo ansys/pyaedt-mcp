@@ -1,0 +1,131 @@
+
+
+
+
+
+
+:class:`LaneAuth`
+=================
+
+
+.. py:class:: ansys.aedt.mcp.lanes.client.LaneAuth(token: str | None)
+
+   Bases: :py:obj:`httpx2.Auth`
+
+
+   
+   Send a lane bearer token and record whether the lane rejected it.
+
+   The MCP client turns an HTTP 401 into a generic error, so the status is
+   captured here, where the raw response is still visible.
+
+   :Parameters:
+
+       **token** : :class:`python:str`, :obj:`optional`
+           Bearer token. When ``None``, no ``Authorization`` header is sent.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. py:currentmodule:: LaneAuth
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+   .. tab-item:: Methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~auth_flow`
+            - Add the bearer token and inspect the response.
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~rejected`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.aedt.mcp.lanes.client import LaneAuth
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: rejected
+   :value: False
+
+
+
+
+Method detail
+-------------
+
+.. py:method:: auth_flow(request: httpx2.Request) -> collections.abc.Generator[httpx2.Request, httpx2.Response, None]
+
+   
+   Add the bearer token and inspect the response.
+
+
+   :Parameters:
+
+       **request** : :obj:`httpx2.Request`
+           Outgoing request.
+
+
+
+
+   :Yields:
+
+       :obj:`httpx2.Request`
+           The authenticated request.
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+

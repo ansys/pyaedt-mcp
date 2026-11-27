@@ -1,0 +1,213 @@
+
+
+
+
+
+
+The ``api_search.py`` module
+============================
+
+.. py:module:: ansys.aedt.mcp.api_search
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+
+
+
+
+.. py:currentmodule:: api_search
+.. tab-set::
+
+
+
+
+    .. tab-item:: Classes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.api_search.ApiEntry`
+            - One searchable PyAEDT API object.
+
+
+          * - :py:obj:`~ansys.aedt.mcp.api_search.PyAEDTApiIndex`
+            - Lazily built, thread-safe BM25 index over the installed PyAEDT sources.
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~tokenize`
+            - Split text into lowercase tokens, breaking camelCase and snake_case words.
+
+
+          * - :py:obj:`~get_api_index`
+            - Return the process-wide PyAEDT API index (built lazily on first search).
+
+
+
+    .. tab-item:: Attributes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~SearchScope`
+            - 
+
+
+          * - :py:obj:`~EntryKind`
+            - 
+
+
+
+    .. tab-item:: Constants
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~DOCS_BASE_URL`
+            - 
+
+
+          * - :py:obj:`~PYAEDT_PACKAGE`
+            - 
+
+
+
+
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-cod-symbol_class"></span> ApiEntry</api/ansys/aedt/mcp/api_search/ApiEntry>
+    <span class="nf nf-cod-symbol_class"></span> PyAEDTApiIndex</api/ansys/aedt/mcp/api_search/PyAEDTApiIndex>
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Offline search over the PyAEDT API.
+
+The index is built by statically parsing (``ast``) the installed
+``ansys.aedt.core`` package, so nothing is imported or executed. Each public
+class, method, property, and function becomes one entry holding its signature,
+docstring, and the native AEDT API calls it relies on. Native calls are
+collected from two sources:
+
+* The ``References`` docstring section (for example ``>>> oModule.AssignRadiation``).
+* Calls in the function body on AEDT COM objects (for example
+  ``self.oeditor.CreateBox(...)``).
+
+This makes it possible to search in both directions: from a PyAEDT concept to
+the method that implements it, and from a native AEDT scripting call to the
+PyAEDT method that wraps it.
+
+Ranking uses BM25 over weighted name, native, summary, and docstring tokens,
+plus boosts for exact name or native method matches.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: tokenize(text: str) -> list[str]
+
+   
+   Split text into lowercase tokens, breaking camelCase and snake_case words.
+
+   Full identifiers are also kept as single tokens (for example ``CreateBox``
+   yields ``create``, ``box`` and ``createbox``) so exact native names match.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_api_index() -> PyAEDTApiIndex
+
+   
+   Return the process-wide PyAEDT API index (built lazily on first search).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: DOCS_BASE_URL
+   :value: 'https://aedt.docs.pyansys.com/version/stable'
+
+
+.. py:data:: PYAEDT_PACKAGE
+   :value: 'ansys.aedt.core'
+
+
+.. py:data:: SearchScope
+
+.. py:data:: EntryKind
+
+
+

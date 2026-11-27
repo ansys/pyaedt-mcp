@@ -1,0 +1,743 @@
+
+
+
+
+
+
+The ``proxy.py`` module
+=======================
+
+.. py:module:: ansys.aedt.mcp.lanes.proxy
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+
+
+.. py:currentmodule:: proxy
+.. tab-set::
+
+
+
+
+    .. tab-item:: Classes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.proxy.ProxyState`
+            - Routing state of one proxy process.
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~lane_url`
+            - Return the MCP endpoint URL of a lane.
+
+
+          * - :py:obj:`~is_auth_rejection`
+            - Check whether an exception is, or wraps, a :class:`BackendAuthError`.
+
+
+          * - :py:obj:`~broken_connection_hint`
+            - Return a recovery hint if a tool output reveals a broken AEDT connection.
+
+
+          * - :py:obj:`~diagnose_status`
+            - Classify a lane ``check_aedt_status`` payload.
+
+
+          * - :py:obj:`~probe_lane_status`
+            - Return a lane ``check_aedt_status`` payload within a time bound.
+
+
+          * - :py:obj:`~probe_lane_aedt_port`
+            - Return the AEDT gRPC port a lane is attached to, within a time bound.
+
+
+          * - :py:obj:`~make_routing_tool`
+            - Build a tool that forwards ``upstream_tool`` to the selected lane.
+
+
+          * - :py:obj:`~list_upstream_tools`
+            - List the tools a lane started with ``backend_args`` would serve.
+
+
+          * - :py:obj:`~build_instructions`
+            - Return the proxy instructions: the regular system prompt plus lane guidance.
+
+
+          * - :py:obj:`~register_management_tools`
+            - Add the lane management and recovery tools to ``server``.
+
+
+          * - :py:obj:`~build_proxy`
+            - Build the routing proxy server.
+
+
+
+    .. tab-item:: Attributes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~logger`
+            - 
+
+
+
+    .. tab-item:: Constants
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~DEFAULT_SHUTDOWN_TIMEOUT`
+            - 
+
+
+          * - :py:obj:`~DEFAULT_PROBE_TIMEOUT`
+            - 
+
+
+          * - :py:obj:`~DEFAULT_HANDSHAKE_TIMEOUT`
+            - 
+
+
+          * - :py:obj:`~DEFAULT_RECONNECT_TIMEOUT`
+            - 
+
+
+          * - :py:obj:`~HEARTBEAT_INTERVAL`
+            - Seconds between progress notifications while a routed call is pending.
+
+
+          * - :py:obj:`~ROUTED_TAG`
+            - 
+
+
+          * - :py:obj:`~LANES_TOOLSET`
+            - 
+
+
+          * - :py:obj:`~UNSUPPORTED_BACKEND_ARGS`
+            - Backend arguments the proxy cannot support.
+
+
+          * - :py:obj:`~LANE_INSTRUCTIONS`
+            - 
+
+
+          * - :py:obj:`~LANES_TOOLSET_ENTRY`
+            - 
+
+
+
+
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-cod-symbol_class"></span> ProxyState</api/ansys/aedt/mcp/lanes/proxy/ProxyState>
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Stdio routing proxy that multiplexes AEDT sessions ("lanes").
+
+The proxy is what an MCP client starts with ``ansys-aedt-mcp --lanes``. It:
+
+1. Lists the regular PyAEDT-MCP tools in-process, applying the same tag
+   filters as the regular CLI. No backend is spawned at startup.
+2. Registers one routing wrapper per tool. Each wrapper forwards the call to
+   the lane selected in this proxy process, or fails fast when none is.
+3. Adds lane management tools (``spawn_lane``, ``switch_lane``, and so on)
+   plus health and recovery helpers.
+
+The selected lane is per proxy process, so every client window gets an
+independent view of the same machine-wide fleet.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: lane_url(host: str, port: int) -> str
+
+   
+   Return the MCP endpoint URL of a lane.
+
+
+   :Parameters:
+
+       **host** : :class:`python:str`
+           Lane host.
+
+       **port** : :class:`python:int`
+           Lane HTTP port.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Endpoint URL.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: is_auth_rejection(exc: BaseException) -> bool
+
+   
+   Check whether an exception is, or wraps, a :class:`BackendAuthError`.
+
+
+   :Parameters:
+
+       **exc** : :obj:`BaseException`
+           Exception to inspect, including exception groups and chained causes.
+
+
+
+   :Returns:
+
+       :ref:`bool <python:bltin-boolean-values>`
+           ``True`` if a lane rejected the token.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: broken_connection_hint(text: str) -> str | None
+
+   
+   Return a recovery hint if a tool output reveals a broken AEDT connection.
+
+
+   :Parameters:
+
+       **text** : :class:`python:str`
+           Text output of a routed tool.
+
+
+
+   :Returns:
+
+       :class:`python:str` or :data:`python:None`
+           Hint pointing at ``check_lane`` and ``recycle_lane``, or ``None``.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: diagnose_status(status: dict[str, Any]) -> dict[str, Any]
+
+   
+   Classify a lane ``check_aedt_status`` payload.
+
+   The AEDT process view comes from the backend's own ``available_sessions``
+   scan; the client view comes from its PyAEDT ``Desktop``.
+
+   :Parameters:
+
+       **status** : :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Parsed ``check_aedt_status`` output.
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           ``verdict`` (``healthy``, ``no_aedt``, ``connection_broken``,
+           ``aedt_gone``, or ``version_mismatch``), a ``detail`` sentence, and the
+           facts the verdict is based on.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: probe_lane_status(host: str, port: int, timeout: float | None = DEFAULT_PROBE_TIMEOUT, auth_token: str | None = None) -> dict[str, Any]
+   :async:
+
+
+   
+   Return a lane ``check_aedt_status`` payload within a time bound.
+
+
+   :Parameters:
+
+       **host** : :class:`python:str`
+           Lane host.
+
+       **port** : :class:`python:int`
+           Lane HTTP port.
+
+       **timeout** : :class:`python:float`, :obj:`optional`
+           Seconds to wait. ``None`` waits forever.
+
+       **auth_token** : :class:`python:str`, :obj:`optional`
+           Lane bearer token.
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :obj:`Any`]
+           Parsed status payload.
+
+
+
+
+   :Raises:
+
+       :obj:`TimeoutError`
+           If the lane does not answer in time.
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: probe_lane_aedt_port(host: str, port: int, timeout: float | None = DEFAULT_PROBE_TIMEOUT, auth_token: str | None = None) -> int | None
+   :async:
+
+
+   
+   Return the AEDT gRPC port a lane is attached to, within a time bound.
+
+
+   :Parameters:
+
+       **host** : :class:`python:str`
+           Lane host.
+
+       **port** : :class:`python:int`
+           Lane HTTP port.
+
+       **timeout** : :class:`python:float`, :obj:`optional`
+           Seconds to wait. ``None`` waits forever.
+
+       **auth_token** : :class:`python:str`, :obj:`optional`
+           Lane bearer token.
+
+
+
+   :Returns:
+
+       :class:`python:int` or :data:`python:None`
+           AEDT gRPC port, or ``None`` when the lane is not attached.
+
+
+
+
+   :Raises:
+
+       :obj:`TimeoutError`
+           If the lane does not answer in time.
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: make_routing_tool(upstream_tool: mcp.types.Tool, state: ProxyState) -> fastmcp.tools.Tool
+
+   
+   Build a tool that forwards ``upstream_tool`` to the selected lane.
+
+   The routed tool keeps the upstream name, description, schemas, title,
+   annotations, and tags, so clients see the same tool surface as with the
+   regular server.
+
+   :Parameters:
+
+       **upstream_tool** : :obj:`mcp.types.Tool`
+           Upstream tool definition.
+
+       **state** : :obj:`ProxyState`
+           Routing state shared by every tool of the proxy.
+
+
+
+   :Returns:
+
+       :obj:`fastmcp.tools.Tool`
+           Routing tool.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: list_upstream_tools(backend_args: list[str]) -> list[mcp.types.Tool]
+   :async:
+
+
+   
+   List the tools a lane started with ``backend_args`` would serve.
+
+   The regular server is imported in-process and the same tag filters as
+   its CLI are applied: ``--connect`` hides the connection tools and
+   ``--include-context`` adds the context helpers.
+
+   :Parameters:
+
+       **backend_args** : :class:`python:list`\[:class:`python:str`]
+           Additional ``ansys-aedt-mcp`` arguments for the lanes.
+
+
+
+   :Returns:
+
+       :class:`python:list`\[:obj:`mcp.types.Tool`]
+           Upstream tool definitions.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: build_instructions() -> str
+
+   
+   Return the proxy instructions: the regular system prompt plus lane guidance.
+
+
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Server instructions.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: register_management_tools(server: fastmcp.FastMCP, state: ProxyState) -> None
+
+   
+   Add the lane management and recovery tools to ``server``.
+
+   Every tool returns an ``{"ok": False, "error": ...}`` payload instead of
+   raising.
+
+   :Parameters:
+
+       **server** : :obj:`fastmcp.FastMCP`
+           Proxy server.
+
+       **state** : :obj:`ProxyState`
+           Routing state shared with the routing tools.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: build_proxy(host: str = spawner.DEFAULT_HOST, startup_timeout: float = spawner.DEFAULT_STARTUP_TIMEOUT, backend_args: list[str] | None = None, probe_timeout: float | None = DEFAULT_PROBE_TIMEOUT, handshake_timeout: float = DEFAULT_HANDSHAKE_TIMEOUT) -> fastmcp.FastMCP
+   :async:
+
+
+   
+   Build the routing proxy server.
+
+   Nothing is spawned: the upstream tools are listed in-process and no lane
+   is selected until the client calls ``spawn_lane`` or ``switch_lane``.
+
+   :Parameters:
+
+       **host** : :class:`python:str`, default: "127.0.0.1"
+           Host lanes listen on.
+
+       **startup_timeout** : :class:`python:float`, default: 60.0
+           Seconds a new lane gets to bind its port.
+
+       **backend_args** : :class:`python:list`\[:class:`python:str`], :obj:`optional`
+           Additional ``ansys-aedt-mcp`` arguments for spawned lanes.
+
+       **probe_timeout** : :class:`python:float`, default: 10.0
+           Seconds a lane gets to answer a status probe.
+
+       **handshake_timeout** : :class:`python:float`, default: 5.0
+           Seconds a lane gets to answer the MCP handshake of a routed call.
+
+
+
+   :Returns:
+
+       :obj:`fastmcp.FastMCP`
+           Proxy server ready to run over stdio.
+
+
+
+
+   :Raises:
+
+       :obj:`ValueError`
+           If ``backend_args`` contains an unsupported option.
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: DEFAULT_SHUTDOWN_TIMEOUT
+   :value: 10.0
+
+
+.. py:data:: DEFAULT_PROBE_TIMEOUT
+   :value: 10.0
+
+
+.. py:data:: DEFAULT_HANDSHAKE_TIMEOUT
+   :value: 5.0
+
+
+.. py:data:: DEFAULT_RECONNECT_TIMEOUT
+   :value: 180.0
+
+
+.. py:data:: HEARTBEAT_INTERVAL
+   :value: 10.0
+
+
+   
+   Seconds between progress notifications while a routed call is pending.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: ROUTED_TAG
+   :value: 'routed'
+
+
+.. py:data:: LANES_TOOLSET
+   :value: 'lanes'
+
+
+.. py:data:: UNSUPPORTED_BACKEND_ARGS
+   :value: ('--dynamic-tool-discovery',)
+
+
+   
+   Backend arguments the proxy cannot support.
+
+   The proxy opens a new MCP session per routed call, so per-session tool
+   gating would hide the AEDT-only tools forever.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: LANE_INSTRUCTIONS
+   :value: Multiline-String
+
+   .. raw:: html
+
+      <details><summary>Show Value</summary>
+
+   .. code-block:: python
+
+      """## Lanes
+      
+      This server routes AEDT tool calls through "lanes". Every AEDT tool call is forwarded
+      to the lane currently selected.
+      
+      - A lane is an isolated backend that owns at most one AEDT session. Independent lanes
+        let you run parallel work (e.g. baseline vs. experiment) without projects interfering.
+      - No lane is selected when this server starts, so AEDT tools fail with "No lane selected"
+        until you pick one. Start with list_lanes: switch_lane to continue on an existing lane
+        (lanes are shared by every client on this machine), or spawn_lane to create one.
+      - Name lanes like git branches, after the work ("patch-antenna", "filter-tuning"),
+        never generic ("default", "main", "test") and never ports or numeric ids.
+      - "AEDT session" means a running ansysedt process, as reported by check_aedt_status.
+        It is not the same as a lane. One lane owns one AEDT session.
+      
+      Typical flow:
+      1. list_lanes()                  # anything to reuse? then switch_lane("<name>") and skip 2-3
+      2. spawn_lane("patch-antenna")   # ~5s: creates the lane and routes to it
+      3. launch_aedt(...)              # ~30-90s: runs INSIDE patch-antenna
+      4. ... use any AEDT tool normally ...
+      5. stop_lane("patch-antenna")    # when the work is finished and nobody else uses it
+      
+      Rules:
+      - spawn_lane does NOT launch AEDT. Call launch_aedt (or connect_to_aedt) next.
+      - Use switch_lane to change where subsequent AEDT tool calls land.
+      - current_lane / list_lanes tell you where you are and what exists.
+      - stop_lane shuts a lane down; if it was the selected one, no lane is selected afterwards.
+      - If AEDT calls on a lane start failing oddly (e.g. after an external PyAEDT script or
+        toolkit used the same AEDT, or "[WinError 127]"), run check_lane. recycle_lane restarts
+        the lane's backend and re-attaches it to the same AEDT without closing AEDT.
+      - If things get wedged: reap_lanes (soft), reset_lanes (harder), unlock_registry_files.
+      - "Lane ... is busy" means that lane's backend is blocked in a long AEDT call and your call
+        was NOT sent. Don't retry in a tight loop: wait, check current_lane (in_flight), ask the
+        user whether AEDT shows a dialog or is solving, or continue on another lane.
+      """
+
+   .. raw:: html
+
+      </details>
+
+
+
+.. py:data:: LANES_TOOLSET_ENTRY
+   :type:  dict[str, Any]
+
+.. py:data:: logger
+
+
+

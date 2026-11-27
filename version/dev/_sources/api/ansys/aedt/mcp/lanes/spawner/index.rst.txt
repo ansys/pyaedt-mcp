@@ -1,0 +1,437 @@
+
+
+
+
+
+
+The ``spawner.py`` module
+=========================
+
+.. py:module:: ansys.aedt.mcp.lanes.spawner
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+
+
+.. py:currentmodule:: spawner
+.. tab-set::
+
+
+
+
+    .. tab-item:: Classes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.aedt.mcp.lanes.spawner.LaneHandle`
+            - Connection details of a running lane.
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~log_path_for`
+            - Return the log file used by the lane on ``port``.
+
+
+          * - :py:obj:`~wait_for_port`
+            - Wait until a port is open, or closed when ``open_`` is ``False``.
+
+
+          * - :py:obj:`~find_listener_pid`
+            - Return the process listening on a TCP port.
+
+
+          * - :py:obj:`~backend_env`
+            - Build the environment of a lane backend.
+
+
+          * - :py:obj:`~backend_command`
+            - Build the command line of a lane backend.
+
+
+          * - :py:obj:`~spawn_backend`
+            - Start a lane backend detached from the current process.
+
+
+          * - :py:obj:`~ensure_backend`
+            - Return a live lane named ``server_id``, spawning it if needed.
+
+
+
+
+    .. tab-item:: Constants
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~DEFAULT_HOST`
+            - 
+
+
+          * - :py:obj:`~DEFAULT_STARTUP_TIMEOUT`
+            - Seconds a new lane gets to bind its HTTP port.
+
+
+          * - :py:obj:`~BACKEND_MODULE`
+            - 
+
+
+
+
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-cod-symbol_class"></span> LaneHandle</api/ansys/aedt/mcp/lanes/spawner/LaneHandle>
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Spawn lane backends and record them in the registry.
+
+A lane backend is ``python -m ansys.aedt.mcp --transport http`` started
+detached from the proxy, so it outlives the client window that created it.
+Its bearer token travels only through the environment, never through the
+command line, which other local users can read.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: log_path_for(port: int) -> pathlib.Path
+
+   
+   Return the log file used by the lane on ``port``.
+
+
+   :Parameters:
+
+       **port** : :class:`python:int`
+           HTTP port of the lane.
+
+
+
+   :Returns:
+
+       :obj:`pathlib.Path`
+           Log file path in the state directory.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: wait_for_port(host: str, port: int, timeout: float, *, open_: bool = True) -> bool
+
+   
+   Wait until a port is open, or closed when ``open_`` is ``False``.
+
+
+   :Parameters:
+
+       **host** : :class:`python:str`
+           Host to probe.
+
+       **port** : :class:`python:int`
+           Port to probe.
+
+       **timeout** : :class:`python:float`
+           Seconds to wait.
+
+       **open_** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:True`
+           Desired state of the port.
+
+
+
+   :Returns:
+
+       :ref:`bool <python:bltin-boolean-values>`
+           ``True`` if the port reached the desired state in time.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: find_listener_pid(port: int) -> int | None
+
+   
+   Return the process listening on a TCP port.
+
+
+   :Parameters:
+
+       **port** : :class:`python:int`
+           TCP port.
+
+
+
+   :Returns:
+
+       :class:`python:int` or :data:`python:None`
+           Process ID, or ``None`` if it cannot be determined.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: backend_env(auth_token: str) -> dict[str, str]
+
+   
+   Build the environment of a lane backend.
+
+
+   :Parameters:
+
+       **auth_token** : :class:`python:str`
+           Bearer token the lane must require.
+
+
+
+   :Returns:
+
+       :class:`python:dict`\[:class:`python:str`, :class:`python:str`]
+           Environment with the token and Host/Origin validation enabled, which
+           guards the loopback port against DNS rebinding and cross-site requests.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: backend_command(host: str, port: int, extra_args: list[str]) -> list[str]
+
+   
+   Build the command line of a lane backend.
+
+
+   :Parameters:
+
+       **host** : :class:`python:str`
+           Host to bind.
+
+       **port** : :class:`python:int`
+           Port to bind.
+
+       **extra_args** : :class:`python:list`\[:class:`python:str`]
+           Additional ``ansys-aedt-mcp`` arguments.
+
+
+
+   :Returns:
+
+       :class:`python:list`\[:class:`python:str`]
+           Command line.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: spawn_backend(host: str, port: int, extra_args: list[str], log_path: pathlib.Path, auth_token: str) -> subprocess.Popen[bytes]
+
+   
+   Start a lane backend detached from the current process.
+
+
+   :Parameters:
+
+       **host** : :class:`python:str`
+           Host to bind.
+
+       **port** : :class:`python:int`
+           Port to bind.
+
+       **extra_args** : :class:`python:list`\[:class:`python:str`]
+           Additional ``ansys-aedt-mcp`` arguments.
+
+       **log_path** : :obj:`pathlib.Path`
+           File receiving the backend stdout and stderr.
+
+       **auth_token** : :class:`python:str`
+           Bearer token the lane must require.
+
+
+
+   :Returns:
+
+       :obj:`subprocess.Popen`
+           Handle of the spawned process.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: ensure_backend(server_id: str, host: str = DEFAULT_HOST, extra_args: list[str] | None = None, startup_timeout: float = DEFAULT_STARTUP_TIMEOUT) -> LaneHandle
+
+   
+   Return a live lane named ``server_id``, spawning it if needed.
+
+   A free port is reserved in the registry before spawning, so concurrent
+   proxies cannot pick the same one. The spawn itself runs outside the
+   registry lock because it can take many seconds.
+
+   :Parameters:
+
+       **server_id** : :class:`python:str`
+           Lane name.
+
+       **host** : :class:`python:str`, default: "127.0.0.1"
+           Host the lane binds to.
+
+       **extra_args** : :class:`python:list`\[:class:`python:str`], :obj:`optional`
+           Additional ``ansys-aedt-mcp`` arguments for a new lane.
+
+       **startup_timeout** : :class:`python:float`, default: 60.0
+           Seconds a new lane gets to bind its port.
+
+
+
+   :Returns:
+
+       :obj:`LaneHandle`
+           Connection details of the lane.
+
+
+
+
+   :Raises:
+
+       :obj:`RuntimeError`
+           If a new lane does not start in time.
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: DEFAULT_HOST
+   :value: '127.0.0.1'
+
+
+.. py:data:: DEFAULT_STARTUP_TIMEOUT
+   :value: 60.0
+
+
+   
+   Seconds a new lane gets to bind its HTTP port.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: BACKEND_MODULE
+   :value: 'ansys.aedt.mcp'
+
+
+
+
